@@ -1,0 +1,125 @@
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    depends_on:
+      - web
+      - api
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/nginx/.htpasswd:/etc/nginx/.htpasswd:ro
+
+  setup:
+    image: node:22-alpine
+    working_dir: /workspace
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/hr_copilot?schema=public
+      PNPM_STORE_DIR: /pnpm/store
+    volumes:
+      - .:/workspace
+      - pnpm_store:/pnpm/store
+    command: >
+      sh -lc "
+        corepack enable &&
+        pnpm config set store-dir /pnpm/store &&
+        pnpm install --frozen-lockfile &&
+        pnpm --filter @hr-copilot/db prisma generate &&
+        pnpm db:deploy
+      "
+
+  web:
+    image: node:22-alpine
+    working_dir: /workspace
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_APP_URL: http://localhost:8080
+      NEXT_PUBLIC_API_BASE_PATH: /api
+      VITE_API_BASE_PATH: /api
+      VITE_MAX_CV_FILE_SIZE_MB: ${VITE_MAX_CV_FILE_SIZE_MB:-10}
+      API_BASE_URL: http://api:4000
+      CHOKIDAR_USEPOLLING: "true"
+      PNPM_STORE_DIR: /pnpm/store
+    volumes:
+      - .:/workspace
+      - pnpm_store:/pnpm/store
+    command: >
+      sh -lc "
+        corepack enable &&
+        pnpm config set store-dir /pnpm/store &&
+        pnpm --filter @hr-copilot/web dev
+      "
+
+  api:
+    image: node:22-alpine
+    working_dir: /workspace
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      WEB_ORIGIN: http://localhost:8080
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/hr_copilot?schema=public
+      REDIS_URL: redis://redis:6379
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-v.bichlt6@vinsmartfuture.tech}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-demo123}
+      ADMIN_NAME: ${ADMIN_NAME:-Lường Thị Bích}
+      JWT_ACCESS_TOKEN_SECRET: ${JWT_ACCESS_TOKEN_SECRET:-dev-only-change-me-at-least-32-characters}
+      JWT_ACCESS_TOKEN_TTL_SECONDS: ${JWT_ACCESS_TOKEN_TTL_SECONDS:-28800}
+      JWT_REFRESH_TOKEN_SECRET: ${JWT_REFRESH_TOKEN_SECRET:-dev-only-refresh-change-me-at-least-32-characters}
+      JWT_REFRESH_TOKEN_TTL_SECONDS: ${JWT_REFRESH_TOKEN_TTL_SECONDS:-2592000}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+      AUTH_COOKIE_SAMESITE: ${AUTH_COOKIE_SAMESITE:-lax}
+      CV_STORAGE_DRIVER: ${CV_STORAGE_DRIVER:-local}
+      BLOB_STORE_ID: ${BLOB_STORE_ID:-}
+      BLOB_READ_WRITE_TOKEN: ${BLOB_READ_WRITE_TOKEN:-}
+      UPLOAD_DIR: /workspace/uploads
+      MAX_CV_FILE_SIZE_MB: 10
+      PNPM_STORE_DIR: /pnpm/store
+    volumes:
+      - .:/workspace
+      - pnpm_store:/pnpm/store
+    command: >
+      sh -lc "
+        corepack enable &&
+        pnpm config set store-dir /pnpm/store &&
+        pnpm --filter @hr-copilot/api dev
+      "
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hr_copilot
+    ports:
+      - "55432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hr_copilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "56379:6379"
+    volumes:
+      - redis_dev_data:/data
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+  pnpm_store:

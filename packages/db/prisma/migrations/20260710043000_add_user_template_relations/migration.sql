@@ -1,0 +1,2 @@
+-- This migration was created without schema changes.
+-- Keep it as a no-op so Prisma deploy does not fail on the migration directory.

@@ -1,0 +1,24 @@
+{
+  "name": "@hr-copilot/db",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "prisma generate",
+    "lint": "prisma validate",
+    "test": "prisma validate",
+    "prisma": "prisma",
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "dotenv": "^17.2.3",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.16.0",
+    "@types/pg": "^8.15.5",
+    "prisma": "^7.8.0",
+    "tsx": "^4.20.6"
+  }
+}
