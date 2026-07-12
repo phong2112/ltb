@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Navigate, useNavigate } from "react-router";
-import { Lock, Mail, Eye, EyeOff, Sparkles } from "lucide-react";
+import { Link, Navigate, useNavigate } from "react-router";
+import { ArrowLeft, Lock, Mail, Eye, EyeOff, Sparkles } from "lucide-react";
 import { useData } from "@/app/data";
 import { useLanguage } from "@/app/i18n";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
@@ -49,7 +49,14 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="min-h-screen flex" style={{ fontFamily: "'Nunito', sans-serif", background: "linear-gradient(135deg, #fdf0f4 0%, #fde8ef 100%)" }}>
+    <div className="relative min-h-screen flex" style={{ fontFamily: "'Nunito', sans-serif", background: "linear-gradient(135deg, #fdf0f4 0%, #fde8ef 100%)" }}>
+      <Link
+        to="/"
+        className="absolute left-4 top-4 z-20 inline-flex items-center gap-2 rounded-full border border-border bg-white/90 px-4 py-2 text-sm font-semibold text-foreground shadow-sm transition-all hover:border-primary hover:text-primary"
+      >
+        <ArrowLeft size={15} /> {t("common.backToClient")}
+      </Link>
+
       {/* Left — branding */}
       <div className="hidden lg:flex flex-col justify-center px-16 w-[45%] bg-primary text-white relative overflow-hidden">
         <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-white/10" />

@@ -8,6 +8,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { FileInterceptor } from "@nestjs/platform-express";
+import { ApiBadRequestResponse, ApiBody, ApiConsumes, ApiCreatedResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { memoryStorage } from "multer";
 import { extname } from "node:path";
 import { CreateApplicationDto } from "./dto/create-application.dto";
@@ -21,6 +22,7 @@ const allowedMimeTypes = new Set<string>([
 
 const allowedExtensions = new Set([".pdf", ".doc", ".docx"]);
 
+@ApiTags("Applications")
 @Controller("applications")
 export class ApplicationsController {
   constructor(
@@ -28,6 +30,33 @@ export class ApplicationsController {
     private readonly configService: ConfigService,
   ) {}
 
+  @ApiOperation({ summary: "Submit a candidate application" })
+  @ApiConsumes("multipart/form-data")
+  @ApiBody({
+    schema: {
+      type: "object",
+      required: ["jobId", "fullName", "email", "consentAccepted"],
+      properties: {
+        jobId: { type: "string", example: "cmjob123" },
+        fullName: { type: "string", example: "Nguyen Van A" },
+        email: { type: "string", example: "candidate@example.com", format: "email" },
+        phone: { type: "string", example: "0901234567" },
+        linkedinUrl: { type: "string", example: "https://www.linkedin.com/in/candidate" },
+        portfolioUrl: { type: "string", example: "https://candidate.dev" },
+        salaryExpectation: { type: "string", example: "25,000,000 VND" },
+        noticePeriod: { type: "string", example: "30 days" },
+        screeningAnswers: { type: "string", example: "I have 4 years of React and TypeScript experience." },
+        consentAccepted: { type: "boolean", example: true },
+        cv: {
+          type: "string",
+          format: "binary",
+          description: "Optional when portfolioUrl is provided. Accepts PDF, DOC, or DOCX.",
+        },
+      },
+    },
+  })
+  @ApiCreatedResponse({ description: "Application submission result." })
+  @ApiBadRequestResponse({ description: "Invalid form data, consent, file type, or file size." })
   @Post()
   @UseInterceptors(
     FileInterceptor("cv", {

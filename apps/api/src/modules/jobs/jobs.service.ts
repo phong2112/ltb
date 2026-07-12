@@ -112,14 +112,6 @@ export class JobsService {
     });
   }
 
-  async deleteJob(id: string) {
-    await this.getAdminJob(id);
-
-    return this.prisma.job.delete({
-      where: { id },
-    });
-  }
-
   private async createUniqueSlug(baseSlug: string) {
     let slug = baseSlug || "job";
     let suffix = 1;

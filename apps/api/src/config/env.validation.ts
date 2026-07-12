@@ -45,6 +45,11 @@ export function validateEnv(config: Record<string, unknown>) {
     throw new Error("AUTH_COOKIE_SECURE must be true or false");
   }
 
+  const swaggerEnabled = config.SWAGGER_ENABLED;
+  if (hasValue(swaggerEnabled) && !["true", "false"].includes(String(swaggerEnabled))) {
+    throw new Error("SWAGGER_ENABLED must be true or false");
+  }
+
   const storageDriver = config.CV_STORAGE_DRIVER;
   if (hasValue(storageDriver) && !["local", "vercel-blob"].includes(String(storageDriver))) {
     throw new Error("CV_STORAGE_DRIVER must be one of: local, vercel-blob");

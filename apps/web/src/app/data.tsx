@@ -1,13 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
 
-export type JobStatus = "published" | "draft";
+export type JobStatus = "published" | "draft" | "closed" | "archived";
 export type CandidateStatus = "new" | "reviewing" | "interview" | "offered" | "rejected";
 export type CandidateMessageChannel = "system" | "messenger" | "zalo" | "email" | "linkedin";
 export type CandidateMessageDirection = "inbound" | "outbound";
 
 export type CandidateMessage = {
   id: string;
-  candidateId: string;
+  applicationId: string;
   channel: CandidateMessageChannel;
   direction: CandidateMessageDirection;
   content: string;
@@ -36,6 +36,7 @@ export type Job = {
 export type Candidate = {
   id: string;
   applicationId: string;
+  candidateId: string;
   name: string;
   email: string;
   phone: string;
@@ -46,7 +47,8 @@ export type Candidate = {
     mimeType: string;
     sizeBytes: number;
   };
-  note: string;
+  coverNote: string;
+  hrNote: string;
   jobId: string;
   jobTitle: string;
   status: CandidateStatus;
@@ -61,10 +63,15 @@ export type Candidate = {
   messages: CandidateMessage[];
 };
 
-type NewCandidate = Omit<
-  Candidate,
-  "id" | "applicationId" | "appliedAt" | "followUpDate" | "aiScore" | "aiSummary" | "strengths" | "risks" | "missingReqs" | "screeningAnswers" | "messages" | "cvFile"
-> & {
+type NewCandidate = {
+  name: string;
+  email: string;
+  phone: string;
+  cvUrl: string;
+  note: string;
+  jobId: string;
+  jobTitle: string;
+  status: CandidateStatus;
   cvFile?: File | null;
 };
 
@@ -81,7 +88,7 @@ type ApiJob = {
   description: string;
   requirements: string;
   benefits?: string | null;
-  status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  status: "DRAFT" | "PUBLISHED" | "CLOSED" | "ARCHIVED";
   urgent?: boolean | null;
   logo?: string | null;
   createdAt?: string;
@@ -92,10 +99,19 @@ type ApiJob = {
 
 type ApiApplication = {
   id: string;
+  candidateId: string;
   jobId: string;
+  submittedFullName: string;
+  submittedEmail?: string | null;
+  submittedPhone?: string | null;
+  submittedPortfolioUrl?: string | null;
+  coverNote?: string | null;
+  hrNotes?: string | null;
   status: string;
   answers?: unknown;
-  followUpAt?: string | null;
+  followUpTask?: {
+    dueAt?: string | null;
+  } | null;
   createdAt?: string;
   job?: ApiJob;
   matchResult?: {
@@ -108,15 +124,6 @@ type ApiApplication = {
   cvParseResult?: {
     summary?: string | null;
   } | null;
-};
-
-type ApiCandidate = {
-  id: string;
-  fullName: string;
-  email?: string | null;
-  phone?: string | null;
-  portfolioUrl?: string | null;
-  notes?: string | null;
   files?: {
     id: string;
     originalName?: string | null;
@@ -125,12 +132,18 @@ type ApiCandidate = {
     path: string;
   }[];
   messages?: ApiCandidateMessage[];
-  applications?: ApiApplication[];
+  candidate?: {
+    id: string;
+    fullName: string;
+    email?: string | null;
+    phone?: string | null;
+    portfolioUrl?: string | null;
+  };
 };
 
 type ApiCandidateMessage = {
   id: string;
-  candidateId: string;
+  applicationId: string;
   channel: string;
   direction: string;
   content: string;
@@ -164,10 +177,9 @@ type DataCtx = {
   reloadAdminData: () => Promise<void>;
   addJob: (j: Omit<Job, "id" | "posted" | "applicants">) => Promise<void>;
   updateJob: (id: string, patch: Partial<Job>) => Promise<void>;
-  deleteJob: (id: string) => Promise<void>;
   addCandidate: (c: NewCandidate) => Promise<void>;
   updateCandidate: (id: string, patch: Partial<Candidate>) => Promise<void>;
-  sendCandidateMessage: (candidateId: string, channel: CandidateMessageChannel, content: string) => Promise<void>;
+  sendCandidateMessage: (applicationId: string, channel: CandidateMessageChannel, content: string) => Promise<void>;
   isJobSaved: (id: string) => boolean;
   toggleSavedJob: (id: string) => void;
   login: (email: string, password: string) => Promise<LoginResult>;
@@ -271,12 +283,21 @@ function shouldAttemptAuthRefresh(path: string) {
 }
 
 function mapJobStatus(status: ApiJob["status"]): JobStatus {
-  return status === "PUBLISHED" ? "published" : "draft";
+  if (status === "PUBLISHED") return "published";
+  if (status === "CLOSED") return "closed";
+  if (status === "ARCHIVED") return "archived";
+  return "draft";
 }
 
 function toApiJobStatus(status?: JobStatus) {
   if (!status) return undefined;
-  return status === "published" ? "PUBLISHED" : "DRAFT";
+  const statusMap: Record<JobStatus, ApiJob["status"]> = {
+    published: "PUBLISHED",
+    draft: "DRAFT",
+    closed: "CLOSED",
+    archived: "ARCHIVED",
+  };
+  return statusMap[status];
 }
 
 function mapApplicationStatus(status?: string): CandidateStatus {
@@ -320,52 +341,53 @@ function mapJob(job: ApiJob): Job {
   };
 }
 
-function mapCandidate(candidate: ApiCandidate): Candidate | null {
-  const application = candidate.applications?.[0];
-  const job = application?.job;
+function mapCandidate(application: ApiApplication): Candidate | null {
+  const job = application.job;
 
-  if (!application || !job) return null;
+  if (!job || !application.candidate) return null;
 
   const answers = asRecord(application.answers);
   const screeningAnswers = parseScreeningAnswers(answers?.screeningAnswers);
-  const coverNote = typeof answers?.coverNote === "string" ? answers.coverNote : typeof answers?.text === "string" ? answers.text : "";
-  const cvFile = candidate.files?.[0];
+  const legacyCoverNote = typeof answers?.coverNote === "string" ? answers.coverNote : typeof answers?.text === "string" ? answers.text : "";
+  const cvFile = application.files?.[0];
   const cvPath = cvFile?.path;
   const uploadedCvUrl = cvFile?.id && cvFile.mimeType !== "text/uri-list" ? `${API_BASE}/admin/candidates/files/${cvFile.id}` : undefined;
 
   return {
-    id: candidate.id,
+    id: application.id,
     applicationId: application.id,
-    name: candidate.fullName,
-    email: candidate.email ?? "",
-    phone: candidate.phone ?? "",
-    cvUrl: uploadedCvUrl ?? (cvPath && /^https?:\/\//.test(cvPath) ? cvPath : candidate.portfolioUrl ?? "#"),
+    candidateId: application.candidateId,
+    name: application.submittedFullName,
+    email: application.submittedEmail ?? "",
+    phone: application.submittedPhone ?? "",
+    cvUrl: uploadedCvUrl ?? (cvPath && /^https?:\/\//.test(cvPath) ? cvPath : application.submittedPortfolioUrl ?? "#"),
     cvFile: cvFile ? {
       id: cvFile.id,
       originalName: cvFile.originalName ?? "CV ứng viên",
       mimeType: cvFile.mimeType ?? "",
       sizeBytes: cvFile.sizeBytes ?? 0,
     } : undefined,
-    note: candidate.notes ?? coverNote,
+    coverNote: application.coverNote ?? legacyCoverNote,
+    hrNote: application.hrNotes ?? "",
     jobId: job.id,
     jobTitle: job.title,
     status: mapApplicationStatus(application.status),
     appliedAt: formatDate(application.createdAt),
-    followUpDate: formatDate(application.followUpAt),
+    followUpDate: formatDate(application.followUpTask?.dueAt),
     aiScore: application.matchResult?.score ?? 0,
     aiSummary: application.cvParseResult?.summary ?? "Hồ sơ đang được AI phân tích...",
     strengths: toStringArray(application.matchResult?.strengths),
     risks: toStringArray(application.matchResult?.risks),
     missingReqs: toStringArray(application.matchResult?.missingRequirements),
     screeningAnswers,
-    messages: (candidate.messages ?? []).map(mapCandidateMessage),
+    messages: (application.messages ?? []).map(mapCandidateMessage),
   };
 }
 
 function mapCandidateMessage(message: ApiCandidateMessage): CandidateMessage {
   return {
     id: message.id,
-    candidateId: message.candidateId,
+    applicationId: message.applicationId,
     channel: mapMessageChannel(message.channel),
     direction: message.direction === "inbound" ? "inbound" : "outbound",
     content: message.content,
@@ -462,7 +484,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
       const [adminJobs, adminCandidates] = await Promise.all([
         apiRequest<ApiJob[]>("/admin/jobs"),
-        apiRequest<ApiCandidate[]>("/admin/candidates"),
+        apiRequest<ApiApplication[]>("/admin/candidates"),
       ]);
       setJobs(adminJobs.map(mapJob));
       setCandidates(adminCandidates.map(mapCandidate).filter((candidate): candidate is Candidate => Boolean(candidate)));
@@ -512,21 +534,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   const updateJob = async (id: string, patch: Partial<Job>) => {
-    const current = jobs.find((job) => job.id === id);
-    const next = current ? { ...current, ...patch } : patch;
-
     await apiRequest<ApiJob>(`/admin/jobs/${id}`, {
       method: "PATCH",
-      body: JSON.stringify(toJobPayload(next)),
+      body: JSON.stringify(toJobPayload(patch)),
     });
     await reloadAdminData();
-  };
-
-  const deleteJob = async (id: string) => {
-    await apiRequest<ApiJob>(`/admin/jobs/${id}`, {
-      method: "DELETE",
-    });
-    setJobs((current) => current.filter((job) => job.id !== id));
   };
 
   const addCandidate = async (candidate: NewCandidate) => {
@@ -560,24 +572,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const current = candidates.find((candidate) => candidate.id === id);
     if (!current) return;
 
+    const body: { status?: string; followUpAt?: string | null; note?: string } = {
+      status: toApiApplicationStatus(patch.status ?? current.status),
+      note: patch.hrNote,
+    };
+
+    if (patch.followUpDate !== undefined) {
+      body.followUpAt = patch.followUpDate || null;
+    }
+
     await apiRequest(`/admin/candidates/applications/${current.applicationId}`, {
       method: "PATCH",
-      body: JSON.stringify({
-        status: toApiApplicationStatus(patch.status ?? current.status),
-        followUpAt: (patch.followUpDate ?? current.followUpDate) || undefined,
-        note: patch.note,
-      }),
+      body: JSON.stringify(body),
     });
     await reloadAdminData();
   };
 
-  const sendCandidateMessage = async (candidateId: string, channel: CandidateMessageChannel, content: string) => {
-    const message = await apiRequest<ApiCandidateMessage>(`/admin/candidates/${candidateId}/messages`, {
+  const sendCandidateMessage = async (applicationId: string, channel: CandidateMessageChannel, content: string) => {
+    const message = await apiRequest<ApiCandidateMessage>(`/admin/candidates/applications/${applicationId}/messages`, {
       method: "POST",
       body: JSON.stringify({ channel, content }),
     });
 
-    setCandidates((current) => current.map((candidate) => candidate.id === candidateId ? {
+    setCandidates((current) => current.map((candidate) => candidate.applicationId === applicationId ? {
       ...candidate,
       messages: [...candidate.messages, mapCandidateMessage(message)],
     } : candidate));
@@ -617,7 +634,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <DataContext.Provider value={{ jobs, candidates, isAdminLoggedIn, isAuthReady, isLoading, error, savedJobIds, reloadPublicJobs, reloadAdminData, addJob, updateJob, deleteJob, addCandidate, updateCandidate, sendCandidateMessage, isJobSaved, toggleSavedJob, login, logout }}>
+    <DataContext.Provider value={{ jobs, candidates, isAdminLoggedIn, isAuthReady, isLoading, error, savedJobIds, reloadPublicJobs, reloadAdminData, addJob, updateJob, addCandidate, updateCandidate, sendCandidateMessage, isJobSaved, toggleSavedJob, login, logout }}>
       {children}
     </DataContext.Provider>
   );

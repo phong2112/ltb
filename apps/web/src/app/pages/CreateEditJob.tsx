@@ -234,7 +234,7 @@ export default function CreateEditJob() {
     setSalaryCurrency(salary.currency);
   }, [existing]);
 
-  async function handleSave(status?: "published" | "draft") {
+  async function handleSave(status?: Job["status"]) {
     const draftTag = tagDraft.trim();
     const draftTagError = draftTag ? getTagError(draftTag, tags) : "";
     const finalTags = draftTagError ? tags : cleanTagList([...tags, draftTag]);
@@ -504,8 +504,8 @@ export default function CreateEditJob() {
             <button onClick={() => handleSave("published")} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90 transition-all shadow-sm">
               <Globe size={15} /> {t("admin.publishNow")}
             </button>
-            <button onClick={() => handleSave("draft")} className="flex items-center gap-2 px-5 py-2.5 border border-border rounded-xl text-sm font-bold text-muted-foreground hover:border-primary hover:text-primary transition-all">
-              <FileText size={15} /> {t("admin.saveDraft")}
+            <button onClick={() => handleSave(isEdit ? undefined : "draft")} className="flex items-center gap-2 px-5 py-2.5 border border-border rounded-xl text-sm font-bold text-muted-foreground hover:border-primary hover:text-primary transition-all">
+              <FileText size={15} /> {isEdit ? t("admin.saveChanges") : t("admin.saveDraft")}
             </button>
           </div>
         </div>

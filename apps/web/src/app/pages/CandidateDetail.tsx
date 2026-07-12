@@ -18,14 +18,14 @@ export default function CandidateDetail() {
   const { candidates, isLoading, updateCandidate } = useData();
   const { language, t } = useLanguage();
   const candidate = candidates.find(x => x.id === id);
-  const [note, setNote] = useState(candidate?.note || "");
+  const [note, setNote] = useState(candidate?.hrNote || "");
   const [followUp, setFollowUp] = useState(candidate?.followUpDate || "");
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!candidate) return;
-    setNote(candidate.note || "");
+    setNote(candidate.hrNote || "");
     setFollowUp(candidate.followUpDate || "");
   }, [candidate]);
 
@@ -50,7 +50,7 @@ export default function CandidateDetail() {
     setError("");
 
     try {
-      await updateCandidate(c.id, { note, followUpDate: followUp });
+      await updateCandidate(c.id, { hrNote: note, followUpDate: followUp });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
@@ -124,10 +124,10 @@ export default function CandidateDetail() {
                   <ExternalLink size={13} /> {t("common.openCv")} <Download size={12} />
                 </a>
               </div>
-              {c.note && (
+              {c.coverNote && (
                 <div className="mt-3 p-3 bg-pink-50 rounded-xl border border-pink-100">
                   <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wide mb-1">{t("admin.coverNote")}</p>
-                  <p className="text-xs text-foreground leading-relaxed">{c.note}</p>
+                  <p className="text-xs text-foreground leading-relaxed">{c.coverNote}</p>
                 </div>
               )}
             </div>

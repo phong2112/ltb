@@ -13,60 +13,65 @@ export class CandidatesService {
   ) {}
 
   listCandidates() {
-    return this.prisma.candidate.findMany({
+    return this.prisma.application.findMany({
       orderBy: { createdAt: "desc" },
       include: {
-        files: {
-          orderBy: { createdAt: "desc" },
-        },
+        candidate: true,
         messages: {
           orderBy: { createdAt: "asc" },
         },
-        applications: {
+        followUpTask: true,
+        files: {
           orderBy: { createdAt: "desc" },
-          include: {
-            job: true,
-            matchResult: true,
-            cvParseResult: true,
-          },
         },
+        job: true,
+        matchResult: true,
+        cvParseResult: true,
       },
     });
   }
 
   async getCandidate(id: string) {
-    const candidate = await this.prisma.candidate.findUnique({
+    const application = await this.prisma.application.findUnique({
       where: { id },
       include: {
-        files: true,
+        candidate: {
+          include: {
+            activities: {
+              orderBy: { createdAt: "desc" },
+            },
+          },
+        },
         messages: {
           orderBy: { createdAt: "asc" },
         },
-        followUps: true,
-        activities: {
+        followUpTask: true,
+        files: {
           orderBy: { createdAt: "desc" },
         },
-        applications: {
-          orderBy: { createdAt: "desc" },
-          include: {
-            job: true,
-            matchResult: true,
-            cvParseResult: true,
-          },
-        },
+        job: true,
+        matchResult: true,
+        cvParseResult: true,
       },
     });
 
-    if (!candidate) {
-      throw new NotFoundException("Candidate not found");
+    if (!application) {
+      throw new NotFoundException("Application not found");
     }
 
-    return candidate;
+    return application;
   }
 
   async getCandidateFile(fileId: string) {
     const file = await this.prisma.candidateFile.findUnique({
       where: { id: fileId },
+      include: {
+        application: {
+          select: {
+            candidateId: true,
+          },
+        },
+      },
     });
 
     if (!file) {
@@ -79,10 +84,13 @@ export class CandidatesService {
 
     await this.prisma.activityLog.create({
       data: {
-        candidateId: file.candidateId,
+        candidateId: file.application.candidateId,
+        applicationId: file.applicationId,
+        candidateFileId: file.id,
         actor: "hr",
         action: "candidate_file_viewed",
         metadata: {
+          applicationId: file.applicationId,
           fileId: file.id,
           originalName: file.originalName,
         },
@@ -92,25 +100,25 @@ export class CandidatesService {
     return file;
   }
 
-  async createMessage(candidateId: string, dto: CreateCandidateMessageDto) {
+  async createMessageForApplication(applicationId: string, dto: CreateCandidateMessageDto) {
     const content = dto.content.trim();
 
     if (!content) {
       throw new BadRequestException("Message content is required");
     }
 
-    const candidate = await this.prisma.candidate.findUnique({
-      where: { id: candidateId },
-      select: { id: true },
+    const application = await this.prisma.application.findUnique({
+      where: { id: applicationId },
+      select: { id: true, candidateId: true, jobId: true },
     });
 
-    if (!candidate) {
-      throw new NotFoundException("Candidate not found");
+    if (!application) {
+      throw new NotFoundException("Application not found");
     }
 
     const message = await this.prisma.candidateMessage.create({
       data: {
-        candidateId,
+        applicationId: application.id,
         channel: dto.channel,
         direction: "outbound",
         content,
@@ -119,10 +127,13 @@ export class CandidatesService {
 
     await this.prisma.activityLog.create({
       data: {
-        candidateId,
+        candidateId: application.candidateId,
+        applicationId: application.id,
+        jobId: application.jobId,
         actor: "hr",
         action: "candidate_message_sent",
         metadata: {
+          applicationId: application.id,
           messageId: message.id,
           channel: message.channel,
         },
@@ -132,36 +143,74 @@ export class CandidatesService {
     return message;
   }
 
+  async createMessageForCandidate(candidateId: string, dto: CreateCandidateMessageDto) {
+    const applications = await this.prisma.application.findMany({
+      where: { candidateId },
+      select: { id: true },
+      orderBy: { createdAt: "desc" },
+      take: 2,
+    });
+
+    if (applications.length === 0) {
+      throw new NotFoundException("Candidate not found");
+    }
+
+    if (applications.length > 1) {
+      throw new BadRequestException("Candidate has multiple applications; applicationId is required");
+    }
+
+    return this.createMessageForApplication(applications[0].id, dto);
+  }
+
   async updateApplication(applicationId: string, dto: UpdateApplicationStatusDto) {
     const application = await this.prisma.application.findUnique({
       where: { id: applicationId },
-      include: { candidate: true },
+      include: { job: true },
     });
 
     if (!application) {
       throw new NotFoundException("Application not found");
     }
 
-    const updated = await this.prisma.application.update({
-      where: { id: applicationId },
-      data: {
-        status: dto.status as ApplicationStatus,
-        followUpAt: dto.followUpAt ? new Date(dto.followUpAt) : undefined,
-      },
-    });
-
-    if (dto.note) {
-      await this.prisma.candidate.update({
-        where: { id: application.candidateId },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const updatedApplication = await tx.application.update({
+        where: { id: applicationId },
         data: {
-          notes: [application.candidate.notes, dto.note].filter(Boolean).join("\n\n"),
+          status: dto.status as ApplicationStatus,
+          hrNotes: dto.note === undefined ? undefined : dto.note.trim() || null,
         },
       });
-    }
+
+      if (dto.followUpAt !== undefined) {
+        if (dto.followUpAt) {
+          await tx.followUpTask.upsert({
+            where: { applicationId },
+            create: {
+              applicationId,
+              title: `Follow up ${application.submittedFullName} for ${application.job.title}`,
+              dueAt: new Date(dto.followUpAt),
+            },
+            update: {
+              title: `Follow up ${application.submittedFullName} for ${application.job.title}`,
+              dueAt: new Date(dto.followUpAt),
+              completedAt: null,
+            },
+          });
+        } else {
+          await tx.followUpTask.deleteMany({
+            where: { applicationId },
+          });
+        }
+      }
+
+      return updatedApplication;
+    });
 
     await this.prisma.activityLog.create({
       data: {
         candidateId: application.candidateId,
+        applicationId,
+        jobId: application.jobId,
         actor: "hr",
         action: "application_status_updated",
         metadata: {

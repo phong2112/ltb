@@ -90,7 +90,7 @@ export default function CandidateChatPanel({ initialCandidateId, mode = "full" }
 
     try {
       setIsSending(true);
-      await sendCandidateMessage(activeCandidate.id, channel, draft.trim());
+      await sendCandidateMessage(activeCandidate.applicationId, channel, draft.trim());
       setDraft("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không gửi được tin nhắn");
