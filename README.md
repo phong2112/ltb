@@ -13,6 +13,7 @@ The candidate site and HR workspace run on the same domain:
 /admin/jobs                   protected job management
 /admin/candidates             protected candidate inbox
 /api/health                   public API health
+/docs                         Swagger API docs when enabled
 /api/applications             public application intake
 /api/admin/*                  protected HR API
 ```
@@ -31,6 +32,7 @@ Implemented:
 - Docker Compose with Nginx, web, API, PostgreSQL, and Redis.
 - Nginx reverse proxy for same-domain routing.
 - Basic Auth protection for `/admin` and `/api/admin`.
+- Swagger API documentation for local/API development.
 
 ### Phase 2: Jobs And Career Site
 
@@ -102,6 +104,7 @@ Open:
 
 ```text
 http://localhost:8080
+http://localhost:8080/docs
 ```
 
 Default protected HR credential for local/demo Docker:

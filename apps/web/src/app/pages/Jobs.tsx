@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Link, useSearchParams } from "react-router";
-import { Search, Filter, MapPin, Users, ChevronRight, Clock } from "lucide-react";
+import { useSearchParams } from "react-router";
+import { Search, Filter } from "lucide-react";
+import PublicJobCard from "@/app/components/PublicJobCard";
 import { useData } from "@/app/data";
 import { translateJobLevel, translateJobType, useLanguage } from "@/app/i18n";
 import PublicLayout from "@/app/layouts/PublicLayout";
@@ -8,11 +9,6 @@ import PublicLayout from "@/app/layouts/PublicLayout";
 const ALL_FILTER = "all";
 const TYPE_FILTERS = [ALL_FILTER, "Full-time", "Hybrid", "Remote"];
 const LEVEL_FILTERS = [ALL_FILTER, "Mid-level", "Senior", "Manager"];
-const typeColors: Record<string, string> = {
-  "Full-time": "bg-pink-100 text-pink-700",
-  "Hybrid": "bg-purple-100 text-purple-700",
-  "Remote": "bg-emerald-100 text-emerald-700",
-};
 
 export default function Jobs() {
   const { jobs } = useData();
@@ -76,31 +72,7 @@ export default function Jobs() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map(job => (
-              <Link key={job.id} to={`/jobs/${job.id}`} className="group bg-white border border-border rounded-2xl p-5 hover:border-primary/40 hover:shadow-lg transition-all duration-200 flex flex-col gap-3 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-pink-50/0 to-pink-50/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl pointer-events-none" />
-                <div className="relative flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-xl bg-pink-50 flex items-center justify-center text-2xl flex-shrink-0 border border-pink-100">{job.logo}</div>
-                    <div>
-                      <h3 className="font-bold text-foreground text-sm leading-tight group-hover:text-primary transition-colors" style={{ fontFamily: "'Playfair Display', serif" }}>{job.title}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">{job.company}</p>
-                    </div>
-                  </div>
-                  {job.urgent && <span className="px-2 py-0.5 bg-rose-100 text-rose-600 text-[10px] font-bold rounded-full border border-rose-200 flex-shrink-0">🔥 {t("jobs.urgent")}</span>}
-                </div>
-                <div className="relative flex flex-wrap gap-1.5">
-                  {job.tags.slice(0, 3).map(tag => <span key={tag} className="px-2 py-0.5 bg-pink-50 border border-pink-100 text-primary text-[10px] rounded-lg font-medium">{tag}</span>)}
-                </div>
-                <div className="relative flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1"><MapPin size={10} />{job.location}</span>
-                  <span className={`px-2 py-0.5 rounded-full font-semibold text-[10px] ${typeColors[job.type] || "bg-pink-100 text-pink-700"}`}>{translateJobType(job.type, language)}</span>
-                  <span className="ml-auto font-semibold text-amber-600 text-[11px]">💰 {job.salary}</span>
-                </div>
-                <div className="relative flex items-center justify-between pt-2 border-t border-border text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1"><Users size={10} />{job.applicants} {t("common.candidates")} · <Clock size={10} className="ml-1" />{job.posted}</span>
-                  <span className="flex items-center gap-0.5 font-semibold text-primary group-hover:gap-1.5 transition-all">{t("common.view")} <ChevronRight size={12} /></span>
-                </div>
-              </Link>
+              <PublicJobCard key={job.id} job={job} />
             ))}
           </div>
         )}

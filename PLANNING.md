@@ -40,7 +40,7 @@ HR creates JD
   - Application success page.
 - HR workspace:
   - Login.
-  - Create/edit/publish/unpublish jobs.
+  - Create/edit/publish/close/archive jobs.
   - Candidate inbox.
   - Candidate detail.
   - Application status update.
@@ -179,9 +179,24 @@ Initial entities:
 Candidate identity rules for the MVP:
 
 - Public applicants are not authenticated users, so `Application` remains the source of truth for each submission.
+- Store submission snapshots on `Application` (`submittedFullName`, `submittedEmail`, `submittedPhone`, links, cover note, HR notes), not in a shared candidate note/profile field.
+- Keep application-scoped child records (`CandidateFile`, `CandidateMessage`, `FollowUpTask`) linked by `applicationId` only; derive their candidate through `Application.candidateId`.
 - Store normalized email and phone on `Candidate` for lookup, but do not use name as an automatic duplicate key.
 - Store normalized email and phone snapshots on `Application` and enforce one application per job per normalized email/phone.
 - Do not let unauthenticated duplicate submissions overwrite an existing candidate, application, or CV.
+- Keep CV parse status controlled by enum values (`PENDING`, `COMPLETED`, `FAILED`) instead of free-form strings.
+- Store direct nullable audit links on `ActivityLog` (`applicationId`, `jobId`, `candidateFileId`) for sensitive actions; keep JSON metadata only as context.
+
+Recommended job statuses:
+
+```text
+draft
+published
+closed
+archived
+```
+
+Job records should not be hard-deleted from normal HR workflows. If a published job is no longer accepting applications, move it to `closed`. If HR wants to hide old jobs from the active workspace, move them to `archived`. Keep applications, CV metadata, parse results, and match results intact for audit and review.
 
 Recommended application statuses:
 
@@ -213,7 +228,7 @@ talent_pool
 
 - Build job CRUD in HR workspace.
 - Build public job listing and job detail pages.
-- Add publish/unpublish flow.
+- Add publish/close/archive flow.
 - Add SEO-friendly job slugs.
 
 ### Phase 3: Application Intake

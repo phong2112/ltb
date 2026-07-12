@@ -95,9 +95,12 @@ BLOB_STORE_ID=<your-vercel-blob-store-id>
 BLOB_READ_WRITE_TOKEN=<local-or-non-vercel-token-if-needed>
 UPLOAD_DIR=/app/uploads
 MAX_CV_FILE_SIZE_MB=10
+SWAGGER_ENABLED=false
 ```
 
 `CV_STORAGE_DRIVER=vercel-blob` stores uploaded CV files in Vercel Blob Private and saves the Blob URL in PostgreSQL `CandidateFile.path`. `UPLOAD_DIR` remains a local development fallback only. In production, keep CV blobs private and serve them through the API after HR authentication checks.
+
+Swagger API documentation is available at `/docs` when enabled. It is enabled by default outside production. Keep `SWAGGER_ENABLED=false` for production unless API documentation is intentionally exposed behind appropriate network or auth controls.
 
 Admin login uses a short-lived JWT access token stored in an `httpOnly` cookie named `access_token` and a longer-lived refresh token stored in an `httpOnly` cookie named `refresh_token`. The frontend calls `/auth/refresh` when an admin request returns `401`. If the Vercel frontend and API are on different HTTPS domains, use `AUTH_COOKIE_SECURE=true` and `AUTH_COOKIE_SAMESITE=none`; keep `JWT_ACCESS_TOKEN_SECRET` and `JWT_REFRESH_TOKEN_SECRET` private and never expose them as frontend variables.
 

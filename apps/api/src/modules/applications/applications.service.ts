@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { ApplicationStatus, FileKind, Prisma } from "@prisma/client";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { ApplicationStatus, CvParseStatus, FileKind, JobStatus, Prisma } from "@prisma/client";
 import { AiService } from "../ai/ai.service";
 import { CvStorageService } from "../files/cv-storage.service";
 import { JobsService } from "../jobs/jobs.service";
@@ -20,55 +20,153 @@ export class ApplicationsService {
       throw new NotFoundException("Job not found");
     });
 
+    if (job.status !== JobStatus.PUBLISHED) {
+      throw new NotFoundException("Published job not found");
+    }
+
     const normalizedEmail = normalizeEmail(dto.email);
     const normalizedPhone = normalizePhone(dto.phone);
     const candidateEmail = dto.email.trim();
     const candidatePhone = dto.phone?.trim() || undefined;
+    const submittedFullName = dto.fullName.trim();
+    const submittedLinkedinUrl = dto.linkedinUrl?.trim() || undefined;
+    const submittedPortfolioUrl = dto.portfolioUrl?.trim() || undefined;
+    const coverNote = dto.screeningAnswers?.trim() || undefined;
 
-    const created = await this.prisma
-      .$transaction(async (tx) => {
-        const existingCandidate = await tx.candidate.findFirst({
-          where: { normalizedEmail },
-          orderBy: { createdAt: "asc" },
-        });
+    const cvSignal = cv?.originalname ?? submittedPortfolioUrl ?? "candidate-provided-link";
+    const match = this.aiService.createInitialMatch({
+      fullName: submittedFullName,
+      jobTitle: job.title,
+      jobRequirements: job.requirements,
+      fileName: cvSignal,
+    });
 
-        const candidate =
-          existingCandidate ??
-          (await tx.candidate.create({
+    const created = await createWithContactRetry(async () =>
+      this.prisma.$transaction(
+        async (tx) => {
+          await lockCandidateContacts(tx, normalizedEmail, normalizedPhone);
+
+          const contactFilters: Prisma.CandidateWhereInput[] = [{ normalizedEmail }];
+          if (normalizedPhone) {
+            contactFilters.push({ normalizedPhone });
+          }
+
+          const contactMatches = await tx.candidate.findMany({
+            where: { OR: contactFilters },
+            orderBy: { createdAt: "asc" },
+            take: 2,
+          });
+          const existingCandidate = contactMatches[0];
+
+          if (contactMatches.length > 1 && contactMatches[0].id !== contactMatches[1].id) {
+            throw new BadRequestException("Candidate email and phone match different existing profiles");
+          }
+
+          const candidate =
+            existingCandidate ??
+            (await tx.candidate.create({
+              data: {
+                fullName: submittedFullName,
+                email: candidateEmail,
+                normalizedEmail,
+                phone: candidatePhone,
+                normalizedPhone,
+                linkedinUrl: submittedLinkedinUrl,
+                portfolioUrl: submittedPortfolioUrl,
+                source: "career_site",
+              },
+            }));
+
+          const application = await tx.application.create({
             data: {
-              fullName: dto.fullName,
-              email: candidateEmail,
+              candidateId: candidate.id,
+              jobId: job.id,
+              submittedFullName,
+              submittedEmail: candidateEmail,
+              submittedPhone: candidatePhone,
+              submittedLinkedinUrl,
+              submittedPortfolioUrl,
               normalizedEmail,
-              phone: candidatePhone,
               normalizedPhone,
-              linkedinUrl: dto.linkedinUrl,
-              portfolioUrl: dto.portfolioUrl,
-              source: "career_site",
+              salaryExpectation: dto.salaryExpectation,
+              noticePeriod: dto.noticePeriod,
+              coverNote,
+              answers: coverNote ? { text: coverNote } : undefined,
+              consentAccepted: dto.consentAccepted,
             },
-          }));
+          });
 
-        const application = await tx.application.create({
-          data: {
+          let candidateFileId: string | undefined;
+
+          if (cv) {
+            const storedCv = await this.cvStorageService.storeCandidateCv(cv, candidate.id, application.id);
+
+            const candidateFile = await tx.candidateFile.create({
+              data: {
+                applicationId: application.id,
+                kind: FileKind.CV,
+                originalName: storedCv.originalName,
+                storedName: storedCv.storedName,
+                mimeType: storedCv.mimeType,
+                sizeBytes: storedCv.sizeBytes,
+                path: storedCv.path,
+              },
+            });
+
+            candidateFileId = candidateFile.id;
+          }
+
+          await tx.cvParseResult.create({
+            data: {
+              applicationId: application.id,
+              candidateFileId,
+              status: CvParseStatus.PENDING,
+              summary: match.summary,
+              structuredData: {
+                source: "mvp_stub",
+                cvSource: cv ? "uploaded_file" : "external_link",
+                fileName: cvSignal,
+              },
+            },
+          });
+
+          await tx.matchResult.create({
+            data: {
+              applicationId: application.id,
+              score: match.matchScore,
+              strengths: match.strengths,
+              risks: match.risks,
+              missingRequirements: match.missingRequirements,
+              screeningQuestions: match.screeningQuestions,
+            },
+          });
+
+          await tx.activityLog.create({
+            data: {
+              candidateId: candidate.id,
+              applicationId: application.id,
+              jobId: job.id,
+              candidateFileId,
+              actor: "candidate",
+              action: "application_submitted",
+              metadata: {
+                jobId: job.id,
+                jobTitle: job.title,
+                applicationId: application.id,
+                ...(candidateFileId ? { candidateFileId } : {}),
+              },
+            },
+          });
+
+          return {
+            applicationId: application.id,
             candidateId: candidate.id,
-            jobId: job.id,
-            normalizedEmail,
-            normalizedPhone,
-            salaryExpectation: dto.salaryExpectation,
-            noticePeriod: dto.noticePeriod,
-            answers: dto.screeningAnswers ? { text: dto.screeningAnswers } : undefined,
-            consentAccepted: dto.consentAccepted,
-          },
-        });
-
-        return { candidate, application };
-      })
-      .catch((error: unknown) => {
-        if (isDuplicateApplicationError(error)) {
-          return null;
-        }
-
-        throw error;
-      });
+            status: application.status,
+          };
+        },
+        { timeout: 30_000 },
+      ),
+    );
 
     if (!created) {
       return {
@@ -78,80 +176,39 @@ export class ApplicationsService {
       };
     }
 
-    const { candidate, application } = created;
+    return created;
+  }
+}
 
-    let candidateFileId: string | undefined;
+async function createWithContactRetry<T>(create: () => Promise<T>) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      return await create();
+    } catch (error: unknown) {
+      if (isDuplicateApplicationError(error)) {
+        return null;
+      }
 
-    if (cv) {
-      const storedCv = await this.cvStorageService.storeCandidateCv(cv, candidate.id, application.id);
+      if (attempt === 0 && isCandidateContactUniqueError(error)) {
+        continue;
+      }
 
-      const candidateFile = await this.prisma.candidateFile.create({
-        data: {
-          candidateId: candidate.id,
-          applicationId: application.id,
-          kind: FileKind.CV,
-          originalName: storedCv.originalName,
-          storedName: storedCv.storedName,
-          mimeType: storedCv.mimeType,
-          sizeBytes: storedCv.sizeBytes,
-          path: storedCv.path,
-        },
-      });
-
-      candidateFileId = candidateFile.id;
+      throw error;
     }
+  }
 
-    const cvSignal = cv?.originalname ?? dto.portfolioUrl ?? "candidate-provided-link";
+  return create();
+}
 
-    const match = this.aiService.createInitialMatch({
-      fullName: candidate.fullName,
-      jobTitle: job.title,
-      jobRequirements: job.requirements,
-      fileName: cvSignal,
-    });
+async function lockCandidateContacts(tx: Prisma.TransactionClient, normalizedEmail: string, normalizedPhone?: string) {
+  const lockKeys = [`candidate-email:${normalizedEmail}`];
 
-    await this.prisma.cvParseResult.create({
-      data: {
-        applicationId: application.id,
-        candidateFileId,
-        status: "pending",
-        summary: match.summary,
-        structuredData: {
-          source: "mvp_stub",
-          cvSource: cv ? "uploaded_file" : "external_link",
-          fileName: cvSignal,
-        },
-      },
-    });
+  if (normalizedPhone) {
+    lockKeys.push(`candidate-phone:${normalizedPhone}`);
+  }
 
-    await this.prisma.matchResult.create({
-      data: {
-        applicationId: application.id,
-        score: match.matchScore,
-        strengths: match.strengths,
-        risks: match.risks,
-        missingRequirements: match.missingRequirements,
-        screeningQuestions: match.screeningQuestions,
-      },
-    });
-
-    await this.prisma.activityLog.create({
-      data: {
-        candidateId: candidate.id,
-        actor: "candidate",
-        action: "application_submitted",
-        metadata: {
-          jobId: job.id,
-          jobTitle: job.title,
-        },
-      },
-    });
-
-    return {
-      applicationId: application.id,
-      candidateId: candidate.id,
-      status: application.status,
-    };
+  for (const lockKey of lockKeys.sort()) {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey})::bigint)`;
   }
 }
 
@@ -175,11 +232,36 @@ function isDuplicateApplicationError(error: unknown) {
     return false;
   }
 
-  const target = Array.isArray(error.meta?.target) ? error.meta.target : [];
+  const target = getUniqueErrorTarget(error);
 
   return (
     (target.includes("candidateId") && target.includes("jobId")) ||
     (target.includes("jobId") && target.includes("normalizedEmail")) ||
     (target.includes("jobId") && target.includes("normalizedPhone"))
   );
+}
+
+function isCandidateContactUniqueError(error: unknown) {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") {
+    return false;
+  }
+
+  const target = getUniqueErrorTarget(error);
+
+  return (
+    target.includes("Candidate_normalizedEmail_unique_not_null") ||
+    target.includes("Candidate_normalizedPhone_unique_not_null") ||
+    (target.includes("Candidate") && target.includes("normalizedEmail")) ||
+    (target.includes("Candidate") && target.includes("normalizedPhone"))
+  );
+}
+
+function getUniqueErrorTarget(error: Prisma.PrismaClientKnownRequestError) {
+  const target = error.meta?.target;
+
+  if (Array.isArray(target)) {
+    return target.join(",");
+  }
+
+  return String(target ?? "");
 }

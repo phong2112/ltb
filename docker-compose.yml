@@ -53,6 +53,7 @@ services:
       BLOB_READ_WRITE_TOKEN: ${BLOB_READ_WRITE_TOKEN:-}
       UPLOAD_DIR: /app/uploads
       MAX_CV_FILE_SIZE_MB: 10
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
     volumes:
       - cv_uploads:/app/uploads
 

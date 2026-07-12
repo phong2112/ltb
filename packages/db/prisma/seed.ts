@@ -2,6 +2,7 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import {
   ApplicationStatus,
+  CvParseStatus,
   FileKind,
   JobStatus,
   PrismaClient,
@@ -301,7 +302,6 @@ const templates = [
 ];
 
 async function main() {
-  const jobSlugs = jobs.map((job) => job.slug);
   const templateNames = [
     ...templates.map((template) => template.name),
     "Mock - First outreach",
@@ -313,17 +313,60 @@ async function main() {
   await prisma.messageTemplate.deleteMany({
     where: { name: { in: templateNames } },
   });
+
+  const mockCandidates = await prisma.candidate.findMany({
+    where: { source: "frontend_mock" },
+    select: { id: true },
+  });
+  const mockCandidateIds = mockCandidates.map((candidate) => candidate.id);
+  const mockApplications = mockCandidateIds.length
+    ? await prisma.application.findMany({
+      where: { candidateId: { in: mockCandidateIds } },
+      select: { id: true },
+    })
+    : [];
+  const mockApplicationIds = mockApplications.map((application) => application.id);
+
+  if (mockApplicationIds.length) {
+    await prisma.candidateMessage.deleteMany({
+      where: { applicationId: { in: mockApplicationIds } },
+    });
+    await prisma.followUpTask.deleteMany({
+      where: { applicationId: { in: mockApplicationIds } },
+    });
+    await prisma.matchResult.deleteMany({
+      where: { applicationId: { in: mockApplicationIds } },
+    });
+    await prisma.cvParseResult.deleteMany({
+      where: { applicationId: { in: mockApplicationIds } },
+    });
+    await prisma.candidateFile.deleteMany({
+      where: { applicationId: { in: mockApplicationIds } },
+    });
+    await prisma.application.deleteMany({
+      where: { id: { in: mockApplicationIds } },
+    });
+  }
+
+  if (mockCandidateIds.length) {
+    await prisma.activityLog.deleteMany({
+      where: { candidateId: { in: mockCandidateIds } },
+    });
+  }
+
   await prisma.candidate.deleteMany({
     where: { source: "frontend_mock" },
-  });
-  await prisma.job.deleteMany({
-    where: { slug: { in: jobSlugs } },
   });
 
   const createdJobs = new Map<string, { id: string; title: string }>();
 
   for (const job of jobs) {
-    const created = await prisma.job.create({ data: job });
+    const { slug, ...jobData } = job;
+    const created = await prisma.job.upsert({
+      where: { slug },
+      create: job,
+      update: jobData,
+    });
     createdJobs.set(job.slug, { id: created.id, title: created.title });
   }
 
@@ -346,7 +389,6 @@ async function main() {
         normalizedPhone: normalizePhone(candidateData.phone),
         portfolioUrl: candidateData.cvUrl,
         source: "frontend_mock",
-        notes: candidateData.notes || null,
         createdAt,
       },
     });
@@ -355,22 +397,25 @@ async function main() {
       data: {
         candidateId: candidate.id,
         jobId: job.id,
+        submittedFullName: candidateData.fullName,
+        submittedEmail: candidateData.email,
+        submittedPhone: candidateData.phone,
+        submittedPortfolioUrl: candidateData.cvUrl,
         normalizedEmail: normalizeEmail(candidateData.email),
         normalizedPhone: normalizePhone(candidateData.phone),
         status: candidateData.status,
+        coverNote: candidateData.notes || null,
         answers: {
           coverNote: candidateData.notes,
           screeningAnswers: candidateData.screeningAnswers,
         },
         consentAccepted: true,
-        followUpAt: candidateData.followUpAt ? new Date(`${candidateData.followUpAt}T09:00:00.000Z`) : null,
         createdAt,
       },
     });
 
     const candidateFile = await prisma.candidateFile.create({
       data: {
-        candidateId: candidate.id,
         applicationId: application.id,
         kind: FileKind.CV,
         originalName: `${candidateData.fullName.replace(/\s+/g, "-")}-CV-link`,
@@ -386,7 +431,7 @@ async function main() {
       data: {
         applicationId: application.id,
         candidateFileId: candidateFile.id,
-        status: "completed",
+        status: CvParseStatus.COMPLETED,
         summary: candidateData.summary,
         structuredData: {
           source: "frontend_mock",
@@ -412,9 +457,15 @@ async function main() {
     await prisma.activityLog.create({
       data: {
         candidateId: candidate.id,
+        applicationId: application.id,
+        jobId: job.id,
+        candidateFileId: candidateFile.id,
         actor: "candidate",
         action: "frontend_mock_application_seeded",
         metadata: {
+          applicationId: application.id,
+          candidateFileId: candidateFile.id,
+          jobId: job.id,
           jobTitle: job.title,
           status: candidateData.status,
         },
@@ -425,7 +476,7 @@ async function main() {
     if (candidateData.followUpAt && candidateData.status !== ApplicationStatus.REJECTED && candidateData.status !== ApplicationStatus.OFFER) {
       await prisma.followUpTask.create({
         data: {
-          candidateId: candidate.id,
+          applicationId: application.id,
           title: `Follow up ${candidateData.fullName} for ${job.title}`,
           dueAt: new Date(`${candidateData.followUpAt}T09:00:00.000Z`),
           createdAt,

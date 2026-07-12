@@ -30,7 +30,7 @@ export class CvStorageService {
       return this.storeInVercelBlob(file, candidateId, applicationId);
     }
 
-    return this.storeLocally(file);
+    return this.storeLocally(file, candidateId, applicationId);
   }
 
   async openCandidateCv(path: string, fallbackMimeType: string): Promise<OpenedCvFile> {
@@ -90,12 +90,12 @@ export class CvStorageService {
     };
   }
 
-  private async storeLocally(file: Express.Multer.File): Promise<StoredCvFile> {
+  private async storeLocally(file: Express.Multer.File, candidateId: string, applicationId: string): Promise<StoredCvFile> {
     const uploadDir = this.configService.get<string>("UPLOAD_DIR") ?? "uploads";
     const storedName = `${Date.now()}-${normalizeFilename(file.originalname)}`;
-    const path = join(uploadDir, storedName);
+    const path = join(uploadDir, "cv", candidateId, applicationId, storedName);
 
-    await mkdir(uploadDir, { recursive: true });
+    await mkdir(join(uploadDir, "cv", candidateId, applicationId), { recursive: true });
     await writeFile(path, file.buffer);
 
     return {

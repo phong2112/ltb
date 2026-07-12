@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -9,6 +10,7 @@ datasource db {
 enum JobStatus {
   DRAFT
   PUBLISHED
+  CLOSED
   ARCHIVED
 }
 
@@ -27,6 +29,12 @@ enum ApplicationStatus {
 enum FileKind {
   CV
   OTHER
+}
+
+enum CvParseStatus {
+  PENDING
+  COMPLETED
+  FAILED
 }
 
 model User {
@@ -56,6 +64,7 @@ model Job {
   logo         String?
   questions    JobQuestion[]
   applications Application[]
+  activities   ActivityLog[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -80,17 +89,13 @@ model Candidate {
   id              String             @id @default(cuid())
   fullName        String
   email           String?
-  normalizedEmail String?
+  normalizedEmail String?             @unique(map: "Candidate_normalizedEmail_unique_not_null", where: raw("(\"normalizedEmail\" IS NOT NULL)"))
   phone           String?
-  normalizedPhone String?
+  normalizedPhone String?             @unique(map: "Candidate_normalizedPhone_unique_not_null", where: raw("(\"normalizedPhone\" IS NOT NULL)"))
   linkedinUrl     String?
   portfolioUrl    String?
   source          String             @default("career_site")
-  notes           String?
   applications    Application[]
-  files           CandidateFile[]
-  messages        CandidateMessage[]
-  followUps       FollowUpTask[]
   activities      ActivityLog[]
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
@@ -103,24 +108,35 @@ model Candidate {
 }
 
 model Application {
-  id                String            @id @default(cuid())
-  candidateId       String
-  jobId             String
-  normalizedEmail   String?
-  normalizedPhone   String?
-  status            ApplicationStatus @default(NEW)
-  salaryExpectation String?
-  noticePeriod      String?
-  answers           Json?
-  consentAccepted   Boolean           @default(false)
-  followUpAt        DateTime?
-  candidate         Candidate         @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  job               Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  files             CandidateFile[]
-  cvParseResult     CvParseResult?
-  matchResult       MatchResult?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id                    String             @id @default(cuid())
+  candidateId           String
+  jobId                 String
+  submittedFullName     String
+  submittedEmail        String?
+  submittedPhone        String?
+  submittedLinkedinUrl  String?
+  submittedPortfolioUrl String?
+  /// DB invariant: Application_normalized_contact_required enforces at least one normalized contact.
+  /// Prisma Client does not model check constraints, so keep the SQL migration in sync.
+  normalizedEmail       String?
+  normalizedPhone       String?
+  status                ApplicationStatus  @default(NEW)
+  salaryExpectation     String?
+  noticePeriod          String?
+  coverNote             String?
+  hrNotes               String?
+  answers               Json?
+  consentAccepted       Boolean            @default(false)
+  candidate             Candidate          @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+  job                   Job                @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  files                 CandidateFile[]
+  cvParseResult         CvParseResult?
+  followUpTask          FollowUpTask?
+  matchResult           MatchResult?
+  messages              CandidateMessage[]
+  activities            ActivityLog[]
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
 
   @@unique([candidateId, jobId])
   @@unique([jobId, normalizedEmail])
@@ -133,7 +149,6 @@ model Application {
 
 model CandidateFile {
   id             String          @id @default(cuid())
-  candidateId    String
   applicationId  String
   kind           FileKind        @default(CV)
   originalName   String
@@ -141,12 +156,11 @@ model CandidateFile {
   mimeType       String
   sizeBytes      Int
   path           String
-  candidate      Candidate       @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  application    Application     @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  application    Application     @relation(fields: [applicationId], references: [id], onDelete: Restrict)
   cvParseResults CvParseResult[]
+  activities     ActivityLog[]
   createdAt      DateTime        @default(now())
 
-  @@index([candidateId])
   @@index([applicationId])
   @@index([applicationId, kind])
 }
@@ -155,12 +169,12 @@ model CvParseResult {
   id              String         @id @default(cuid())
   applicationId   String         @unique
   candidateFileId String?
-  status          String         @default("pending")
+  status          CvParseStatus  @default(PENDING)
   summary         String?
   structuredData  Json?
   extractedText   String?
   errorMessage    String?
-  application     Application    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  application     Application    @relation(fields: [applicationId], references: [id], onDelete: Restrict)
   candidateFile   CandidateFile? @relation(fields: [candidateFileId], references: [id], onDelete: SetNull)
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
@@ -176,7 +190,7 @@ model MatchResult {
   risks               Json
   missingRequirements Json
   screeningQuestions  Json
-  application         Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  application         Application @relation(fields: [applicationId], references: [id], onDelete: Restrict)
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 }
@@ -191,40 +205,48 @@ model MessageTemplate {
 }
 
 model CandidateMessage {
-  id          String    @id @default(cuid())
-  candidateId String
-  channel     String
-  direction   String
-  content     String
-  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  createdAt   DateTime  @default(now())
+  id            String      @id @default(cuid())
+  applicationId String
+  channel       String
+  direction     String
+  content       String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  createdAt     DateTime    @default(now())
 
-  @@index([candidateId])
+  @@index([applicationId])
 }
 
 model FollowUpTask {
-  id          String    @id @default(cuid())
-  candidateId String
-  title       String
-  dueAt       DateTime
-  completedAt DateTime?
-  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id            String      @id @default(cuid())
+  applicationId String      @unique
+  title         String
+  dueAt         DateTime
+  completedAt   DateTime?
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
-  @@index([candidateId])
   @@index([dueAt])
 }
 
 model ActivityLog {
-  id          String     @id @default(cuid())
-  candidateId String?
-  actor       String     @default("system")
-  action      String
-  metadata    Json?
-  candidate   Candidate? @relation(fields: [candidateId], references: [id], onDelete: SetNull)
-  createdAt   DateTime   @default(now())
+  id              String         @id @default(cuid())
+  candidateId     String?
+  applicationId   String?
+  jobId           String?
+  candidateFileId String?
+  actor           String         @default("system")
+  action          String
+  metadata        Json?
+  candidate       Candidate?     @relation(fields: [candidateId], references: [id], onDelete: SetNull)
+  application     Application?   @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  job             Job?           @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  candidateFile   CandidateFile? @relation(fields: [candidateFileId], references: [id], onDelete: SetNull)
+  createdAt       DateTime       @default(now())
 
   @@index([candidateId])
+  @@index([applicationId])
+  @@index([jobId])
+  @@index([candidateFileId])
   @@index([createdAt])
 }

@@ -1,12 +1,27 @@
 import { Body, Controller, Get, Param, Patch, Post, Res, StreamableFile, UseGuards } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import {
+  ApiCookieAuth,
+  ApiCreatedResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiProduces,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from "@nestjs/swagger";
 import type { Response } from "express";
+import { ACCESS_TOKEN_SECURITY_NAME } from "../../config/swagger";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { CvStorageService } from "../files/cv-storage.service";
 import { CreateCandidateMessageDto } from "./dto/create-candidate-message.dto";
 import { UpdateApplicationStatusDto } from "./dto/update-application-status.dto";
 import { CandidatesService } from "./candidates.service";
 
+@ApiTags("Candidates")
+@ApiCookieAuth(ACCESS_TOKEN_SECURITY_NAME)
+@ApiUnauthorizedResponse({ description: "Missing or invalid access token." })
 @Controller("admin/candidates")
 @UseGuards(JwtAuthGuard)
 export class CandidatesController {
@@ -16,11 +31,18 @@ export class CandidatesController {
     private readonly cvStorageService: CvStorageService,
   ) {}
 
+  @ApiOperation({ summary: "List candidates for the HR inbox" })
+  @ApiOkResponse({ description: "Candidate inbox data." })
   @Get()
   listCandidates() {
     return this.candidatesService.listCandidates();
   }
 
+  @ApiOperation({ summary: "Stream an uploaded candidate CV file" })
+  @ApiParam({ name: "fileId", example: "cmfile123" })
+  @ApiProduces("application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+  @ApiOkResponse({ description: "Candidate CV file stream." })
+  @ApiNotFoundResponse({ description: "Candidate file not found." })
   @Get("files/:fileId")
   async getCandidateFile(@Param("fileId") fileId: string, @Res({ passthrough: true }) response: Response) {
     const file = await this.candidatesService.getCandidateFile(fileId);
@@ -38,19 +60,43 @@ export class CandidatesController {
     return new StreamableFile(openedFile.stream);
   }
 
+  @ApiOperation({ summary: "Get candidate detail" })
+  @ApiParam({ name: "id", example: "cmcandidate123" })
+  @ApiOkResponse({ description: "Candidate detail with applications, files, and activity." })
+  @ApiNotFoundResponse({ description: "Candidate not found." })
   @Get(":id")
   getCandidate(@Param("id") id: string) {
     return this.candidatesService.getCandidate(id);
   }
 
+  @ApiOperation({ summary: "Create a candidate message log entry" })
+  @ApiParam({ name: "id", example: "cmcandidate123" })
+  @ApiCreatedResponse({ description: "Created candidate message." })
+  @ApiNotFoundResponse({ description: "Candidate not found." })
   @Post(":id/messages")
   createMessage(
     @Param("id") id: string,
     @Body() dto: CreateCandidateMessageDto,
   ) {
-    return this.candidatesService.createMessage(id, dto);
+    return this.candidatesService.createMessageForCandidate(id, dto);
   }
 
+  @ApiOperation({ summary: "Create an application-scoped candidate message log entry" })
+  @ApiParam({ name: "applicationId", example: "cmapplication123" })
+  @ApiCreatedResponse({ description: "Created candidate message." })
+  @ApiNotFoundResponse({ description: "Application not found." })
+  @Post("applications/:applicationId/messages")
+  createApplicationMessage(
+    @Param("applicationId") applicationId: string,
+    @Body() dto: CreateCandidateMessageDto,
+  ) {
+    return this.candidatesService.createMessageForApplication(applicationId, dto);
+  }
+
+  @ApiOperation({ summary: "Update an application status, note, or follow-up date" })
+  @ApiParam({ name: "applicationId", example: "cmapplication123" })
+  @ApiOkResponse({ description: "Updated application." })
+  @ApiNotFoundResponse({ description: "Application not found." })
   @Patch("applications/:applicationId")
   updateApplication(
     @Param("applicationId") applicationId: string,

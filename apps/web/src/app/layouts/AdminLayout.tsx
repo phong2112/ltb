@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router";
 import {
   LayoutDashboard, Briefcase, Users, Bell, MessageSquare,
-  LogOut, ChevronRight, Settings, Languages
+  LogOut, ChevronRight, Settings, Languages, ArrowLeft
 } from "lucide-react";
 import { useData } from "@/app/data";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
@@ -95,6 +95,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             ))}
           </div>
           <div className="flex items-center gap-2">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-white px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-all hover:border-primary hover:text-primary"
+            >
+              <ArrowLeft size={13} /> {t("common.backToClient")}
+            </Link>
             <div className="hidden sm:flex items-center gap-1 rounded-full border border-border bg-white p-0.5" aria-label={t("common.language")}>
               <span className="pl-2 text-muted-foreground"><Languages size={13} /></span>
               {languages.map(item => (

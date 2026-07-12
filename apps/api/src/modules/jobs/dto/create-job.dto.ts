@@ -1,4 +1,5 @@
 import { JobStatus } from "@prisma/client";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Transform } from "class-transformer";
 import {
   ArrayMaxSize,
@@ -36,6 +37,7 @@ function OptionalTrim() {
 }
 
 export class CreateJobDto {
+  @ApiProperty({ example: "Frontend Developer", minLength: 5, maxLength: 120 })
   @Trim()
   @IsString()
   @IsNotEmpty()
@@ -45,6 +47,7 @@ export class CreateJobDto {
   })
   title!: string;
 
+  @ApiProperty({ example: "Bich Candy", minLength: 2, maxLength: 100 })
   @Trim()
   @IsString()
   @IsNotEmpty()
@@ -54,6 +57,7 @@ export class CreateJobDto {
   })
   company!: string;
 
+  @ApiPropertyOptional({ example: "Engineering", maxLength: 100 })
   @OptionalTrim()
   @IsString()
   @IsOptional()
@@ -63,6 +67,7 @@ export class CreateJobDto {
   })
   department?: string;
 
+  @ApiProperty({ example: "Ho Chi Minh City", minLength: 2, maxLength: 120 })
   @Trim()
   @IsString()
   @IsNotEmpty()
@@ -72,18 +77,21 @@ export class CreateJobDto {
   })
   location!: string;
 
+  @ApiProperty({ enum: JOB_EMPLOYMENT_OPTIONS, example: "Full-time" })
   @Trim()
   @IsString()
   @IsNotEmpty()
   @IsIn(JOB_EMPLOYMENT_OPTIONS)
   employment!: string;
 
+  @ApiProperty({ enum: JOB_LEVEL_OPTIONS, example: "Mid-level" })
   @Trim()
   @IsString()
   @IsNotEmpty()
   @IsIn(JOB_LEVEL_OPTIONS)
   level!: string;
 
+  @ApiPropertyOptional({ example: "20,000,000 - 30,000,000 VND", maxLength: 40 })
   @OptionalTrim()
   @IsString()
   @IsOptional()
@@ -93,6 +101,12 @@ export class CreateJobDto {
   })
   salaryRange?: string;
 
+  @ApiPropertyOptional({
+    example: ["React", "TypeScript"],
+    isArray: true,
+    maxItems: 12,
+    type: String,
+  })
   @Transform(({ value }) => {
     if (!Array.isArray(value)) return value;
 
@@ -113,32 +127,49 @@ export class CreateJobDto {
   @IsOptional()
   tags?: string[];
 
+  @ApiProperty({
+    example: "Build and maintain public career site and HR workspace features.",
+    minLength: 80,
+    maxLength: 5000,
+  })
   @Trim()
   @IsString()
   @IsNotEmpty()
   @Length(80, 5000)
   description!: string;
 
+  @ApiProperty({
+    example: "Strong TypeScript experience, solid React fundamentals, and clear communication.",
+    minLength: 50,
+    maxLength: 4000,
+  })
   @Trim()
   @IsString()
   @IsNotEmpty()
   @Length(50, 4000)
   requirements!: string;
 
+  @ApiPropertyOptional({
+    example: "Competitive salary, flexible hybrid work, and private health insurance.",
+    maxLength: 3000,
+  })
   @OptionalTrim()
   @IsString()
   @IsOptional()
   @MaxLength(3000)
   benefits?: string;
 
+  @ApiPropertyOptional({ enum: JobStatus, enumName: "JobStatus", example: JobStatus.DRAFT })
   @IsEnum(JobStatus)
   @IsOptional()
   status?: JobStatus;
 
+  @ApiPropertyOptional({ example: false })
   @IsBoolean()
   @IsOptional()
   urgent?: boolean;
 
+  @ApiPropertyOptional({ enum: JOB_LOGO_OPTIONS, example: "💻" })
   @OptionalTrim()
   @IsString()
   @IsOptional()
