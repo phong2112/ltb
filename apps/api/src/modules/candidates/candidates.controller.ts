@@ -32,7 +32,7 @@ export class CandidatesController {
   ) {}
 
   @ApiOperation({ summary: "List candidates for the HR inbox" })
-  @ApiOkResponse({ description: "Candidate inbox data." })
+  @ApiOkResponse({ description: "Candidate profiles with their application history." })
   @Get()
   listCandidates() {
     return this.candidatesService.listCandidates();

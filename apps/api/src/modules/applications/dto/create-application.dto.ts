@@ -1,6 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Transform } from "class-transformer";
-import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsBoolean, IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, Matches } from "class-validator";
+
+export const APPLICATION_AREAS = ["Hà Nội", "Đà Nẵng", "Hải Phòng", "Quảng Ninh", "TP Hồ Chí Minh", "Remote"] as const;
 
 export class CreateApplicationDto {
   @ApiProperty({ example: "cmjob123" })
@@ -17,10 +19,19 @@ export class CreateApplicationDto {
   @IsEmail()
   email!: string;
 
-  @ApiPropertyOptional({ example: "0901234567" })
+  @ApiProperty({ example: "0901234567" })
+  @Transform(({ value }) => typeof value === "string" ? value.trim() : value)
   @IsString()
-  @IsOptional()
-  phone?: string;
+  @IsNotEmpty()
+  @Matches(/^(?=(?:\D*\d){8,15}\D*$)\+?[\d\s().-]+$/)
+  phone!: string;
+
+  @ApiProperty({ example: "Hà Nội", enum: APPLICATION_AREAS })
+  @Transform(({ value }) => typeof value === "string" ? value.trim() : value)
+  @IsString()
+  @IsNotEmpty()
+  @IsIn(APPLICATION_AREAS)
+  applicationArea!: string;
 
   @ApiPropertyOptional({ example: "https://www.linkedin.com/in/candidate" })
   @IsString()

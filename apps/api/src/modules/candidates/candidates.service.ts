@@ -12,54 +12,64 @@ export class CandidatesService {
     private readonly cvStorageService: CvStorageService,
   ) {}
 
-  listCandidates() {
-    return this.prisma.application.findMany({
-      orderBy: { createdAt: "desc" },
+  async listCandidates() {
+    const candidates = await this.prisma.candidate.findMany({
       include: {
-        candidate: true,
-        messages: {
-          orderBy: { createdAt: "asc" },
-        },
-        followUpTask: true,
-        files: {
+        applications: {
           orderBy: { createdAt: "desc" },
+          include: {
+            messages: {
+              orderBy: { createdAt: "asc" },
+            },
+            followUpTask: true,
+            files: {
+              orderBy: { createdAt: "desc" },
+            },
+            job: true,
+            matchResult: true,
+            cvParseResult: true,
+          },
         },
-        job: true,
-        matchResult: true,
-        cvParseResult: true,
       },
+    });
+
+    return candidates.sort((left, right) => {
+      const leftAppliedAt = left.applications[0]?.createdAt.getTime() ?? 0;
+      const rightAppliedAt = right.applications[0]?.createdAt.getTime() ?? 0;
+      return rightAppliedAt - leftAppliedAt;
     });
   }
 
   async getCandidate(id: string) {
-    const application = await this.prisma.application.findUnique({
+    const candidate = await this.prisma.candidate.findUnique({
       where: { id },
       include: {
-        candidate: {
+        applications: {
+          orderBy: { createdAt: "desc" },
           include: {
-            activities: {
+            messages: {
+              orderBy: { createdAt: "asc" },
+            },
+            followUpTask: true,
+            files: {
               orderBy: { createdAt: "desc" },
             },
+            job: true,
+            matchResult: true,
+            cvParseResult: true,
           },
         },
-        messages: {
-          orderBy: { createdAt: "asc" },
-        },
-        followUpTask: true,
-        files: {
+        activities: {
           orderBy: { createdAt: "desc" },
         },
-        job: true,
-        matchResult: true,
-        cvParseResult: true,
       },
     });
 
-    if (!application) {
-      throw new NotFoundException("Application not found");
+    if (!candidate) {
+      throw new NotFoundException("Candidate not found");
     }
 
-    return application;
+    return candidate;
   }
 
   async getCandidateFile(fileId: string) {

@@ -1,5 +1,5 @@
-import { createBrowserRouter, Navigate } from "react-router";
-import type { ReactNode } from "react";
+import { createBrowserRouter, Navigate, Outlet, useLocation } from "react-router";
+import { useEffect, type ReactNode } from "react";
 import Home from "@/app/pages/Home";
 import Jobs from "@/app/pages/Jobs";
 import CandidateGuide from "@/app/pages/CandidateGuide";
@@ -10,6 +10,7 @@ import ApplySuccess from "@/app/pages/ApplySuccess";
 import AdminLogin from "@/app/pages/AdminLogin";
 import AdminDashboard from "@/app/pages/AdminDashboard";
 import AdminJobs from "@/app/pages/AdminJobs";
+import AdminJobDetail from "@/app/pages/AdminJobDetail";
 import CreateEditJob from "@/app/pages/CreateEditJob";
 import CandidateInbox from "@/app/pages/CandidateInbox";
 import CandidateDetail from "@/app/pages/CandidateDetail";
@@ -27,26 +28,43 @@ function RequireAdmin({ children }: { children: ReactNode }) {
   return isAdminLoggedIn ? children : <Navigate to="/admin" replace />;
 }
 
+function RouteLayout() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname]);
+
+  return <Outlet />;
+}
+
 export const router = createBrowserRouter([
-  { path: "/", Component: Home },
-  { path: "/jobs", Component: Jobs },
-  { path: "/candidate-guide", Component: CandidateGuide },
-  { path: "/contact", Component: Contact },
-  { path: "/terms", Component: Terms },
-  { path: "/privacy", Component: Privacy },
-  { path: "/jobs/:id", Component: JobDetail },
-  { path: "/jobs/:id/apply", Component: Apply },
-  { path: "/apply/success", Component: ApplySuccess },
-  { path: "/admin", Component: AdminLogin },
-  { path: "/admin/dashboard", element: <RequireAdmin><AdminDashboard /></RequireAdmin> },
-  { path: "/admin/jobs", element: <RequireAdmin><AdminJobs /></RequireAdmin> },
-  { path: "/admin/jobs/new", element: <RequireAdmin><CreateEditJob /></RequireAdmin> },
-  { path: "/admin/jobs/:id/edit", element: <RequireAdmin><CreateEditJob /></RequireAdmin> },
-  { path: "/admin/candidates", element: <RequireAdmin><CandidateInbox /></RequireAdmin> },
-  { path: "/admin/candidates/:id", element: <RequireAdmin><CandidateDetail /></RequireAdmin> },
-  { path: "/admin/chats", element: <RequireAdmin><CandidateChats /></RequireAdmin> },
-  { path: "/admin/follow-up", element: <RequireAdmin><FollowUp /></RequireAdmin> },
-  { path: "/admin/templates", element: <RequireAdmin><MessageTemplates /></RequireAdmin> },
-  { path: "/admin/settings", element: <RequireAdmin><AdminSettings /></RequireAdmin> },
-  { path: "*", Component: () => <Navigate to="/" replace /> },
+  {
+    Component: RouteLayout,
+    children: [
+      { path: "/", Component: Home },
+      { path: "/jobs", Component: Jobs },
+      { path: "/saved-jobs", element: <Navigate to="/jobs?view=saved" replace /> },
+      { path: "/candidate-guide", Component: CandidateGuide },
+      { path: "/contact", Component: Contact },
+      { path: "/terms", Component: Terms },
+      { path: "/privacy", Component: Privacy },
+      { path: "/jobs/:id", Component: JobDetail },
+      { path: "/jobs/:id/apply", Component: Apply },
+      { path: "/apply/success", Component: ApplySuccess },
+      { path: "/admin", Component: AdminLogin },
+      { path: "/admin/dashboard", element: <RequireAdmin><AdminDashboard /></RequireAdmin> },
+      { path: "/admin/jobs", element: <RequireAdmin><AdminJobs /></RequireAdmin> },
+      { path: "/admin/jobs/new", element: <RequireAdmin><CreateEditJob /></RequireAdmin> },
+      { path: "/admin/jobs/:id", element: <RequireAdmin><AdminJobDetail /></RequireAdmin> },
+      { path: "/admin/jobs/:id/edit", element: <RequireAdmin><CreateEditJob /></RequireAdmin> },
+      { path: "/admin/candidates", element: <RequireAdmin><CandidateInbox /></RequireAdmin> },
+      { path: "/admin/candidates/:id", element: <RequireAdmin><CandidateDetail /></RequireAdmin> },
+      { path: "/admin/chats", element: <RequireAdmin><CandidateChats /></RequireAdmin> },
+      { path: "/admin/follow-up", element: <RequireAdmin><FollowUp /></RequireAdmin> },
+      { path: "/admin/templates", element: <RequireAdmin><MessageTemplates /></RequireAdmin> },
+      { path: "/admin/settings", element: <RequireAdmin><AdminSettings /></RequireAdmin> },
+      { path: "*", Component: () => <Navigate to="/" replace /> },
+    ],
+  },
 ]);

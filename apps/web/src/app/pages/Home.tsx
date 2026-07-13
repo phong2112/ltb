@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Search, Briefcase, Building2, Users, Target, Star, LifeBuoy, ArrowRight, Sparkles } from "lucide-react";
+import { Search, Briefcase, Building2, Users, Target, Star, LifeBuoy, ArrowRight, Sparkles, Heart } from "lucide-react";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 import PublicJobCard from "@/app/components/PublicJobCard";
 import portraitImg from "@/imports/image.png";
@@ -9,11 +9,13 @@ import PublicLayout from "@/app/layouts/PublicLayout";
 import { useLanguage } from "@/app/i18n";
 
 export default function Home() {
-  const { jobs } = useData();
+  const { jobs, savedJobIds } = useData();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const published = jobs.filter(j => j.status === "published").slice(0, 6);
+  const published = jobs.filter(j => j.status === "published");
+  const latestJobs = published.slice(0, 6);
+  const favoriteJobs = published.filter(job => savedJobIds.includes(job.id));
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -41,20 +43,20 @@ export default function Home() {
         <div className="absolute bottom-20 right-[44%] z-0 w-9 h-9 rounded-full bg-pink-300/40 pointer-events-none" />
         <div className="absolute top-1/2 right-[22%] z-0 w-5 h-5 rounded-full bg-rose-400/30 pointer-events-none" />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-6 py-12 pb-6 md:py-16 md:pb-6 flex flex-col lg:flex-row items-center gap-8">
+        <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-center gap-6 px-6 py-9 pb-4 md:py-11 md:pb-4 lg:flex-row">
           <div className="flex-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/60 rounded-full text-xs font-semibold text-primary border border-pink-200 mb-5">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-pink-200 bg-white/60 px-3 py-1.5 text-xs font-semibold text-primary">
               <Sparkles size={12} /> {published.length} {t("home.tagline")}
             </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-foreground leading-[1.08] mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <h1 className="mb-3 text-4xl font-black leading-[1.08] text-foreground md:text-5xl lg:text-6xl" style={{ fontFamily: "'Playfair Display', serif" }}>
               {t("home.titleBefore")}<br /><span className="text-primary italic">{t("home.heroDream")}</span> {t("home.titleAfter")}
             </h1>
-            <p className="text-muted-foreground text-base leading-relaxed mb-5 max-w-md">
+            <p className="mb-4 max-w-md text-base leading-relaxed text-muted-foreground">
               {t("home.heroSubtitle")}
               <br /><span className="text-sm">{t("home.heroSupport")}</span>
             </p>
 
-            <form onSubmit={handleSearch} className="flex gap-2 bg-white rounded-2xl shadow-md border border-pink-100 p-2 max-w-lg mb-5">
+            <form onSubmit={handleSearch} className="mb-4 flex max-w-lg gap-2 rounded-2xl border border-pink-100 bg-white p-2 shadow-md">
               <div className="flex-1 flex items-center gap-3 px-3">
                 <Search size={17} className="text-muted-foreground flex-shrink-0" />
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("home.searchPlaceholder")} className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground" />
@@ -62,7 +64,7 @@ export default function Home() {
               <button type="submit" className="px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all">{t("common.search")}</button>
             </form>
 
-            <div className="flex flex-wrap gap-2 text-xs mb-8">
+            <div className="mb-5 flex flex-wrap gap-2 text-xs">
               <span className="text-muted-foreground">{t("home.popular")}</span>
               {["Designer", "React", "Marketing", "HR", "Data"].map(t => (
                 <Link key={t} to={`/jobs?q=${t}`} className="px-3 py-1 bg-white/70 border border-pink-200 rounded-full hover:bg-white hover:border-primary hover:text-primary text-muted-foreground transition-all">{t}</Link>
@@ -80,13 +82,13 @@ export default function Home() {
           </div>
 
           <div className="relative hidden flex-shrink-0 items-end justify-center w-full self-end lg:flex lg:w-auto">
-            <ImageWithFallback src={portraitImg} alt="Lường Thị Bích — HR Consultant" className="relative z-10 object-cover object-top drop-shadow-xl select-none" style={{ height: "480px", width: "480px", maxHeight: "50vw", maxWidth: "50vw", borderRadius: "50%" }} />
+            <ImageWithFallback src={portraitImg} alt="Lường Thị Bích — HR Consultant" className="relative z-10 select-none object-cover object-top drop-shadow-xl" style={{ height: "440px", width: "440px", maxHeight: "46vw", maxWidth: "46vw", borderRadius: "50%" }} />
           </div>
         </div>
 
         {/* Features strip */}
-        <div className="relative z-10 max-w-7xl mx-auto px-6 pb-10">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl">
+        <div className="relative z-10 mx-auto max-w-7xl px-6 pb-7">
+          <div className="grid max-w-2xl grid-cols-1 gap-3 sm:grid-cols-3">
             {[
               { icon: <Target size={17} />, title: t("home.matchingTitle"), desc: t("home.matchingDesc") },
               { icon: <Star size={17} />, title: t("home.premiumTitle"), desc: t("home.premiumDesc") },
@@ -102,16 +104,32 @@ export default function Home() {
       </section>
 
       {/* Latest jobs preview */}
-      <section className="max-w-7xl mx-auto px-6 py-12">
-        <div className="flex items-center justify-between mb-6">
+      <section className="mx-auto max-w-7xl px-6 py-9">
+        <div className="mb-4 flex items-center justify-between">
           <h2 className="text-2xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{t("home.latestJobs")}</h2>
           <Link to="/jobs" className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">{t("home.ctaJobs")} <ArrowRight size={14} /></Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {published.map(job => (
+          {latestJobs.map(job => (
             <PublicJobCard key={job.id} job={job} />
           ))}
         </div>
+
+        {favoriteJobs.length > 0 && (
+          <div className="mt-8 border-t border-border pt-7">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <h2 className="flex items-center gap-2 text-2xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>
+                <Heart size={20} className="text-primary" fill="currentColor" /> {t("home.favoriteJobs")}
+              </h2>
+              <Link to="/jobs?view=saved" className="flex flex-shrink-0 items-center gap-1 text-sm font-semibold text-primary hover:underline">{t("home.ctaJobs")} <ArrowRight size={14} /></Link>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {favoriteJobs.map(job => (
+                <PublicJobCard key={job.id} job={job} />
+              ))}
+            </div>
+          </div>
+        )}
       </section>
     </PublicLayout>
   );

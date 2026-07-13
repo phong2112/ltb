@@ -1,17 +1,10 @@
 import { Link } from "react-router";
 import { Bell, Calendar, Copy, MessageSquare, ChevronRight, CheckCircle } from "lucide-react";
-import { useData, CandidateStatus } from "@/app/data";
+import { useData } from "@/app/data";
 import { translateCandidateStatus, useLanguage } from "@/app/i18n";
 import AdminLayout from "@/app/layouts/AdminLayout";
 import { useState } from "react";
-
-const statusColor: Record<CandidateStatus, string> = {
-  new: "bg-blue-100 text-blue-700",
-  reviewing: "bg-amber-100 text-amber-700",
-  interview: "bg-purple-100 text-purple-700",
-  offered: "bg-emerald-100 text-emerald-700",
-  rejected: "bg-red-100 text-red-600",
-};
+import { CANDIDATE_STATUS_CONFIG } from "@/app/status-config";
 export default function FollowUp() {
   const { candidates } = useData();
   const { language, t } = useLanguage();
@@ -38,10 +31,10 @@ export default function FollowUp() {
             <div key={c.id} className="flex items-center gap-4 p-4 hover:bg-pink-50/50 transition-colors">
               <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">{c.name.charAt(0)}</div>
               <div className="flex-1 min-w-0">
-                <Link to={`/admin/candidates/${c.id}`} className="font-bold text-foreground text-sm hover:text-primary transition-colors">{c.name}</Link>
+                <Link to={`/admin/candidates/${c.candidateId}?application=${c.applicationId}`} className="font-bold text-foreground text-sm hover:text-primary transition-colors">{c.name}</Link>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
                   <span>{c.jobTitle}</span>
-                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${statusColor[c.status]}`}>{translateCandidateStatus(c.status, language)}</span>
+                  <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-bold ${CANDIDATE_STATUS_CONFIG[c.status].badgeClass}`}>{translateCandidateStatus(c.status, language)}</span>
                   {c.followUpDate && <span className="flex items-center gap-0.5"><Calendar size={10} />{c.followUpDate}</span>}
                 </div>
               </div>
@@ -50,7 +43,7 @@ export default function FollowUp() {
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${copiedId === c.id ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "border-border text-muted-foreground hover:border-primary hover:text-primary"}`}>
                   {copiedId === c.id ? <><CheckCircle size={11} /> {t("common.copied")}</> : <><Copy size={11} /> {t("common.copyMessage")}</>}
                 </button>
-                <Link to={`/admin/candidates/${c.id}`} className="w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-pink-50 transition-colors">
+                <Link to={`/admin/candidates/${c.candidateId}?application=${c.applicationId}`} className="w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-pink-50 transition-colors">
                   <ChevronRight size={14} />
                 </Link>
               </div>

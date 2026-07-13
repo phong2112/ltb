@@ -3,33 +3,26 @@ import { AlertCircle, ArrowRight, Bell, Briefcase, CheckCircle, Clock, Plus, Spa
 import { useData } from "@/app/data";
 import { translateCandidateStatus, useLanguage } from "@/app/i18n";
 import AdminLayout from "@/app/layouts/AdminLayout";
+import { CANDIDATE_STATUS_CONFIG } from "@/app/status-config";
 
 export default function AdminDashboard() {
-  const { jobs, candidates } = useData();
+  const { jobs, candidates, candidateProfiles } = useData();
   const { language, t } = useLanguage();
 
   const publishedJobs = jobs.filter(j => j.status === "published").length;
   const draftJobs = jobs.filter(j => j.status === "draft").length;
-  const newCandidates = candidates.filter(c => c.status === "new").length;
+  const newCandidates = candidateProfiles.filter(candidate => candidate.applications.some(application => application.status === "new")).length;
   const followUps = candidates.filter(c => c.followUpDate && c.status !== "rejected" && c.status !== "offered").length;
   const topMatch = [...candidates].sort((a, b) => b.aiScore - a.aiScore).slice(0, 3);
   const recentCandidates = [...candidates].sort((a, b) => b.appliedAt.localeCompare(a.appliedAt)).slice(0, 5);
   const averageScore = candidates.length ? Math.round(candidates.reduce((sum, candidate) => sum + candidate.aiScore, 0) / candidates.length) : 0;
   const activePipeline = candidates.filter(candidate => candidate.status !== "rejected" && candidate.status !== "offered").length;
 
-  const statusLabel: Record<string, { label: string; color: string }> = {
-    new: { label: "Mới", color: "bg-blue-100 text-blue-700" },
-    reviewing: { label: "Đang xem", color: "bg-amber-100 text-amber-700" },
-    interview: { label: "Phỏng vấn", color: "bg-purple-100 text-purple-700" },
-    offered: { label: "Đã gửi offer", color: "bg-emerald-100 text-emerald-700" },
-    rejected: { label: "Từ chối", color: "bg-red-100 text-red-600" },
-  };
-
   const stats = [
     { label: t("admin.openJobs"), val: publishedJobs, meta: `${draftJobs} ${t("admin.draftCount")}`, icon: <Briefcase size={19} />, color: "text-primary bg-pink-50", link: "/admin/jobs" },
     { label: t("admin.newCandidates"), val: newCandidates, meta: `${activePipeline} ${t("admin.activePipeline")}`, icon: <Users size={19} />, color: "text-blue-600 bg-blue-50", link: "/admin/candidates" },
     { label: t("admin.needFollowUp"), val: followUps, meta: t("common.followUp"), icon: <Bell size={19} />, color: "text-amber-600 bg-amber-50", link: "/admin/follow-up" },
-    { label: t("admin.totalCandidates"), val: candidates.length, meta: `${averageScore}% ${t("common.aiMatch")}`, icon: <TrendingUp size={19} />, color: "text-emerald-600 bg-emerald-50", link: "/admin/candidates" },
+    { label: t("admin.totalCandidates"), val: candidateProfiles.length, meta: `${averageScore}% ${t("common.aiMatch")}`, icon: <TrendingUp size={19} />, color: "text-emerald-600 bg-emerald-50", link: "/admin/candidates" },
   ];
 
   return (
@@ -82,7 +75,7 @@ export default function AdminDashboard() {
           </div>
           <div className="space-y-3">
             {topMatch.length ? topMatch.map(c => (
-              <Link key={c.id} to={`/admin/candidates/${c.id}`} className="group flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-pink-50">
+              <Link key={c.id} to={`/admin/candidates/${c.candidateId}?application=${c.applicationId}`} className="group flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-pink-50">
                 <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
                   {c.name.charAt(0)}
                 </div>
@@ -114,7 +107,7 @@ export default function AdminDashboard() {
           </div>
           <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
             {recentCandidates.length ? recentCandidates.map(c => (
-              <Link key={c.id} to={`/admin/candidates/${c.id}`} className="group grid grid-cols-[auto_1fr_auto] items-center gap-3 bg-white p-3 transition-colors hover:bg-pink-50">
+              <Link key={c.id} to={`/admin/candidates/${c.candidateId}?application=${c.applicationId}`} className="group grid grid-cols-[auto_1fr_auto] items-center gap-3 bg-white p-3 transition-colors hover:bg-pink-50">
                 <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-muted-foreground font-bold text-sm flex-shrink-0">{c.name.charAt(0)}</div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-foreground truncate group-hover:text-primary transition-colors">{c.name}</p>
@@ -123,8 +116,8 @@ export default function AdminDashboard() {
                     <span className="inline-flex items-center gap-1"><Clock size={11} /> {c.appliedAt}</span>
                   </div>
                 </div>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${statusLabel[c.status]?.color}`}>
-                  {translateCandidateStatus(c.status, language) || statusLabel[c.status]?.label}
+                <span className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold ${CANDIDATE_STATUS_CONFIG[c.status].badgeClass}`}>
+                  {translateCandidateStatus(c.status, language)}
                 </span>
               </Link>
             )) : (

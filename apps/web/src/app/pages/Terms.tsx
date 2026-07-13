@@ -257,12 +257,12 @@ export default function Terms() {
 
   return (
     <PublicLayout>
-      <div className="bg-gradient-to-br from-pink-50 to-background border-b border-border py-10">
+      <div className="border-b border-border bg-gradient-to-br from-pink-50 to-background py-7">
         <div className="max-w-3xl mx-auto px-6">
-          <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors mb-5">
+          <Link to="/" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-primary">
             <ChevronLeft size={15} /> {t("common.home")}
           </Link>
-          <div className="flex items-center gap-3 mb-3">
+          <div className="mb-2 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
               <FileText size={20} />
             </div>

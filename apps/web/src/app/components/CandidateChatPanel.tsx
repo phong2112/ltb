@@ -1,9 +1,10 @@
-import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import {
   Briefcase,
   Clock,
   Linkedin,
+  LoaderCircle,
   Mail,
   MessageCircle,
   MessagesSquare,
@@ -32,6 +33,7 @@ const WIDGET_ACTIVE_CANDIDATE_KEY = "hr-copilot-chat-widget-active-candidate";
 const WIDGET_SEARCH_KEY = "hr-copilot-chat-widget-search";
 const WIDGET_CHANNEL_KEY = "hr-copilot-chat-widget-channel";
 const WIDGET_DRAFT_KEY = "hr-copilot-chat-widget-draft";
+const CANDIDATE_BATCH_SIZE = 20;
 
 export default function CandidateChatPanel({ initialCandidateId, mode = "full" }: CandidateChatPanelProps) {
   const isWidget = mode === "widget";
@@ -42,6 +44,9 @@ export default function CandidateChatPanel({ initialCandidateId, mode = "full" }
   const [draft, setDraft] = useState(() => isWidget ? readStorage(WIDGET_DRAFT_KEY) : "");
   const [error, setError] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [visibleCandidateCount, setVisibleCandidateCount] = useState(CANDIDATE_BATCH_SIZE);
+  const candidateListRef = useRef<HTMLDivElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (initialCandidateId) setActiveCandidateId(initialCandidateId);
@@ -78,6 +83,31 @@ export default function CandidateChatPanel({ initialCandidateId, mode = "full" }
       [candidate.name, candidate.email, candidate.phone, candidate.jobTitle].some((value) => value.toLowerCase().includes(q)),
     );
   }, [candidates, search]);
+
+  const visibleCandidates = filteredCandidates.slice(0, visibleCandidateCount);
+  const hasMoreCandidates = visibleCandidateCount < filteredCandidates.length;
+
+  useEffect(() => {
+    setVisibleCandidateCount(CANDIDATE_BATCH_SIZE);
+    candidateListRef.current?.scrollTo({ top: 0 });
+  }, [search]);
+
+  useEffect(() => {
+    const list = candidateListRef.current;
+    const sentinel = loadMoreRef.current;
+    if (!list || !sentinel || !hasMoreCandidates) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries[0]?.isIntersecting) return;
+      setVisibleCandidateCount((current) => Math.min(current + CANDIDATE_BATCH_SIZE, filteredCandidates.length));
+    }, {
+      root: list,
+      rootMargin: "0px 0px 160px",
+    });
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [filteredCandidates.length, hasMoreCandidates]);
 
   const activeCandidate = candidates.find((candidate) => candidate.id === activeCandidateId) ?? filteredCandidates[0] ?? candidates[0];
   const activeChannel = CHANNELS.find((item) => item.value === channel) ?? CHANNELS[0];
@@ -125,8 +155,8 @@ export default function CandidateChatPanel({ initialCandidateId, mode = "full" }
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
-            {filteredCandidates.map((candidate) => {
+          <div ref={candidateListRef} className="flex-1 overflow-y-auto">
+            {visibleCandidates.map((candidate) => {
               const lastMessage = getLastMessage(candidate);
               const active = activeCandidate?.id === candidate.id;
               const candidateName = formatCandidateName(candidate.name);
@@ -154,6 +184,21 @@ export default function CandidateChatPanel({ initialCandidateId, mode = "full" }
                 </button>
               );
             })}
+            {filteredCandidates.length === 0 && (
+              <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                Không tìm thấy ứng viên phù hợp.
+              </div>
+            )}
+            {hasMoreCandidates && (
+              <div
+                ref={loadMoreRef}
+                role="status"
+                className="flex items-center justify-center gap-2 px-4 py-3 text-xs text-muted-foreground"
+              >
+                <LoaderCircle size={14} className="animate-spin" />
+                Đang tải thêm ứng viên...
+              </div>
+            )}
           </div>
         </aside>
 
@@ -174,7 +219,7 @@ export default function CandidateChatPanel({ initialCandidateId, mode = "full" }
                     </div>
                   </div>
                   <Link
-                    to={`/admin/candidates/${activeCandidate.id}`}
+                    to={`/admin/candidates/${activeCandidate.candidateId}?application=${activeCandidate.applicationId}`}
                     className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border px-3 text-xs font-bold text-muted-foreground hover:border-primary hover:text-primary transition-colors"
                   >
                     <UserRound size={13} /> Hồ sơ
