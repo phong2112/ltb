@@ -27,7 +27,7 @@ export class ApplicationsService {
     const normalizedEmail = normalizeEmail(dto.email);
     const normalizedPhone = normalizePhone(dto.phone);
     const candidateEmail = dto.email.trim();
-    const candidatePhone = dto.phone?.trim() || undefined;
+    const candidatePhone = dto.phone.trim();
     const submittedFullName = dto.fullName.trim();
     const submittedLinkedinUrl = dto.linkedinUrl?.trim() || undefined;
     const submittedPortfolioUrl = dto.portfolioUrl?.trim() || undefined;
@@ -91,7 +91,10 @@ export class ApplicationsService {
               salaryExpectation: dto.salaryExpectation,
               noticePeriod: dto.noticePeriod,
               coverNote,
-              answers: coverNote ? { text: coverNote } : undefined,
+              answers: {
+                ...(coverNote ? { text: coverNote } : {}),
+                applicationArea: dto.applicationArea,
+              },
               consentAccepted: dto.consentAccepted,
             },
           });

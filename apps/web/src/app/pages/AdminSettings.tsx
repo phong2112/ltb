@@ -4,6 +4,7 @@ import { Bell, Briefcase, Languages, Mail, Save, ShieldCheck, SlidersHorizontal,
 import AdminLayout from "@/app/layouts/AdminLayout";
 import { useLanguage, type Language } from "@/app/i18n";
 import { Switch } from "@/app/components/ui/switch";
+import { notificationService } from "@/app/services/notification";
 
 type WorkspaceSettings = {
   defaultView: "candidates" | "jobs";
@@ -48,6 +49,7 @@ export default function AdminSettings() {
   function saveSettings() {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
     setSaved(true);
+    notificationService.success("Đã lưu cài đặt workspace");
     window.setTimeout(() => setSaved(false), 1800);
   }
 

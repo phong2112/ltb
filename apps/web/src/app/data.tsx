@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
+import { notificationService, type ActionNotification } from "@/app/services/notification";
+import type { CandidateStatus, JobStatus } from "@/app/status-config";
 
-export type JobStatus = "published" | "draft" | "closed" | "archived";
-export type CandidateStatus = "new" | "reviewing" | "interview" | "offered" | "rejected";
+export type { CandidateStatus, JobStatus } from "@/app/status-config";
 export type CandidateMessageChannel = "system" | "messenger" | "zalo" | "email" | "linkedin";
 export type CandidateMessageDirection = "inbound" | "outbound";
 
@@ -40,6 +41,7 @@ export type Candidate = {
   name: string;
   email: string;
   phone: string;
+  applicationArea: string;
   cvUrl: string;
   cvFile?: {
     id: string;
@@ -63,10 +65,19 @@ export type Candidate = {
   messages: CandidateMessage[];
 };
 
+export type CandidateProfile = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  applications: Candidate[];
+};
+
 type NewCandidate = {
   name: string;
   email: string;
   phone: string;
+  applicationArea: string;
   cvUrl: string;
   note: string;
   jobId: string;
@@ -141,6 +152,14 @@ type ApiApplication = {
   };
 };
 
+type ApiCandidateProfile = {
+  id: string;
+  fullName: string;
+  email?: string | null;
+  phone?: string | null;
+  applications?: ApiApplication[];
+};
+
 type ApiCandidateMessage = {
   id: string;
   applicationId: string;
@@ -163,10 +182,13 @@ type LoginResult =
 
 type ApiRequestInit = RequestInit & {
   skipAuthRefresh?: boolean;
+  notification?: ActionNotification;
 };
 
 type DataCtx = {
   jobs: Job[];
+  candidateProfiles: CandidateProfile[];
+  /** Application-level records used by pipeline, follow-up, and chat views. */
   candidates: Candidate[];
   isAdminLoggedIn: boolean;
   isAuthReady: boolean;
@@ -181,7 +203,7 @@ type DataCtx = {
   updateCandidate: (id: string, patch: Partial<Candidate>) => Promise<void>;
   sendCandidateMessage: (applicationId: string, channel: CandidateMessageChannel, content: string) => Promise<void>;
   isJobSaved: (id: string) => boolean;
-  toggleSavedJob: (id: string) => void;
+  toggleSavedJob: (id: string) => boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
   logout: () => Promise<void>;
 };
@@ -211,40 +233,48 @@ function readSavedJobIds() {
 }
 
 async function apiRequest<T>(path: string, init: ApiRequestInit = {}) {
-  const { skipAuthRefresh, ...requestInit } = init;
+  const { skipAuthRefresh, notification, ...requestInit } = init;
   const bodyIsFormData = init.body instanceof FormData;
-  let response = await fetch(`${API_BASE}${path}`, {
-    credentials: "include",
-    ...requestInit,
-    headers: {
-      ...(bodyIsFormData ? {} : { "Content-Type": "application/json" }),
-      ...(init.headers ?? {}),
-    },
-  });
+  const notificationId = notification ? notificationService.loading(notification.loading) : undefined;
 
-  if (response.status === 401 && !skipAuthRefresh && shouldAttemptAuthRefresh(path)) {
-    const refreshed = await refreshAccessToken();
+  try {
+    let response = await fetch(`${API_BASE}${path}`, {
+      credentials: "include",
+      ...requestInit,
+      headers: {
+        ...(bodyIsFormData ? {} : { "Content-Type": "application/json" }),
+        ...(init.headers ?? {}),
+      },
+    });
 
-    if (refreshed) {
-      response = await fetch(`${API_BASE}${path}`, {
-        credentials: "include",
-        ...requestInit,
-        headers: {
-          ...(bodyIsFormData ? {} : { "Content-Type": "application/json" }),
-          ...(init.headers ?? {}),
-        },
-      });
+    if (response.status === 401 && !skipAuthRefresh && shouldAttemptAuthRefresh(path)) {
+      const refreshed = await refreshAccessToken();
+
+      if (refreshed) {
+        response = await fetch(`${API_BASE}${path}`, {
+          credentials: "include",
+          ...requestInit,
+          headers: {
+            ...(bodyIsFormData ? {} : { "Content-Type": "application/json" }),
+            ...(init.headers ?? {}),
+          },
+        });
+      }
     }
-  }
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    const message = parseApiErrorMessage(body);
-    throw new ApiRequestError(message || `Request failed with status ${response.status}`, response.status);
-  }
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      const message = parseApiErrorMessage(body);
+      throw new ApiRequestError(message || `Request failed with status ${response.status}`, response.status);
+    }
 
-  if (response.status === 204) return undefined as T;
-  return response.json() as Promise<T>;
+    const result = response.status === 204 ? undefined as T : await response.json() as T;
+    if (notification) notificationService.success(notification.success, notificationId);
+    return result;
+  } catch (error) {
+    if (notification) notificationService.error(error, notification.error, notificationId);
+    throw error;
+  }
 }
 
 function parseApiErrorMessage(body: string) {
@@ -325,7 +355,7 @@ function mapJob(job: ApiJob): Job {
     id: job.id,
     title: job.title,
     company: job.company ?? job.department ?? "Lường Thị Bích HR",
-    location: job.location ?? "",
+    location: job.location === "TP. Hồ Chí Minh" ? "TP Hồ Chí Minh" : job.location ?? "",
     type: job.employment ?? "Full-time",
     level: job.level ?? "Mid-level",
     salary: job.salaryRange ?? "",
@@ -344,7 +374,7 @@ function mapJob(job: ApiJob): Job {
 function mapCandidate(application: ApiApplication): Candidate | null {
   const job = application.job;
 
-  if (!job || !application.candidate) return null;
+  if (!job) return null;
 
   const answers = asRecord(application.answers);
   const screeningAnswers = parseScreeningAnswers(answers?.screeningAnswers);
@@ -360,6 +390,7 @@ function mapCandidate(application: ApiApplication): Candidate | null {
     name: application.submittedFullName,
     email: application.submittedEmail ?? "",
     phone: application.submittedPhone ?? "",
+    applicationArea: typeof answers?.applicationArea === "string" ? answers.applicationArea : "",
     cvUrl: uploadedCvUrl ?? (cvPath && /^https?:\/\//.test(cvPath) ? cvPath : application.submittedPortfolioUrl ?? "#"),
     cvFile: cvFile ? {
       id: cvFile.id,
@@ -381,6 +412,20 @@ function mapCandidate(application: ApiApplication): Candidate | null {
     missingReqs: toStringArray(application.matchResult?.missingRequirements),
     screeningAnswers,
     messages: (application.messages ?? []).map(mapCandidateMessage),
+  };
+}
+
+function mapCandidateProfile(candidate: ApiCandidateProfile): CandidateProfile {
+  const applications = (candidate.applications ?? [])
+    .map(mapCandidate)
+    .filter((application): application is Candidate => Boolean(application));
+
+  return {
+    id: candidate.id,
+    name: candidate.fullName,
+    email: candidate.email ?? applications[0]?.email ?? "",
+    phone: candidate.phone ?? applications[0]?.phone ?? "",
+    applications,
   };
 }
 
@@ -407,7 +452,7 @@ function toJobPayload(job: Partial<Job>) {
     location: job.location,
     employment: job.type,
     level: job.level,
-    salaryRange: job.salary,
+    salaryRange: job.salary === undefined ? undefined : job.salary.trim() || null,
     tags: job.tags,
     description: job.description,
     requirements: job.requirements,
@@ -456,6 +501,7 @@ function parseScreeningAnswers(value: unknown) {
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [candidateProfiles, setCandidateProfiles] = useState<CandidateProfile[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [isAuthReady, setIsAuthReady] = useState(false);
@@ -484,10 +530,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
       const [adminJobs, adminCandidates] = await Promise.all([
         apiRequest<ApiJob[]>("/admin/jobs"),
-        apiRequest<ApiApplication[]>("/admin/candidates"),
+        apiRequest<ApiCandidateProfile[]>("/admin/candidates"),
       ]);
+      const profiles = adminCandidates.map(mapCandidateProfile);
       setJobs(adminJobs.map(mapJob));
-      setCandidates(adminCandidates.map(mapCandidate).filter((candidate): candidate is Candidate => Boolean(candidate)));
+      setCandidateProfiles(profiles);
+      setCandidates(profiles.flatMap(candidate => candidate.applications));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không tải được dữ liệu quản trị");
     } finally {
@@ -506,6 +554,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setIsAdminLoggedIn(true);
       } catch {
         setIsAdminLoggedIn(false);
+        setCandidateProfiles([]);
         setCandidates([]);
       } finally {
         setIsAuthReady(true);
@@ -529,6 +578,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     await apiRequest<ApiJob>("/admin/jobs", {
       method: "POST",
       body: JSON.stringify(toJobPayload(job)),
+      notification: {
+        loading: "Đang tạo vị trí tuyển dụng...",
+        success: "Đã tạo vị trí tuyển dụng",
+        error: "Không thể tạo vị trí tuyển dụng",
+      },
     });
     await reloadAdminData();
   };
@@ -537,6 +591,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     await apiRequest<ApiJob>(`/admin/jobs/${id}`, {
       method: "PATCH",
       body: JSON.stringify(toJobPayload(patch)),
+      notification: {
+        loading: "Đang cập nhật vị trí...",
+        success: "Đã cập nhật vị trí tuyển dụng",
+        error: "Không thể cập nhật vị trí tuyển dụng",
+      },
     });
     await reloadAdminData();
   };
@@ -547,6 +606,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     form.set("fullName", candidate.name);
     form.set("email", candidate.email);
     form.set("phone", candidate.phone);
+    form.set("applicationArea", candidate.applicationArea);
     form.set("consentAccepted", "true");
 
     if (candidate.cvUrl.trim()) {
@@ -564,6 +624,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     await apiRequest("/applications", {
       method: "POST",
       body: form,
+      notification: {
+        loading: "Đang gửi hồ sơ ứng tuyển...",
+        success: "Hồ sơ đã được gửi thành công",
+        error: "Không thể gửi hồ sơ ứng tuyển",
+      },
     });
     await reloadPublicJobs();
   };
@@ -584,6 +649,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     await apiRequest(`/admin/candidates/applications/${current.applicationId}`, {
       method: "PATCH",
       body: JSON.stringify(body),
+      notification: {
+        loading: "Đang cập nhật ứng viên...",
+        success: "Đã cập nhật thông tin ứng viên",
+        error: "Không thể cập nhật ứng viên",
+      },
     });
     await reloadAdminData();
   };
@@ -592,30 +662,51 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const message = await apiRequest<ApiCandidateMessage>(`/admin/candidates/applications/${applicationId}/messages`, {
       method: "POST",
       body: JSON.stringify({ channel, content }),
+      notification: {
+        loading: "Đang gửi tin nhắn...",
+        success: "Tin nhắn đã được gửi",
+        error: "Không thể gửi tin nhắn",
+      },
     });
 
     setCandidates((current) => current.map((candidate) => candidate.applicationId === applicationId ? {
       ...candidate,
       messages: [...candidate.messages, mapCandidateMessage(message)],
     } : candidate));
+    setCandidateProfiles((current) => current.map(profile => ({
+      ...profile,
+      applications: profile.applications.map(application => application.applicationId === applicationId ? {
+        ...application,
+        messages: [...application.messages, mapCandidateMessage(message)],
+      } : application),
+    })));
   };
 
   const isJobSaved = (id: string) => savedJobIds.includes(id);
 
-  const toggleSavedJob = (id: string) =>
+  const toggleSavedJob = (id: string) => {
+    const willBeSaved = !savedJobIds.includes(id);
     setSavedJobIds((prev) => prev.includes(id) ? prev.filter((savedId) => savedId !== id) : [...prev, id]);
+    return willBeSaved;
+  };
 
   const login = async (email: string, password: string): Promise<LoginResult> => {
     try {
       await apiRequest<ApiAuthSession>("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
+        notification: {
+          loading: "Đang đăng nhập...",
+          success: "Đăng nhập thành công",
+          error: "Không thể đăng nhập",
+        },
       });
       setIsAdminLoggedIn(true);
       await reloadAdminData();
       return { ok: true };
     } catch (error) {
       setIsAdminLoggedIn(false);
+      setCandidateProfiles([]);
       setCandidates([]);
       return {
         ok: false,
@@ -627,14 +718,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     await apiRequest("/auth/logout", {
       method: "POST",
+      notification: {
+        loading: "Đang đăng xuất...",
+        success: "Đã đăng xuất",
+        error: "Không thể kết nối máy chủ khi đăng xuất",
+      },
     }).catch(() => undefined);
     setIsAdminLoggedIn(false);
+    setCandidateProfiles([]);
     setCandidates([]);
     void reloadPublicJobs();
   };
 
   return (
-    <DataContext.Provider value={{ jobs, candidates, isAdminLoggedIn, isAuthReady, isLoading, error, savedJobIds, reloadPublicJobs, reloadAdminData, addJob, updateJob, addCandidate, updateCandidate, sendCandidateMessage, isJobSaved, toggleSavedJob, login, logout }}>
+    <DataContext.Provider value={{ jobs, candidateProfiles, candidates, isAdminLoggedIn, isAuthReady, isLoading, error, savedJobIds, reloadPublicJobs, reloadAdminData, addJob, updateJob, addCandidate, updateCandidate, sendCandidateMessage, isJobSaved, toggleSavedJob, login, logout }}>
       {children}
     </DataContext.Provider>
   );

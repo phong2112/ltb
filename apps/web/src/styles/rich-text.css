@@ -1,0 +1,63 @@
+.rich-text-editor-content p.is-editor-empty:first-child::before {
+  color: var(--muted-foreground);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.rich-text-editor-content,
+.rich-text-content {
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.rich-text-editor-content > * + *,
+.rich-text-content > * + * {
+  margin-top: 0.55rem;
+}
+
+.rich-text-editor-content h2,
+.rich-text-content h2 {
+  font-size: 1.125rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.rich-text-editor-content h3,
+.rich-text-content h3 {
+  font-size: 1rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.rich-text-editor-content ul,
+.rich-text-content ul {
+  list-style: disc;
+  padding-left: 1.4rem;
+}
+
+.rich-text-editor-content ol,
+.rich-text-content ol {
+  list-style: decimal;
+  padding-left: 1.4rem;
+}
+
+.rich-text-editor-content li + li,
+.rich-text-content li + li {
+  margin-top: 0.25rem;
+}
+
+.rich-text-editor-content blockquote,
+.rich-text-content blockquote {
+  border-left: 3px solid var(--primary);
+  color: var(--muted-foreground);
+  padding-left: 0.8rem;
+}
+
+.rich-text-editor-content a,
+.rich-text-content a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

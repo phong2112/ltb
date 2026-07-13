@@ -35,12 +35,13 @@ export class ApplicationsController {
   @ApiBody({
     schema: {
       type: "object",
-      required: ["jobId", "fullName", "email", "consentAccepted"],
+      required: ["jobId", "fullName", "email", "phone", "applicationArea", "consentAccepted"],
       properties: {
         jobId: { type: "string", example: "cmjob123" },
         fullName: { type: "string", example: "Nguyen Van A" },
         email: { type: "string", example: "candidate@example.com", format: "email" },
         phone: { type: "string", example: "0901234567" },
+        applicationArea: { type: "string", example: "Hà Nội" },
         linkedinUrl: { type: "string", example: "https://www.linkedin.com/in/candidate" },
         portfolioUrl: { type: "string", example: "https://candidate.dev" },
         salaryExpectation: { type: "string", example: "25,000,000 VND" },

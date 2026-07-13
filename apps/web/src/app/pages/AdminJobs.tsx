@@ -1,25 +1,26 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { Archive, CircleStop, Eye, Edit2, Globe, Plus, RotateCcw, Search, Users } from "lucide-react";
+import { Archive, CircleStop, Eye, Globe, Plus, RotateCcw, Search, Users } from "lucide-react";
 import { type JobStatus, useData } from "@/app/data";
 import { translateJobStatus, translateJobType, useLanguage } from "@/app/i18n";
+import ListPagination from "@/app/components/ListPagination";
 import AdminLayout from "@/app/layouts/AdminLayout";
+import { JOB_STATUS_CONFIG, URGENT_BADGE_CLASS } from "@/app/status-config";
 
-const statusBadgeClass: Record<JobStatus, string> = {
-  published: "bg-emerald-100 text-emerald-700",
-  draft: "bg-gray-100 text-gray-600",
-  closed: "bg-amber-100 text-amber-700",
-  archived: "bg-slate-100 text-slate-600",
-};
+const ITEMS_PER_PAGE = 10;
 
 export default function AdminJobs() {
   const { jobs, updateJob } = useData();
   const { language, t } = useLanguage();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<JobStatus | "active">("active");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const visibleJobs = jobs.filter(job => statusFilter === "active" ? job.status !== "archived" : job.status === statusFilter);
   const filtered = visibleJobs.filter(j => !search || j.title.toLowerCase().includes(search.toLowerCase()) || j.company.toLowerCase().includes(search.toLowerCase()));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const activePage = Math.min(currentPage, totalPages);
+  const paginatedJobs = filtered.slice((activePage - 1) * ITEMS_PER_PAGE, activePage * ITEMS_PER_PAGE);
   const counts = {
     published: jobs.filter(j => j.status === "published").length,
     draft: jobs.filter(j => j.status === "draft").length,
@@ -34,9 +35,17 @@ export default function AdminJobs() {
     { value: "archived", label: translateJobStatus("archived", language) },
   ];
 
+  useEffect(() => {
+    setCurrentPage(page => Math.min(page, totalPages));
+  }, [totalPages]);
+
   const togglePublishedStatus = (job: { id: string; status: JobStatus }) => {
     const nextStatus: JobStatus = job.status === "published" ? "closed" : "published";
-    void updateJob(job.id, { status: nextStatus });
+    updateJobStatus(job.id, nextStatus);
+  };
+
+  const updateJobStatus = (id: string, status: JobStatus) => {
+    void updateJob(id, { status }).catch(() => undefined);
   };
 
   return (
@@ -57,7 +66,10 @@ export default function AdminJobs() {
             {filterOptions.map(option => (
               <button
                 key={option.value}
-                onClick={() => setStatusFilter(option.value)}
+                onClick={() => {
+                  setStatusFilter(option.value);
+                  setCurrentPage(1);
+                }}
                 className={`rounded-full border px-3 py-1 text-xs font-bold transition-colors ${statusFilter === option.value ? "border-primary bg-primary text-white" : "border-border bg-white text-muted-foreground hover:border-primary hover:text-primary"}`}
               >
                 {option.label}
@@ -66,29 +78,34 @@ export default function AdminJobs() {
           </div>
           <div className="flex items-center gap-2 bg-background rounded-xl px-3 py-2 border border-border">
             <Search size={14} className="text-muted-foreground" />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("admin.searchJobs")} className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground" />
+            <input value={search} onChange={e => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }} placeholder={t("admin.searchJobs")} className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground" />
           </div>
         </div>
 
         <div className="divide-y divide-border">
-          {filtered.map(job => (
+          {paginatedJobs.map(job => (
             <div key={job.id} className="flex items-center gap-4 p-4 hover:bg-pink-50/50 transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-pink-50 border border-pink-100 flex items-center justify-center text-xl flex-shrink-0">{job.logo}</div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-bold text-foreground text-sm truncate" style={{ fontFamily: "'Playfair Display', serif" }}>{job.title}</p>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex-shrink-0 ${statusBadgeClass[job.status]}`}>
-                    {translateJobStatus(job.status, language)}
-                  </span>
-                  {job.urgent && <span className="px-2 py-0.5 bg-rose-100 text-rose-600 text-[10px] font-bold rounded-full">🔥 {t("jobs.urgent")}</span>}
+              <Link to={`/admin/jobs/${job.id}`} className="flex min-w-0 flex-1 cursor-pointer items-center gap-4 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary/40" aria-label={`${t("admin.viewJobDetail")}: ${job.title}`}>
+                <div className="w-10 h-10 rounded-xl bg-pink-50 border border-pink-100 flex items-center justify-center text-xl flex-shrink-0">{job.logo}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-bold text-foreground text-sm truncate hover:text-primary" style={{ fontFamily: "'Playfair Display', serif" }}>{job.title}</p>
+                    <span className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold ${JOB_STATUS_CONFIG[job.status].badgeClass}`}>
+                      {translateJobStatus(job.status, language)}
+                    </span>
+                    {job.urgent && <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${URGENT_BADGE_CLASS}`}>🔥 {t("jobs.urgent")}</span>}
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                    <span>{job.company}</span>
+                    <span>·</span><span>{job.location}</span>
+                    <span>·</span><span>{translateJobType(job.type, language)}</span>
+                    <span className="flex items-center gap-1 ml-2"><Users size={10} />{job.applicants} {t("common.candidates")}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                  <span>{job.company}</span>
-                  <span>·</span><span>{job.location}</span>
-                  <span>·</span><span>{translateJobType(job.type, language)}</span>
-                  <span className="flex items-center gap-1 ml-2"><Users size={10} />{job.applicants} {t("common.candidates")}</span>
-                </div>
-              </div>
+              </Link>
               <div className="flex items-center gap-1 flex-shrink-0">
                 {job.status === "archived" ? (
                   <button disabled className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground/40" title={t("admin.restoreBeforePublishing")}>
@@ -112,12 +129,9 @@ export default function AdminJobs() {
                     <Eye size={15} />
                   </button>
                 )}
-                <Link to={`/admin/jobs/${job.id}/edit`} className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-pink-50 transition-colors" title="Chỉnh sửa">
-                  <Edit2 size={15} />
-                </Link>
                 {job.status === "archived" ? (
                   <button
-                    onClick={() => void updateJob(job.id, { status: "closed" })}
+                    onClick={() => updateJobStatus(job.id, "closed")}
                     className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-amber-700 hover:bg-amber-50 transition-colors"
                     title={t("admin.restoreJob")}
                   >
@@ -125,7 +139,7 @@ export default function AdminJobs() {
                   </button>
                 ) : (
                   <button
-                    onClick={() => void updateJob(job.id, { status: "archived" })}
+                    onClick={() => updateJobStatus(job.id, "archived")}
                     className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-slate-700 hover:bg-slate-50 transition-colors"
                     title={t("admin.archiveJob")}
                   >
@@ -142,6 +156,7 @@ export default function AdminJobs() {
             </div>
           )}
         </div>
+        <ListPagination currentPage={activePage} pageSize={ITEMS_PER_PAGE} totalItems={filtered.length} onPageChange={setCurrentPage} />
       </div>
     </AdminLayout>
   );

@@ -22,18 +22,18 @@ export default function CandidateGuide() {
   return (
     <PublicLayout>
       <section className="border-b border-pink-100" style={{ background: "linear-gradient(135deg, #fff7fa 0%, #fdebf1 58%, #fff 100%)" }}>
-        <div className="max-w-7xl mx-auto px-6 py-14 md:py-16">
+        <div className="mx-auto max-w-7xl px-6 py-9 md:py-10">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-pink-200 bg-white/70 px-3 py-1.5 text-xs font-bold text-primary">
               <Sparkles size={13} /> {t("guide.eyebrow")}
             </div>
-            <h1 className="mt-5 text-4xl md:text-5xl font-black leading-tight text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <h1 className="mt-3 text-4xl font-black leading-tight text-foreground md:text-5xl" style={{ fontFamily: "'Playfair Display', serif" }}>
               {t("guide.title")}
             </h1>
-            <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
+            <p className="mt-2.5 max-w-2xl text-base leading-relaxed text-muted-foreground">
               {t("guide.subtitle")}
             </p>
-            <div className="mt-7 flex flex-wrap gap-3">
+            <div className="mt-4 flex flex-wrap gap-3">
               <Link to="/jobs" className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-white hover:bg-primary/90 transition-colors">
                 {t("guide.browseJobs")} <ArrowRight size={15} />
               </Link>

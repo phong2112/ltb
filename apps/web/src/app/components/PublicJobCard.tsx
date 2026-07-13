@@ -1,65 +1,115 @@
 import { Link } from "react-router";
-import { ChevronRight, MapPin, Users } from "lucide-react";
+import { ChevronRight, Clock, Heart, MapPin, Users } from "lucide-react";
 import type { Job } from "@/app/data";
 import { useLanguage } from "@/app/i18n";
+import { URGENT_BADGE_CLASS } from "@/app/status-config";
 
 type PublicJobCardProps = {
   job: Job;
+  active?: boolean;
+  onSelect?: (jobId: string) => void;
+  showRemoveSaved?: boolean;
+  onRemoveSaved?: (jobId: string) => void;
 };
 
-export default function PublicJobCard({ job }: PublicJobCardProps) {
+export default function PublicJobCard({
+  job,
+  active = false,
+  onSelect,
+  showRemoveSaved = false,
+  onRemoveSaved,
+}: PublicJobCardProps) {
   const { t } = useLanguage();
+  const interactive = Boolean(onSelect);
+
+  function selectJob() {
+    onSelect?.(job.id);
+  }
 
   return (
-    <Link
-      to={`/jobs/${job.id}`}
-      className="group bg-white border border-border rounded-2xl p-5 hover:border-primary/40 hover:shadow-lg transition-all duration-200 flex flex-col gap-3 relative overflow-hidden"
+    <article
+      id={interactive ? `job-card-${job.id}` : undefined}
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onClick={interactive ? selectJob : undefined}
+      onKeyDown={interactive ? event => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          selectJob();
+        }
+      } : undefined}
+      className={`group relative flex min-h-48 flex-col overflow-hidden rounded-2xl border bg-white p-4 text-left shadow-sm outline-none transition-all duration-200 ${interactive ? "cursor-pointer active:scale-[0.99]" : "h-full"} ${active ? "border-primary bg-pink-50/40 shadow-md ring-1 ring-primary/15" : "border-border hover:border-primary/60 hover:shadow-md"}`}
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-pink-50/0 to-pink-50/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl pointer-events-none" />
-      <div className="relative flex items-start justify-between gap-2">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-pink-50 flex items-center justify-center text-2xl flex-shrink-0 border border-pink-100">
-            {job.logo}
-          </div>
-          <div>
-            <h3
-              className="font-bold text-foreground text-sm leading-tight group-hover:text-primary transition-colors"
-              style={{ fontFamily: "'Playfair Display', serif" }}
-            >
-              {job.title}
-            </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">{job.company}</p>
-          </div>
+      {job.urgent && (
+        <span className={`absolute right-4 top-4 rounded-full border px-2.5 py-1 text-[10px] font-bold ${URGENT_BADGE_CLASS}`}>
+          🔥 {t("jobs.urgent")}
+        </span>
+      )}
+
+      <div className="flex items-start gap-3">
+        <div className="flex size-12 flex-none items-center justify-center rounded-2xl border border-pink-100 bg-pink-50 text-2xl">
+          {job.logo}
         </div>
-        {job.urgent && (
-          <span className="px-2 py-0.5 bg-rose-100 text-rose-600 text-[10px] font-bold rounded-full border border-rose-200 flex-shrink-0">
-            🔥 {t("jobs.urgent")}
-          </span>
-        )}
+        <div className="min-w-0 flex-1">
+          <h3 className={`line-clamp-2 text-base font-black leading-snug text-foreground transition-colors group-hover:text-primary ${job.urgent ? "pr-16" : ""}`} style={{ fontFamily: "'Playfair Display', serif" }}>
+            {interactive ? (
+              job.title
+            ) : (
+              <Link
+                to={`/jobs?job=${encodeURIComponent(job.id)}`}
+                className="rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                {job.title}
+              </Link>
+            )}
+          </h3>
+          <p className="mt-0.5 truncate text-xs font-semibold text-muted-foreground">{job.company}</p>
+        </div>
       </div>
-      <div className="relative flex flex-wrap gap-1.5">
-        {job.tags.slice(0, 3).map((tag) => (
-          <span key={tag} className="px-2 py-0.5 bg-pink-50 border border-pink-100 text-primary text-[10px] rounded-lg font-medium">
+
+      <div className="mt-4 flex min-h-6 flex-wrap content-start gap-1.5">
+        {job.tags.slice(0, 3).map(tag => (
+          <span key={tag} className="rounded-full bg-pink-50 px-2.5 py-1 text-[10px] font-semibold text-primary">
             {tag}
           </span>
         ))}
       </div>
-      <div className="relative flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <MapPin size={10} />
-          {job.location}
-        </span>
-        <span className="ml-auto font-semibold text-amber-600 text-[11px]">💰 {job.salary}</span>
+
+      <div className="mt-auto pt-3">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+          <span className="flex min-w-0 items-center gap-1">
+            <MapPin size={11} className="flex-none" />
+            <span className="truncate">{job.location}</span>
+          </span>
+          <span className="ml-auto truncate font-bold text-amber-600">💰 {job.salary || t("jobs.salaryNegotiable")}</span>
+        </div>
+
+        <div className="mt-3 flex min-h-7 items-center gap-2 border-t border-border pt-3 text-[11px] text-muted-foreground">
+          <span className="flex items-center gap-1"><Users size={11} />{job.applicants} {t("common.candidates")}</span>
+          {job.posted && <span className="flex flex-none items-center gap-1"><Clock size={11} />{job.posted}</span>}
+          {showRemoveSaved && onRemoveSaved && (
+            <button
+              type="button"
+              onClick={event => {
+                event.stopPropagation();
+                onRemoveSaved(job.id);
+              }}
+              title={t("savedJobs.remove")}
+              aria-label={t("savedJobs.remove")}
+              className="inline-flex flex-none cursor-pointer items-center text-primary transition-all hover:scale-110 hover:text-primary/70 active:scale-95"
+            >
+              <Heart size={13} fill="currentColor" />
+            </button>
+          )}
+          <Link
+            to={`/jobs/${job.id}`}
+            onClick={event => event.stopPropagation()}
+            className="ml-auto inline-flex flex-none items-center gap-0.5 text-xs font-bold text-primary transition-all hover:gap-1.5 hover:underline"
+          >
+            {t("common.viewDetails")} <ChevronRight size={12} />
+          </Link>
+        </div>
       </div>
-      <div className="relative flex items-center justify-between pt-2 border-t border-border text-xs text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <Users size={10} />
-          {job.applicants} {t("common.candidates")}
-        </span>
-        <span className="flex items-center gap-0.5 font-semibold text-primary group-hover:gap-1.5 transition-all">
-          {t("common.viewDetails")} <ChevronRight size={12} />
-        </span>
-      </div>
-    </Link>
+    </article>
   );
 }

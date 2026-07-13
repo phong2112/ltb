@@ -52,19 +52,19 @@ export default function Contact() {
   return (
     <PublicLayout>
       <section className="border-b border-pink-100 bg-[#fff7fa]">
-        <div className="max-w-7xl mx-auto px-6 py-14 md:py-16">
-          <div className="grid gap-8 lg:grid-cols-[1fr_0.85fr] lg:items-end">
+        <div className="mx-auto max-w-7xl px-6 py-9 md:py-10">
+          <div className="grid gap-5 lg:grid-cols-[1fr_0.85fr] lg:items-end">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-pink-200 bg-white px-3 py-1.5 text-xs font-bold text-primary">
                 <MessageCircle size={13} /> {t("contact.eyebrow")}
               </div>
-              <h1 className="mt-5 text-4xl md:text-5xl font-black leading-tight text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>
+              <h1 className="mt-3 text-4xl font-black leading-tight text-foreground md:text-5xl" style={{ fontFamily: "'Playfair Display', serif" }}>
                 {t("contact.title")}
               </h1>
-              <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">{t("contact.subtitle")}</p>
+              <p className="mt-2.5 max-w-2xl text-base leading-relaxed text-muted-foreground">{t("contact.subtitle")}</p>
             </div>
-            <div className="rounded-2xl border border-pink-100 bg-white p-5 shadow-sm">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            <div className="rounded-2xl border border-pink-100 bg-white p-4 shadow-sm">
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
                 {contactItems.map(item => (
                   <ContactItem
                     key={item.key}
