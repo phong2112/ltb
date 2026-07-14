@@ -51,7 +51,7 @@ model Job {
   slug         String        @unique
   company      String?
   department   String?
-  location     String?
+  locations    String[]      @default([])
   employment   String?
   level        String?
   salaryRange  String?

@@ -3,7 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { ACCESS_TOKEN_COOKIE_NAME, REFRESH_TOKEN_COOKIE_NAME } from "../modules/auth/jwt-auth.guard";
 
-export const SWAGGER_PATH = "docs";
+const SWAGGER_PATH = "docs";
 export const ACCESS_TOKEN_SECURITY_NAME = "accessToken";
 export const REFRESH_TOKEN_SECURITY_NAME = "refreshToken";
 

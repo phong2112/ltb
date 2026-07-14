@@ -1,20 +1,9 @@
 import { Body, Controller, Get, Param, Patch, Post, Res, StreamableFile, UseGuards } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import {
-  ApiCookieAuth,
-  ApiCreatedResponse,
-  ApiNotFoundResponse,
-  ApiOkResponse,
-  ApiOperation,
-  ApiParam,
-  ApiProduces,
-  ApiTags,
-  ApiUnauthorizedResponse,
-} from "@nestjs/swagger";
+import { ApiCookieAuth, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiProduces, ApiTags, ApiUnauthorizedResponse } from "@nestjs/swagger";
 import type { Response } from "express";
 import { ACCESS_TOKEN_SECURITY_NAME } from "../../config/swagger";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
-import { CvStorageService } from "../files/cv-storage.service";
 import { CreateCandidateMessageDto } from "./dto/create-candidate-message.dto";
 import { UpdateApplicationStatusDto } from "./dto/update-application-status.dto";
 import { CandidatesService } from "./candidates.service";
@@ -28,11 +17,12 @@ export class CandidatesController {
   constructor(
     private readonly candidatesService: CandidatesService,
     private readonly configService: ConfigService,
-    private readonly cvStorageService: CvStorageService,
   ) {}
 
   @ApiOperation({ summary: "List candidates for the HR inbox" })
-  @ApiOkResponse({ description: "Candidate profiles with their application history." })
+  @ApiOkResponse({
+    description: "Candidate profiles with their application history.",
+  })
   @Get()
   listCandidates() {
     return this.candidatesService.listCandidates();
@@ -45,8 +35,7 @@ export class CandidatesController {
   @ApiNotFoundResponse({ description: "Candidate file not found." })
   @Get("files/:fileId")
   async getCandidateFile(@Param("fileId") fileId: string, @Res({ passthrough: true }) response: Response) {
-    const file = await this.candidatesService.getCandidateFile(fileId);
-    const openedFile = await this.cvStorageService.openCandidateCv(file.path, file.mimeType);
+    const { file, openedFile } = await this.candidatesService.openCandidateFile(fileId);
 
     response.removeHeader("X-Frame-Options");
     response.set({
@@ -62,7 +51,9 @@ export class CandidatesController {
 
   @ApiOperation({ summary: "Get candidate detail" })
   @ApiParam({ name: "id", example: "cmcandidate123" })
-  @ApiOkResponse({ description: "Candidate detail with applications, files, and activity." })
+  @ApiOkResponse({
+    description: "Candidate detail with applications, files, and activity.",
+  })
   @ApiNotFoundResponse({ description: "Candidate not found." })
   @Get(":id")
   getCandidate(@Param("id") id: string) {
@@ -74,34 +65,29 @@ export class CandidatesController {
   @ApiCreatedResponse({ description: "Created candidate message." })
   @ApiNotFoundResponse({ description: "Candidate not found." })
   @Post(":id/messages")
-  createMessage(
-    @Param("id") id: string,
-    @Body() dto: CreateCandidateMessageDto,
-  ) {
+  createMessage(@Param("id") id: string, @Body() dto: CreateCandidateMessageDto) {
     return this.candidatesService.createMessageForCandidate(id, dto);
   }
 
-  @ApiOperation({ summary: "Create an application-scoped candidate message log entry" })
+  @ApiOperation({
+    summary: "Create an application-scoped candidate message log entry",
+  })
   @ApiParam({ name: "applicationId", example: "cmapplication123" })
   @ApiCreatedResponse({ description: "Created candidate message." })
   @ApiNotFoundResponse({ description: "Application not found." })
   @Post("applications/:applicationId/messages")
-  createApplicationMessage(
-    @Param("applicationId") applicationId: string,
-    @Body() dto: CreateCandidateMessageDto,
-  ) {
+  createApplicationMessage(@Param("applicationId") applicationId: string, @Body() dto: CreateCandidateMessageDto) {
     return this.candidatesService.createMessageForApplication(applicationId, dto);
   }
 
-  @ApiOperation({ summary: "Update an application status, note, or follow-up date" })
+  @ApiOperation({
+    summary: "Update an application status, note, or follow-up date",
+  })
   @ApiParam({ name: "applicationId", example: "cmapplication123" })
   @ApiOkResponse({ description: "Updated application." })
   @ApiNotFoundResponse({ description: "Application not found." })
   @Patch("applications/:applicationId")
-  updateApplication(
-    @Param("applicationId") applicationId: string,
-    @Body() dto: UpdateApplicationStatusDto,
-  ) {
+  updateApplication(@Param("applicationId") applicationId: string, @Body() dto: UpdateApplicationStatusDto) {
     return this.candidatesService.updateApplication(applicationId, dto);
   }
 }

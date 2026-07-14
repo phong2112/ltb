@@ -16,7 +16,11 @@
     "docker:down": "docker compose down"
   },
   "devDependencies": {
-    "prettier": "^3.6.2",
     "typescript": "^5.9.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "@hono/node-server": "^1.19.13"
+    }
   }
 }

@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState, useEffect, useRef, type ChangeEvent, type KeyboardEvent, type ReactNode } from "react";
 import { Link, useParams, useNavigate } from "react-router";
-import { Archive, ChevronDown, ChevronLeft, CircleStop, ExternalLink, FileText, Globe, LoaderCircle, RotateCcw, X } from "lucide-react";
+import { Archive, ArrowDown, ArrowUp, Check, ChevronDown, ChevronLeft, CircleStop, ExternalLink, FileText, Flame, Globe, LoaderCircle, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { useData, Job } from "@/app/data";
 import {
   Select,
@@ -25,10 +25,45 @@ const statusDotClass: Record<Job["status"], string> = {
   archived: "bg-slate-600",
 };
 
-const EMPTY: Omit<Job, "id" | "posted" | "applicants"> = {
-  title: "", company: "", location: "", type: "Full-time", level: "Mid-level",
-  salary: "", tags: [], description: "", requirements: "", benefits: "",
-  status: "draft", urgent: false, logo: "🌷",
+const DEFAULT_JOB_DESCRIPTION = [
+  "<h3>About VinSmart Future:</h3>",
+  "<p><em>VinSmartFuture (formerly VinIT) is a technology subsidiary of <strong>Vingroup</strong>, leading the development of a comprehensive <strong>SuperApp and digital ecosystem</strong> that serves tens of millions of users across key sectors: payments, healthcare, education, mobility, commerce, and entertainment.</em></p>",
+  "<p><em>Our mission is to build the <strong>\"Digital Core\"</strong> - the foundational technology platform that powers Vingroup's unified digital operations, enabling smart management, data-driven decision-making, and scalable infrastructure on a national level.</em></p>",
+  "<p><em><strong>Work Location:</strong></em></p>",
+  "<ul>",
+  "<li><p><em><strong>Hanoi:</strong> TechnoPark Tower, Vinhomes Ocean Park, Hanoi</em></p></li>",
+  "<li><p><em><strong>HCM:</strong> Vincom Dong Khoi, HCM</em></p></li>",
+  "</ul>",
+  "<h3>Job overview:</h3>",
+  "<p><br></p>",
+].join("");
+
+const DEFAULT_JOB_BENEFITS = [
+  "<ul>",
+  "<li><p>Flexible working hours and attendance policy. Work from home on alternate working Saturdays.</p></li>",
+  "<li><p>Attractive compensation package and competitive bonus schemes.</p></li>",
+  "<li><p>Lunch allowance.</p></li>",
+  "<li><p>Exclusive benefits across Vingroup's ecosystem, including preferential rates for education (Vinschool), healthcare services (Vinmec), hospitality and resorts (Vinpearl), vehicle purchases (VinFast), and housing rental and ownership programs (Vinhomes), in accordance with the Group's policies.</p></li>",
+  "<li><p>Full statutory insurance coverage in accordance with Vietnamese Labor Law, including Social Insurance, Health Insurance, and Unemployment Insurance.</p></li>",
+  "<li><p>Additional private healthcare insurance provided based on job grade and position.</p></li>",
+  "<li><p>Annual health check-ups at reputable hospitals and healthcare centers nationwide.</p></li>",
+  "<li><p>Opportunity to participate in large-scale, strategic technology projects.</p></li>",
+  "<li><p>Opportunity to work in a professional technology environment alongside scientists, experts, and engineers from leading technology companies in Vietnam and around the world.</p></li>",
+  "<li><p>Access to free learning resources on Udemy, Coursera, and O'Reilly, as well as internal workshops and seminars.</p></li>",
+  "<li><p>Sponsorship for professional certifications and special mentorship programs from Company and Group leadership.</p></li>",
+  "<li><p>Opportunity to join Vingroup's technology clubs and internal technology communities, contributing ideas and projects to real-world applications.</p></li>",
+  "<li><p>Internal Trainer development programs with special benefits for knowledge-sharing contributors.</p></li>",
+  "<li><p>12 annual leave days, plus public holidays in accordance with Vietnamese Labor Law.</p></li>",
+  "<li><p>Participation in company activities, team-building programs, and annual corporate events.</p></li>",
+  "</ul>",
+].join("");
+
+type JobForm = Omit<Job, "id" | "posted" | "applicants" | "location">;
+
+const EMPTY: JobForm = {
+  title: "", company: "", locations: [], type: "Full-time", level: "Mid-level",
+  salary: "", tags: [], description: DEFAULT_JOB_DESCRIPTION, requirements: "", benefits: DEFAULT_JOB_BENEFITS,
+  status: "draft", urgent: false, logo: "🌷", questions: [],
 };
 
 const LOGOS = ["🌸", "🌹", "🌷", "🍑", "💻", "📊", "🎨", "🌿", "⭐", "🦋"];
@@ -48,6 +83,8 @@ const MAX = {
   description: 5000,
   requirements: 4000,
   benefits: 3000,
+  questions: 10,
+  questionLabel: 300,
 };
 const MAX_SALARY_AMOUNT = MAX.salary - " VND".length;
 
@@ -55,7 +92,7 @@ type SalaryCurrency = typeof SALARY_CURRENCIES[number];
 type JobType = typeof JOB_TYPES[number];
 type JobLevel = typeof JOB_LEVELS[number];
 type SavingAction = "publish" | "save";
-type JobFormField = "title" | "company" | "location" | "salary" | "type" | "level" | "tags" | "description" | "requirements" | "benefits";
+type JobFormField = "title" | "company" | "locations" | "salary" | "type" | "level" | "tags" | "description" | "requirements" | "benefits" | "questions";
 type FormErrors = Partial<Record<JobFormField, string>>;
 
 function FormField({ label, children, error, hint, span2 }: { label: string; children: ReactNode; error?: string; hint?: string; span2?: boolean }) {
@@ -171,7 +208,7 @@ function validateSalary(value: string) {
   return "";
 }
 
-function validateJobForm(job: Omit<Job, "id" | "posted" | "applicants">, tags: string[]) {
+function validateJobForm(job: JobForm, tags: string[]) {
   const nextErrors: FormErrors = {};
   const title = job.title.trim();
   const company = job.company.trim();
@@ -191,8 +228,10 @@ function validateJobForm(job: Omit<Job, "id" | "posted" | "applicants">, tags: s
   else if (company.length > MAX.company) nextErrors.company = `Tên công ty tối đa ${MAX.company} ký tự`;
   else if (!TEXT_PATTERN.test(company)) nextErrors.company = "Tên công ty có ký tự không hợp lệ";
 
-  if (!JOB_LOCATIONS.includes(job.location as typeof JOB_LOCATIONS[number])) {
-    nextErrors.location = "Vui lòng chọn địa điểm hợp lệ";
+  if (job.locations.length === 0) {
+    nextErrors.locations = "Vui lòng chọn ít nhất một địa điểm";
+  } else if (job.locations.some(location => !JOB_LOCATIONS.includes(location as typeof JOB_LOCATIONS[number]))) {
+    nextErrors.locations = "Danh sách địa điểm có lựa chọn không hợp lệ";
   }
 
   if (!JOB_TYPES.includes(job.type as JobType)) nextErrors.type = "Hình thức làm việc không hợp lệ";
@@ -216,6 +255,18 @@ function validateJobForm(job: Omit<Job, "id" | "posted" | "applicants">, tags: s
 
   if (benefitsMeaningfulLength > MAX.benefits) nextErrors.benefits = `Quyền lợi tối đa ${MAX.benefits} ký tự nội dung`;
 
+  if (job.questions.length > MAX.questions) nextErrors.questions = `Tối đa ${MAX.questions} câu hỏi sàng lọc`;
+  else {
+    const invalidQuestionIndex = job.questions.findIndex(question => {
+      const label = question.label.trim();
+      return label.length < 5 || label.length > MAX.questionLabel;
+    });
+
+    if (invalidQuestionIndex >= 0) {
+      nextErrors.questions = `Câu hỏi ${invalidQuestionIndex + 1} cần dài 5-${MAX.questionLabel} ký tự`;
+    }
+  }
+
   return nextErrors;
 }
 
@@ -228,6 +279,17 @@ function getTagError(tag: string, currentTags: string[]) {
   return "";
 }
 
+function createLocalQuestionId() {
+  return `local-question-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function orderQuestions(questions: Job["questions"]) {
+  return questions.map((question, index) => ({
+    ...question,
+    sortOrder: index,
+  }));
+}
+
 export default function CreateEditJob() {
   const { id } = useParams();
   const { jobs, addJob, updateJob } = useData();
@@ -237,11 +299,12 @@ export default function CreateEditJob() {
   const existing = jobs.find(j => j.id === id);
   const initialSalary = parseSalary(existing?.salary ?? EMPTY.salary);
 
-  const [form, setForm] = useState<Omit<Job, "id" | "posted" | "applicants">>(existing ? {
-    title: existing.title, company: existing.company, location: existing.location,
+  const [form, setForm] = useState<JobForm>(existing ? {
+    title: existing.title, company: existing.company, locations: existing.locations,
     type: existing.type, level: existing.level, salary: existing.salary,
     tags: existing.tags, description: existing.description, requirements: existing.requirements,
     benefits: existing.benefits, status: existing.status, urgent: existing.urgent, logo: existing.logo,
+    questions: existing.questions,
   } : EMPTY);
 
   const [tags, setTags] = useState(existing?.tags || []);
@@ -262,7 +325,7 @@ export default function CreateEditJob() {
     setForm({
       title: existing.title,
       company: existing.company,
-      location: existing.location,
+      locations: existing.locations,
       type: existing.type,
       level: existing.level,
       salary: buildSalary(salary.amount, salary.currency),
@@ -273,6 +336,7 @@ export default function CreateEditJob() {
       status: existing.status,
       urgent: existing.urgent,
       logo: existing.logo,
+      questions: existing.questions,
     });
     setTags(existing.tags);
     setTagDraft("");
@@ -327,9 +391,19 @@ export default function CreateEditJob() {
   const inputCls = (field: JobFormField) => `${baseInputCls} ${fieldErrors[field] ? "border-red-300 focus:border-red-500" : "border-border focus:border-primary"}`;
   const selectTriggerCls = (field: JobFormField) => `h-[42px] data-[size=default]:h-[42px] rounded-xl bg-input-background px-3 text-sm font-semibold ${fieldErrors[field] ? "border-red-300 focus-visible:border-red-500" : "border-border focus-visible:border-primary"} focus-visible:ring-0`;
   const clearFieldError = (field: JobFormField) => setFieldErrors(errors => ({ ...errors, [field]: undefined }));
-  const updateField = (field: keyof Omit<Job, "id" | "posted" | "applicants">, value: string | boolean) => {
+  const updateField = (field: keyof JobForm, value: string | boolean | string[]) => {
     setForm(f => ({ ...f, [field]: value }));
     if (typeof field === "string") clearFieldError(field as JobFormField);
+  };
+  const toggleLocation = (location: typeof JOB_LOCATIONS[number]) => {
+    setForm(current => {
+      const selected = current.locations.includes(location);
+      return {
+        ...current,
+        locations: selected ? current.locations.filter(item => item !== location) : [...current.locations, location],
+      };
+    });
+    clearFieldError("locations");
   };
   const updateSalaryAmount = (value: string) => {
     const amount = formatSalaryAmount(value);
@@ -443,13 +517,65 @@ export default function CreateEditJob() {
     setTags(current => current.filter(item => item !== tag));
     clearFieldError("tags");
   };
+  const addQuestion = () => {
+    setForm(current => {
+      if (current.questions.length >= MAX.questions) {
+        setFieldErrors(errors => ({ ...errors, questions: `Tối đa ${MAX.questions} câu hỏi sàng lọc` }));
+        return current;
+      }
+
+      clearFieldError("questions");
+      return {
+        ...current,
+        questions: [
+          ...current.questions,
+          {
+            id: createLocalQuestionId(),
+            label: "",
+            required: false,
+            sortOrder: current.questions.length,
+          },
+        ],
+      };
+    });
+  };
+  const updateQuestion = (id: string, patch: Partial<Job["questions"][number]>) => {
+    setForm(current => ({
+      ...current,
+      questions: current.questions.map(question => question.id === id ? { ...question, ...patch } : question),
+    }));
+    clearFieldError("questions");
+  };
+  const removeQuestion = (id: string) => {
+    setForm(current => ({
+      ...current,
+      questions: orderQuestions(current.questions.filter(question => question.id !== id)),
+    }));
+    clearFieldError("questions");
+  };
+  const moveQuestion = (id: string, direction: -1 | 1) => {
+    setForm(current => {
+      const index = current.questions.findIndex(question => question.id === id);
+      const nextIndex = index + direction;
+      if (index < 0 || nextIndex < 0 || nextIndex >= current.questions.length) return current;
+
+      const nextQuestions = [...current.questions];
+      const [question] = nextQuestions.splice(index, 1);
+      nextQuestions.splice(nextIndex, 0, question);
+      return {
+        ...current,
+        questions: orderQuestions(nextQuestions),
+      };
+    });
+    clearFieldError("questions");
+  };
   const showPublishAction = !isEdit;
 
   return (
     <AdminLayout>
       <div className="w-full max-w-[1560px]">
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <header className="sticky top-16 z-20 min-w-0 rounded-2xl border border-border/80 bg-white px-5 py-4 shadow-[0_10px_30px_rgba(120,70,86,0.06)]">
+          <header className="sticky top-20 z-20 min-w-0 rounded-2xl border border-border/80 bg-white px-5 py-4 shadow-[0_10px_30px_rgba(120,70,86,0.06)]">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="min-w-0">
                 <Link to={isEdit && existing ? `/admin/jobs/${existing.id}` : "/admin/jobs"} className="mb-2 inline-flex cursor-pointer items-center gap-1 text-xs font-bold text-muted-foreground transition-colors hover:text-primary">
@@ -566,15 +692,28 @@ export default function CreateEditJob() {
             <FormField label={t("admin.companyName")} error={fieldErrors.company} hint={`${form.company.length}/${MAX.company} ký tự`}>
               <input value={form.company} onChange={e => updateField("company", e.target.value)} placeholder="Bloom Creative Studio" maxLength={MAX.company} aria-invalid={Boolean(fieldErrors.company)} className={inputCls("company")} />
             </FormField>
-            <FormField label={t("admin.location")} error={fieldErrors.location}>
-              <Select value={form.location} onValueChange={value => updateField("location", value)}>
-                <SelectTrigger className={`${selectTriggerCls("location")} cursor-pointer`} aria-invalid={Boolean(fieldErrors.location)}>
-                  <SelectValue placeholder="Chọn địa điểm" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-border bg-white p-1 shadow-lg">
-                  {JOB_LOCATIONS.map(location => <SelectItem key={location} value={location} className="cursor-pointer rounded-lg font-semibold">{location}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <FormField label={t("admin.location")} error={fieldErrors.locations} hint={`${form.locations.length}/${JOB_LOCATIONS.length} địa điểm`}>
+              <div
+                className={`grid grid-cols-2 gap-2 rounded-xl border bg-input-background p-2 transition-colors sm:grid-cols-3 ${fieldErrors.locations ? "border-red-300 focus-within:border-red-500" : "border-border focus-within:border-primary"}`}
+                aria-invalid={Boolean(fieldErrors.locations)}
+              >
+                {JOB_LOCATIONS.map(location => {
+                  const selected = form.locations.includes(location);
+
+                  return (
+                    <button
+                      key={location}
+                      type="button"
+                      onClick={() => toggleLocation(location)}
+                      aria-pressed={selected}
+                      className={`flex h-9 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-bold transition-colors ${selected ? "border-primary bg-primary text-white shadow-sm" : "border-border bg-white text-foreground hover:border-primary/50 hover:bg-pink-50"}`}
+                    >
+                      {selected && <Check size={13} className="flex-none" />}
+                      <span className="truncate">{location}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </FormField>
             <FormField label={t("admin.salary")} error={fieldErrors.salary} hint={`Có thể để trống hoặc nhập khoảng. Tối đa ${MAX_SALARY_DISPLAY}`}>
               <div className={`flex h-[42px] overflow-hidden rounded-xl border bg-input-background transition-colors ${fieldErrors.salary ? "border-red-300 focus-within:border-red-500" : "border-border focus-within:border-primary"}`}>
@@ -683,12 +822,111 @@ export default function CreateEditJob() {
                 <RichTextEditor value={form.benefits} onChange={value => updateField("benefits", value)} label={t("admin.benefitsLabel")} placeholder="Lương cạnh tranh, thiết bị làm việc, chính sách remote..." invalid={Boolean(fieldErrors.benefits)} />
               </Suspense>
             </FormField>
+            <FormField
+              label="Câu hỏi sàng lọc"
+              error={fieldErrors.questions}
+              hint={`${form.questions.length}/${MAX.questions} câu hỏi. Bật bắt buộc cho câu hỏi cần ứng viên trả lời trước khi gửi hồ sơ.`}
+              span2
+            >
+              <div className={`space-y-3 rounded-2xl border bg-background/60 p-3 ${fieldErrors.questions ? "border-red-300" : "border-border/80"}`}>
+                {form.questions.length > 0 ? (
+                  form.questions.map((question, index) => (
+                    <div key={question.id} className="grid gap-2 rounded-xl border border-border bg-white p-3 lg:grid-cols-[auto_minmax(0,1fr)_auto_auto] lg:items-start">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-xs font-black text-primary">
+                        {String(index + 1).padStart(2, "0")}
+                      </div>
+                      <textarea
+                        value={question.label}
+                        onChange={event => updateQuestion(question.id, { label: event.target.value })}
+                        placeholder="Ví dụ: Bạn có bao nhiêu năm kinh nghiệm với React và TypeScript?"
+                        rows={2}
+                        maxLength={MAX.questionLabel}
+                        aria-invalid={Boolean(fieldErrors.questions)}
+                        className="min-h-[76px] w-full resize-y rounded-xl border border-border bg-input-background px-3 py-2.5 text-sm leading-5 outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
+                      />
+                      <label className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-border bg-background/60 px-3 text-xs font-bold text-foreground">
+                        <input
+                          type="checkbox"
+                          checked={question.required}
+                          onChange={event => updateQuestion(question.id, { required: event.target.checked })}
+                          className="size-4 accent-pink-600"
+                        />
+                        Bắt buộc
+                      </label>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => moveQuestion(question.id, -1)}
+                          disabled={index === 0}
+                          className="flex size-9 items-center justify-center rounded-xl border border-border text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                          aria-label="Đưa câu hỏi lên trên"
+                        >
+                          <ArrowUp size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveQuestion(question.id, 1)}
+                          disabled={index === form.questions.length - 1}
+                          className="flex size-9 items-center justify-center rounded-xl border border-border text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                          aria-label="Đưa câu hỏi xuống dưới"
+                        >
+                          <ArrowDown size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeQuestion(question.id)}
+                          className="flex size-9 items-center justify-center rounded-xl border border-border text-muted-foreground transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                          aria-label="Xóa câu hỏi"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-xl border border-dashed border-border bg-white px-4 py-5 text-center text-sm font-semibold text-muted-foreground">
+                    Chưa có câu hỏi sàng lọc cho job này.
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={addQuestion}
+                  disabled={form.questions.length >= MAX.questions}
+                  className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-border bg-white text-sm font-bold text-primary transition-colors hover:border-primary/40 hover:bg-pink-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Plus size={15} /> Thêm câu hỏi
+                </button>
+              </div>
+            </FormField>
           </div>
 
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={form.urgent} onChange={e => updateField("urgent", e.target.checked)} className="w-4 h-4 accent-pink-500" />
-            <span className="text-sm font-semibold text-foreground">🔥 {t("admin.markUrgent")}</span>
-          </label>
+          <button
+            type="button"
+            onClick={() => updateField("urgent", !form.urgent)}
+            aria-pressed={form.urgent}
+            className={`flex w-full items-center justify-between gap-4 rounded-2xl border p-4 text-left transition-all ${
+              form.urgent
+                ? "border-rose-200 bg-rose-50 text-rose-700 shadow-[0_10px_24px_rgba(225,29,72,0.08)]"
+                : "border-border bg-background/60 text-foreground hover:border-primary/30 hover:bg-pink-50/70"
+            }`}
+          >
+            <span className="flex min-w-0 items-center gap-3">
+              <span className={`flex size-10 flex-none items-center justify-center rounded-xl ${form.urgent ? "bg-rose-100 text-rose-600" : "bg-white text-muted-foreground ring-1 ring-border"}`}>
+                <Flame size={18} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-black">{t("admin.markUrgent")}</span>
+                <span className="mt-0.5 block text-xs font-semibold text-muted-foreground">
+                  {form.urgent ? "Tin tuyển dụng sẽ được gắn nhãn nổi bật." : "Bật khi vị trí cần ưu tiên tuyển nhanh."}
+                </span>
+              </span>
+            </span>
+            <span className={`flex h-6 w-11 flex-none items-center rounded-full p-0.5 transition-colors ${form.urgent ? "bg-rose-500" : "bg-muted"}`}>
+              <span className={`flex size-5 items-center justify-center rounded-full bg-white text-rose-600 shadow-sm transition-transform ${form.urgent ? "translate-x-5" : "translate-x-0"}`}>
+                {form.urgent && <Check size={12} />}
+              </span>
+            </span>
+          </button>
 
             </div>
           </div>

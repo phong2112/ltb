@@ -1,20 +1,24 @@
 import { JobStatus } from "@prisma/client";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { Transform } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import sanitizeHtml, { type IOptions } from "sanitize-html";
 import {
   ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
   IsBoolean,
   IsEnum,
   IsIn,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   Length,
   Matches,
   MaxLength,
+  Min,
   ValidateBy,
+  ValidateNested,
   type ValidationOptions,
 } from "class-validator";
 
@@ -52,6 +56,19 @@ function NullableTrim() {
 
     const trimmed = value.trim();
     return trimmed || null;
+  });
+}
+
+function NormalizeLocations() {
+  return Transform(({ value }) => {
+    if (!Array.isArray(value)) return value;
+
+    const locations = value
+      .map((location) => typeof location === "string" ? location.trim() : location)
+      .map((location) => location === "TP. Hồ Chí Minh" ? "TP Hồ Chí Minh" : location)
+      .filter((location): location is string => typeof location === "string" && location.length > 0);
+
+    return Array.from(new Set(locations));
   });
 }
 
@@ -116,6 +133,47 @@ function MaxSalaryValue(validationOptions?: ValidationOptions) {
   }, validationOptions);
 }
 
+function NormalizeQuestions() {
+  return Transform(({ value }) => {
+    if (!Array.isArray(value)) return value;
+
+    return value.map((question, index) => {
+      if (!question || typeof question !== "object" || Array.isArray(question)) {
+        return question;
+      }
+
+      const record = question as Record<string, unknown>;
+      const label = typeof record.label === "string" ? record.label.trim() : record.label;
+
+      return {
+        ...record,
+        label,
+        required: record.required === true,
+        sortOrder: Number.isInteger(record.sortOrder) ? record.sortOrder : index,
+      };
+    });
+  });
+}
+
+export class JobQuestionDto {
+  @ApiProperty({ example: "How many years of React experience do you have?", minLength: 5, maxLength: 300 })
+  @IsString()
+  @IsNotEmpty()
+  @Length(5, 300)
+  label!: string;
+
+  @ApiPropertyOptional({ example: true, default: false })
+  @IsBoolean()
+  @IsOptional()
+  required?: boolean;
+
+  @ApiPropertyOptional({ example: 0, default: 0 })
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  sortOrder?: number;
+}
+
 export class CreateJobDto {
   @ApiProperty({ example: "Frontend Developer", minLength: 5, maxLength: 120 })
   @Trim()
@@ -147,12 +205,14 @@ export class CreateJobDto {
   })
   department?: string;
 
-  @ApiProperty({ enum: JOB_LOCATION_OPTIONS, example: "TP Hồ Chí Minh" })
-  @Trim()
-  @IsString()
-  @IsNotEmpty()
-  @IsIn(JOB_LOCATION_OPTIONS)
-  location!: string;
+  @ApiProperty({ enum: JOB_LOCATION_OPTIONS, example: ["Hà Nội", "Remote"], isArray: true, minItems: 1, maxItems: JOB_LOCATION_OPTIONS.length })
+  @NormalizeLocations()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(JOB_LOCATION_OPTIONS.length)
+  @IsString({ each: true })
+  @IsIn(JOB_LOCATION_OPTIONS, { each: true })
+  locations!: string[];
 
   @ApiProperty({ enum: JOB_EMPLOYMENT_OPTIONS, example: "Full-time" })
   @Trim()
@@ -255,4 +315,21 @@ export class CreateJobDto {
   @IsOptional()
   @IsIn(JOB_LOGO_OPTIONS)
   logo?: string;
+
+  @ApiPropertyOptional({
+    type: JobQuestionDto,
+    isArray: true,
+    maxItems: 10,
+    example: [
+      { label: "How many years of React experience do you have?", required: true, sortOrder: 0 },
+      { label: "What is your earliest start date?", required: false, sortOrder: 1 },
+    ],
+  })
+  @NormalizeQuestions()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @ValidateNested({ each: true })
+  @Type(() => JobQuestionDto)
+  @IsOptional()
+  questions?: JobQuestionDto[];
 }

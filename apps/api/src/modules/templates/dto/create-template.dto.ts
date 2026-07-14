@@ -2,7 +2,7 @@ import { ApiProperty } from "@nestjs/swagger";
 import { Transform } from "class-transformer";
 import { IsIn, IsString, MaxLength, MinLength } from "class-validator";
 
-export const MESSAGE_TEMPLATE_CHANNELS = ["Zalo", "Messenger", "LinkedIn", "Email"] as const;
+const MESSAGE_TEMPLATE_CHANNELS = ["Zalo", "Messenger", "LinkedIn", "Email"] as const;
 
 function Trim() {
   return Transform(({ value }) => typeof value === "string" ? value.trim() : value);

@@ -3,9 +3,10 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { IsDateString, IsEnum, IsOptional, IsString } from "class-validator";
 
 export class UpdateApplicationStatusDto {
-  @ApiProperty({ enum: ApplicationStatus, enumName: "ApplicationStatus", example: ApplicationStatus.REVIEWING })
+  @ApiPropertyOptional({ enum: ApplicationStatus, enumName: "ApplicationStatus", example: ApplicationStatus.REVIEWING })
   @IsEnum(ApplicationStatus)
-  status!: ApplicationStatus;
+  @IsOptional()
+  status?: ApplicationStatus;
 
   @ApiPropertyOptional({ example: "2026-07-18T09:00:00.000Z", format: "date-time" })
   @IsDateString()

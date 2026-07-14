@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { get, put } from "@vercel/blob";
+import { del, get, put } from "@vercel/blob";
 import { createReadStream } from "node:fs";
-import { mkdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, stat, unlink, writeFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { Readable } from "node:stream";
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
@@ -61,6 +61,17 @@ export class CvStorageService {
     };
   }
 
+  async deleteCandidateCv(path: string) {
+    if (this.isVercelBlobPath(path)) {
+      await del(path);
+      return;
+    }
+
+    await unlink(path).catch((error: unknown) => {
+      if (!isMissingFileError(error)) throw error;
+    });
+  }
+
   isManagedStoragePath(path: string) {
     return this.isVercelBlobPath(path);
   }
@@ -68,8 +79,7 @@ export class CvStorageService {
   private shouldUseVercelBlob() {
     const driver = this.configService.get<string>("CV_STORAGE_DRIVER");
     if (driver === "local") return false;
-    if (driver === "vercel-blob") return true;
-    return Boolean(this.configService.get<string>("BLOB_STORE_ID") || this.configService.get<string>("BLOB_READ_WRITE_TOKEN"));
+    return true;
   }
 
   private async storeInVercelBlob(file: Express.Multer.File, candidateId: string, applicationId: string): Promise<StoredCvFile> {
@@ -86,7 +96,7 @@ export class CvStorageService {
       storedName: blob.pathname,
       mimeType: file.mimetype,
       sizeBytes: file.size,
-      path: blob.url,
+      path: blob.pathname,
     };
   }
 
@@ -95,7 +105,9 @@ export class CvStorageService {
     const storedName = `${Date.now()}-${normalizeFilename(file.originalname)}`;
     const path = join(uploadDir, "cv", candidateId, applicationId, storedName);
 
-    await mkdir(join(uploadDir, "cv", candidateId, applicationId), { recursive: true });
+    await mkdir(join(uploadDir, "cv", candidateId, applicationId), {
+      recursive: true,
+    });
     await writeFile(path, file.buffer);
 
     return {
@@ -108,7 +120,7 @@ export class CvStorageService {
   }
 
   private isVercelBlobPath(path: string) {
-    return /^https:\/\/[^/]+\.blob\.vercel-storage\.com\//.test(path) || path.startsWith("cv/");
+    return /^https:\/\/[^/]+\.blob\.vercel-storage\.com\//.test(path) || (this.shouldUseVercelBlob() && path.startsWith("cv/"));
   }
 }
 
@@ -122,4 +134,8 @@ function normalizeFilename(value: string) {
     .slice(0, 80);
 
   return `${base || "cv"}${extension}`;
+}
+
+function isMissingFileError(error: unknown): error is NodeJS.ErrnoException {
+  return error instanceof Error && "code" in error && error.code === "ENOENT";
 }

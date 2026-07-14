@@ -5,6 +5,15 @@ import { PrismaService } from "../prisma/prisma.service";
 import { CreateJobDto } from "./dto/create-job.dto";
 import { UpdateJobDto } from "./dto/update-job.dto";
 
+const jobInclude = {
+  questions: {
+    orderBy: { sortOrder: "asc" as const },
+  },
+  _count: {
+    select: { applications: true },
+  },
+};
+
 @Injectable()
 export class JobsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -13,22 +22,14 @@ export class JobsService {
     return this.prisma.job.findMany({
       where: { status: JobStatus.PUBLISHED },
       orderBy: { createdAt: "desc" },
-      include: {
-        _count: {
-          select: { applications: true },
-        },
-      },
+      include: jobInclude,
     });
   }
 
   async getPublicJob(slug: string) {
     const job = await this.prisma.job.findFirst({
       where: { slug, status: JobStatus.PUBLISHED },
-      include: {
-        _count: {
-          select: { applications: true },
-        },
-      },
+      include: jobInclude,
     });
 
     if (!job) {
@@ -41,17 +42,14 @@ export class JobsService {
   listAdminJobs() {
     return this.prisma.job.findMany({
       orderBy: { createdAt: "desc" },
-      include: {
-        _count: {
-          select: { applications: true },
-        },
-      },
+      include: jobInclude,
     });
   }
 
   async getAdminJob(id: string) {
     const job = await this.prisma.job.findUnique({
       where: { id },
+      include: jobInclude,
     });
 
     if (!job) {
@@ -71,7 +69,7 @@ export class JobsService {
         slug,
         company: dto.company,
         department: dto.department,
-        location: dto.location,
+        locations: dto.locations,
         employment: dto.employment,
         level: dto.level,
         salaryRange: dto.salaryRange,
@@ -82,33 +80,62 @@ export class JobsService {
         status: dto.status ?? JobStatus.DRAFT,
         urgent: dto.urgent ?? false,
         logo: dto.logo,
+        questions: dto.questions?.length
+          ? {
+              create: normalizeQuestions(dto.questions),
+            }
+          : undefined,
       },
+      include: jobInclude,
     });
   }
 
   async updateJob(id: string, dto: UpdateJobDto) {
     await this.getAdminJob(id);
 
+    const { questions, ...jobDto } = dto;
     const data: Prisma.JobUpdateInput = {
-      title: dto.title,
-      company: dto.company,
-      department: dto.department,
-      location: dto.location,
-      employment: dto.employment,
-      level: dto.level,
-      salaryRange: dto.salaryRange,
-      tags: dto.tags,
-      description: dto.description,
-      requirements: dto.requirements,
-      benefits: dto.benefits,
-      status: dto.status,
-      urgent: dto.urgent,
-      logo: dto.logo,
+      title: jobDto.title,
+      company: jobDto.company,
+      department: jobDto.department,
+      locations: jobDto.locations,
+      employment: jobDto.employment,
+      level: jobDto.level,
+      salaryRange: jobDto.salaryRange,
+      tags: jobDto.tags,
+      description: jobDto.description,
+      requirements: jobDto.requirements,
+      benefits: jobDto.benefits,
+      status: jobDto.status,
+      urgent: jobDto.urgent,
+      logo: jobDto.logo,
     };
 
-    return this.prisma.job.update({
-      where: { id },
-      data,
+    return this.prisma.$transaction(async (tx) => {
+      const job = await tx.job.update({
+        where: { id },
+        data,
+      });
+
+      if (questions !== undefined) {
+        await tx.jobQuestion.deleteMany({
+          where: { jobId: id },
+        });
+
+        if (questions.length > 0) {
+          await tx.jobQuestion.createMany({
+            data: normalizeQuestions(questions).map((question) => ({
+              ...question,
+              jobId: id,
+            })),
+          });
+        }
+      }
+
+      return tx.job.findUniqueOrThrow({
+        where: { id: job.id },
+        include: jobInclude,
+      });
     });
   }
 
@@ -123,4 +150,12 @@ export class JobsService {
 
     return slug;
   }
+}
+
+function normalizeQuestions(questions: NonNullable<CreateJobDto["questions"]>) {
+  return questions.map((question, index) => ({
+    label: question.label.trim(),
+    required: question.required ?? false,
+    sortOrder: question.sortOrder ?? index,
+  }));
 }
