@@ -52,6 +52,7 @@ describe("ApplicationsService", () => {
         id: "job-1",
         title: "Frontend Engineer",
         status: "PUBLISHED",
+        locations: ["Hà Nội"],
         questions: [],
       }),
     };
@@ -85,5 +86,39 @@ describe("ApplicationsService", () => {
     expect(deleteCandidateCv).toHaveBeenCalledWith(
       "cv/candidate-1/application-1/candidate.pdf",
     );
+  });
+
+  it("rejects an application area that is not configured on the job", async () => {
+    const prisma = { $transaction: jest.fn() };
+    const storage = { storeCandidateCv: jest.fn() };
+    const jobs = {
+      getAdminJob: jest.fn().mockResolvedValue({
+        id: "job-1",
+        title: "Frontend Engineer",
+        status: "PUBLISHED",
+        locations: ["Hà Nội"],
+        questions: [],
+      }),
+    };
+    const service = new ApplicationsService(
+      prisma as unknown as PrismaService,
+      {} as AiQueueService,
+      storage as unknown as CvStorageService,
+      jobs as unknown as JobsService,
+    );
+
+    await expect(
+      service.createApplication({
+        jobId: "job-1",
+        fullName: "Candidate",
+        email: "candidate@example.com",
+        phone: "0901234567",
+        applicationArea: "TP Hồ Chí Minh",
+        consentAccepted: true,
+      }),
+    ).rejects.toThrow("Application area must be one of the job locations");
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(storage.storeCandidateCv).not.toHaveBeenCalled();
   });
 });

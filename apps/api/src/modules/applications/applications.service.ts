@@ -24,6 +24,10 @@ export class ApplicationsService {
       throw new NotFoundException("Published job not found");
     }
 
+    if (!job.locations.includes(dto.applicationArea)) {
+      throw new BadRequestException("Application area must be one of the job locations");
+    }
+
     const normalizedEmail = normalizeEmail(dto.email);
     const normalizedPhone = normalizePhone(dto.phone);
     const candidateEmail = dto.email.trim();

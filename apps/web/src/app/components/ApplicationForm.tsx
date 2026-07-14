@@ -129,6 +129,9 @@ export default function ApplicationForm({
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const applicationAreas = APPLICATION_AREAS.filter((area) =>
+    job.locations.includes(area.value),
+  );
 
   function validateCvFile(file: File) {
     const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
@@ -164,7 +167,9 @@ export default function ApplicationForm({
     if (!form.phone.trim()) nextErrors.phone = t("apply.phoneRequired");
     else if (!/^\+?\d{8,15}$/.test(normalizedPhone))
       nextErrors.phone = t("apply.phoneInvalid");
-    if (!form.applicationArea) nextErrors.applicationArea = t("apply.areaRequired");
+    if (!form.applicationArea || !job.locations.includes(form.applicationArea)) {
+      nextErrors.applicationArea = t("apply.areaRequired");
+    }
     if (!form.cvUrl.trim() && !cvFile) nextErrors.cv = t("apply.cvRequired");
     if (form.cvUrl.trim() && !isValidPublicUrl(form.cvUrl.trim()))
       nextErrors.cv = t("apply.cvUrlInvalid");
@@ -376,7 +381,7 @@ export default function ApplicationForm({
               <SelectValue placeholder={t("apply.areaSelect")} />
             </SelectTrigger>
             <SelectContent className="rounded-xl border-border bg-white p-1 shadow-lg">
-              {APPLICATION_AREAS.map((area) => (
+              {applicationAreas.map((area) => (
                 <SelectItem key={area.value} value={area.value} className="cursor-pointer rounded-lg font-semibold">
                   {t(area.labelKey)}
                 </SelectItem>
