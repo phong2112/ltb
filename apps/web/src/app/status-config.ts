@@ -25,5 +25,12 @@ export type CandidateStatus = keyof typeof CANDIDATE_STATUS_CONFIG;
 export const CANDIDATE_STATUSES = Object.keys(
   CANDIDATE_STATUS_CONFIG,
 ) as CandidateStatus[];
+export const CANDIDATE_WORKFLOW_STATUSES = [
+  "new",
+  "contacted",
+  "interview",
+  "offer",
+  "rejected",
+] as const satisfies CandidateStatus[];
 
 export const URGENT_BADGE_CLASS = "border-rose-200 bg-rose-100 text-rose-600";

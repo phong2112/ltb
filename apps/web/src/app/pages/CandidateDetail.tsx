@@ -27,8 +27,8 @@ import { useData } from "@/app/data";
 import { translateCandidateStatus, useLanguage } from "@/app/i18n";
 import AdminLayout from "@/app/layouts/AdminLayout";
 import {
-  CANDIDATE_STATUSES,
   CANDIDATE_STATUS_CONFIG,
+  CANDIDATE_WORKFLOW_STATUSES,
   type CandidateStatus,
 } from "@/app/status-config";
 
@@ -168,7 +168,7 @@ export default function CandidateDetail() {
                   <StatusBadge status={application.status} language={language} />
                 </div>
               </div>
-              <dl className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <dl className="mt-4 grid gap-3 md:grid-cols-2">
                 <InfoItem icon={<Mail size={14} />} label={t("common.email")} value={primaryEmail} />
                 <InfoItem icon={<Phone size={14} />} label={t("admin.phone")} value={primaryPhone} />
                 <InfoItem icon={<MapPin size={14} />} label={t("admin.applicationArea")} value={application.applicationArea || "—"} />
@@ -190,10 +190,9 @@ export default function CandidateDetail() {
                 <SectionHeading icon={<Calendar size={16} />} title={`${t("admin.status")} & ${t("common.followUp")}`} />
                 <StatusBadge status={application.status} language={language} />
               </div>
-              <div className="mt-5">
-                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">{t("admin.status")}</p>
-                <div className="grid grid-cols-2 gap-2 lg:grid-cols-5">
-                  {CANDIDATE_STATUSES.map(status => {
+              <div className="mt-4">
+                <div className="flex flex-wrap gap-2">
+                  {CANDIDATE_WORKFLOW_STATUSES.map(status => {
                     const active = status === application.status;
                     return (
                       <button
@@ -202,7 +201,7 @@ export default function CandidateDetail() {
                         disabled={statusUpdating}
                         onClick={() => void handleStatusChange(status)}
                         aria-pressed={active}
-                        className={`min-h-10 rounded-xl border px-3 text-left text-xs font-black transition-all disabled:cursor-wait disabled:opacity-60 ${active ? CANDIDATE_STATUS_CONFIG[status].badgeClass : "border-border bg-white text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-foreground"}`}
+                        className={`inline-flex h-8 items-center rounded-full border px-3 text-xs font-black leading-none transition-all disabled:cursor-wait disabled:opacity-60 ${active ? CANDIDATE_STATUS_CONFIG[status].badgeClass : "border-border bg-white text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-foreground"}`}
                       >
                         {translateCandidateStatus(status, language)}
                       </button>
