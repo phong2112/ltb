@@ -13,64 +13,40 @@ import {
 } from "@/app/components/ui/alert-dialog";
 import AdminLayout from "@/app/layouts/AdminLayout";
 import { useLanguage } from "@/app/i18n";
+import { apiRequest } from "@/app/services/api-client";
 import { notificationService } from "@/app/services/notification";
 
 type ApiTemplate = { id: string; name: string; channel: string; content: string };
 type Template = { id: string; icon: ReactNode; title: string; channel: string; body: string };
 type TemplateForm = { name: string; channel: string; content: string };
 
-const API_BASE = ((import.meta.env.VITE_API_BASE_PATH as string | undefined) ?? "/api").replace(/\/$/, "");
 const CHANNELS = ["Zalo", "Messenger", "LinkedIn", "Email"];
 const EMPTY_FORM: TemplateForm = { name: "", channel: "Zalo", content: "" };
 
-async function requestAdminTemplates(init?: RequestInit, templateId?: string) {
-  const url = `${API_BASE}/admin/templates${templateId ? `/${encodeURIComponent(templateId)}` : ""}`;
-  let response = await fetch(url, { ...init, credentials: "include" });
-
-  if (response.status === 401) {
-    const refreshed = await fetch(`${API_BASE}/auth/refresh`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-    }).then((refreshResponse) => refreshResponse.ok).catch(() => false);
-
-    if (refreshed) {
-      response = await fetch(url, { ...init, credentials: "include" });
-    }
-  }
-
-  if (!response.ok) {
-    throw new Error(await response.text());
-  }
-
-  return response;
+function templatePath(templateId?: string) {
+  return `/admin/templates${templateId ? `/${encodeURIComponent(templateId)}` : ""}`;
 }
 
-async function fetchAdminTemplates() {
-  const response = await requestAdminTemplates();
-  return response.json() as Promise<ApiTemplate[]>;
+function fetchAdminTemplates() {
+  return apiRequest<ApiTemplate[]>(templatePath());
 }
 
-async function createAdminTemplate(form: TemplateForm) {
-  const response = await requestAdminTemplates({
+function createAdminTemplate(form: TemplateForm) {
+  return apiRequest<ApiTemplate>(templatePath(), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(form),
   });
-  return response.json() as Promise<ApiTemplate>;
 }
 
-async function updateAdminTemplate(id: string, form: TemplateForm) {
-  const response = await requestAdminTemplates({
+function updateAdminTemplate(id: string, form: TemplateForm) {
+  return apiRequest<ApiTemplate>(templatePath(id), {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(form),
-  }, id);
-  return response.json() as Promise<ApiTemplate>;
+  });
 }
 
 async function deleteAdminTemplate(id: string) {
-  await requestAdminTemplates({ method: "DELETE" }, id);
+  await apiRequest<void>(templatePath(id), { method: "DELETE" });
 }
 
 export default function MessageTemplates() {

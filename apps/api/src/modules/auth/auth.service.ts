@@ -3,9 +3,6 @@ import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { AuthUser } from "./auth.types";
 
-const DEFAULT_ADMIN_EMAIL = "v.bichlt6@vinsmartfuture.tech";
-const DEFAULT_ADMIN_PASSWORD = "demo123";
-
 @Injectable()
 export class AuthService {
   constructor(
@@ -15,8 +12,12 @@ export class AuthService {
 
   async login(email: string, password: string) {
     const normalizedEmail = email.trim().toLowerCase();
-    const adminEmail = (this.configService.get<string>("ADMIN_EMAIL") ?? DEFAULT_ADMIN_EMAIL).trim().toLowerCase();
-    const adminPassword = this.configService.get<string>("ADMIN_PASSWORD") ?? DEFAULT_ADMIN_PASSWORD;
+    const adminEmail = this.configService
+      .getOrThrow<string>("ADMIN_EMAIL")
+      .trim()
+      .toLowerCase();
+    const adminPassword =
+      this.configService.getOrThrow<string>("ADMIN_PASSWORD");
 
     if (normalizedEmail !== adminEmail || password !== adminPassword) {
       throw new UnauthorizedException("Invalid email or password");
@@ -77,23 +78,20 @@ export class AuthService {
   }
 
   getAccessTokenTtlSeconds() {
-    return Number(this.configService.get<string>("JWT_ACCESS_TOKEN_TTL_SECONDS") ?? 28_800);
+    return (
+      this.configService.get<number>("JWT_ACCESS_TOKEN_TTL_SECONDS") ?? 28_800
+    );
   }
 
   getRefreshTokenTtlSeconds() {
-    return Number(this.configService.get<string>("JWT_REFRESH_TOKEN_TTL_SECONDS") ?? 2_592_000);
+    return (
+      this.configService.get<number>("JWT_REFRESH_TOKEN_TTL_SECONDS") ??
+      2_592_000
+    );
   }
 
   private getAccessTokenSecret() {
-    const secret = this.configService.get<string>("JWT_ACCESS_TOKEN_SECRET") ?? this.configService.get<string>("JWT_SECRET");
-
-    if (secret) return secret;
-
-    if (this.configService.get<string>("NODE_ENV") === "production") {
-      throw new Error("JWT_ACCESS_TOKEN_SECRET is required in production");
-    }
-
-    return "dev-only-change-me";
+    return this.configService.getOrThrow<string>("JWT_ACCESS_TOKEN_SECRET");
   }
 
   private async verifyRefreshToken(token: string) {
@@ -113,14 +111,6 @@ export class AuthService {
   }
 
   private getRefreshTokenSecret() {
-    const secret = this.configService.get<string>("JWT_REFRESH_TOKEN_SECRET") ?? this.configService.get<string>("JWT_SECRET");
-
-    if (secret) return secret;
-
-    if (this.configService.get<string>("NODE_ENV") === "production") {
-      throw new Error("JWT_REFRESH_TOKEN_SECRET is required in production");
-    }
-
-    return "dev-only-refresh-change-me";
+    return this.configService.getOrThrow<string>("JWT_REFRESH_TOKEN_SECRET");
   }
 }

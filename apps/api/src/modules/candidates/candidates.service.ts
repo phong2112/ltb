@@ -1,9 +1,22 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { ApplicationStatus } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { CvStorageService } from "../files/cv-storage.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateCandidateMessageDto } from "./dto/create-candidate-message.dto";
 import { UpdateApplicationStatusDto } from "./dto/update-application-status.dto";
+
+const candidateApplicationInclude = {
+  messages: {
+    orderBy: { createdAt: "asc" },
+  },
+  followUpTask: true,
+  files: {
+    orderBy: { createdAt: "desc" },
+  },
+  job: true,
+  matchResult: true,
+  cvParseResult: true,
+} satisfies Prisma.ApplicationInclude;
 
 @Injectable()
 export class CandidatesService {
@@ -17,18 +30,7 @@ export class CandidatesService {
       include: {
         applications: {
           orderBy: { createdAt: "desc" },
-          include: {
-            messages: {
-              orderBy: { createdAt: "asc" },
-            },
-            followUpTask: true,
-            files: {
-              orderBy: { createdAt: "desc" },
-            },
-            job: true,
-            matchResult: true,
-            cvParseResult: true,
-          },
+          include: candidateApplicationInclude,
         },
       },
     });
@@ -46,18 +48,7 @@ export class CandidatesService {
       include: {
         applications: {
           orderBy: { createdAt: "desc" },
-          include: {
-            messages: {
-              orderBy: { createdAt: "asc" },
-            },
-            followUpTask: true,
-            files: {
-              orderBy: { createdAt: "desc" },
-            },
-            job: true,
-            matchResult: true,
-            cvParseResult: true,
-          },
+          include: candidateApplicationInclude,
         },
         activities: {
           orderBy: { createdAt: "desc" },
@@ -72,7 +63,7 @@ export class CandidatesService {
     return candidate;
   }
 
-  async getCandidateFile(fileId: string) {
+  async openCandidateFile(fileId: string) {
     const file = await this.prisma.candidateFile.findUnique({
       where: { id: fileId },
       include: {
@@ -92,6 +83,8 @@ export class CandidatesService {
       throw new BadRequestException("External CV links should be opened directly");
     }
 
+    const openedFile = await this.cvStorageService.openCandidateCv(file.path, file.mimeType);
+
     await this.prisma.activityLog.create({
       data: {
         candidateId: file.application.candidateId,
@@ -107,7 +100,7 @@ export class CandidatesService {
       },
     });
 
-    return file;
+    return { file, openedFile };
   }
 
   async createMessageForApplication(applicationId: string, dto: CreateCandidateMessageDto) {
@@ -126,31 +119,33 @@ export class CandidatesService {
       throw new NotFoundException("Application not found");
     }
 
-    const message = await this.prisma.candidateMessage.create({
-      data: {
-        applicationId: application.id,
-        channel: dto.channel,
-        direction: "outbound",
-        content,
-      },
-    });
-
-    await this.prisma.activityLog.create({
-      data: {
-        candidateId: application.candidateId,
-        applicationId: application.id,
-        jobId: application.jobId,
-        actor: "hr",
-        action: "candidate_message_sent",
-        metadata: {
+    return this.prisma.$transaction(async tx => {
+      const message = await tx.candidateMessage.create({
+        data: {
           applicationId: application.id,
-          messageId: message.id,
-          channel: message.channel,
+          channel: dto.channel,
+          direction: "outbound",
+          content,
         },
-      },
-    });
+      });
 
-    return message;
+      await tx.activityLog.create({
+        data: {
+          candidateId: application.candidateId,
+          applicationId: application.id,
+          jobId: application.jobId,
+          actor: "hr",
+          action: "candidate_message_sent",
+          metadata: {
+            applicationId: application.id,
+            messageId: message.id,
+            channel: message.channel,
+          },
+        },
+      });
+
+      return message;
+    });
   }
 
   async createMessageForCandidate(candidateId: string, dto: CreateCandidateMessageDto) {
@@ -182,11 +177,11 @@ export class CandidatesService {
       throw new NotFoundException("Application not found");
     }
 
-    const updated = await this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async tx => {
       const updatedApplication = await tx.application.update({
         where: { id: applicationId },
         data: {
-          status: dto.status as ApplicationStatus,
+          status: dto.status,
           hrNotes: dto.note === undefined ? undefined : dto.note.trim() || null,
         },
       });
@@ -213,23 +208,23 @@ export class CandidatesService {
         }
       }
 
-      return updatedApplication;
-    });
-
-    await this.prisma.activityLog.create({
-      data: {
-        candidateId: application.candidateId,
-        applicationId,
-        jobId: application.jobId,
-        actor: "hr",
-        action: "application_status_updated",
-        metadata: {
+      await tx.activityLog.create({
+        data: {
+          candidateId: application.candidateId,
           applicationId,
-          status: dto.status,
-          note: dto.note,
-          followUpAt: dto.followUpAt,
+          jobId: application.jobId,
+          actor: "hr",
+          action: dto.status === undefined ? "application_details_updated" : "application_status_updated",
+          metadata: {
+            applicationId,
+            ...(dto.status === undefined ? {} : { status: dto.status }),
+            noteUpdated: dto.note !== undefined,
+            followUpUpdated: dto.followUpAt !== undefined,
+          },
         },
-      },
+      });
+
+      return updatedApplication;
     });
 
     return updated;

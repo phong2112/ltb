@@ -80,8 +80,13 @@ function EditorToolbar({ editor }: { editor: Editor }) {
   );
 }
 
+function isEditorUsable(editor: Editor | null): editor is Editor {
+  return Boolean(editor && !editor.isDestroyed && editor.state?.schema);
+}
+
 export default function RichTextEditor({ value, onChange, label, placeholder, invalid }: RichTextEditorProps) {
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         heading: { levels: [2, 3] },
@@ -99,12 +104,13 @@ export default function RichTextEditor({ value, onChange, label, placeholder, in
       },
     },
     onUpdate: ({ editor: currentEditor }) => {
+      if (!isEditorUsable(currentEditor)) return;
       onChange(currentEditor.isEmpty ? "" : sanitizeRichText(currentEditor.getHTML()));
     },
   });
 
   useEffect(() => {
-    if (!editor) return;
+    if (!isEditorUsable(editor)) return;
     const normalizedValue = normalizeRichText(value);
     if (editor.getHTML() !== normalizedValue) editor.commands.setContent(normalizedValue, { emitUpdate: false });
   }, [editor, value]);

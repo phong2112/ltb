@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { Search, Filter, Star, ChevronRight, Users } from "lucide-react";
+import { Search, ChevronRight, Users } from "lucide-react";
 import { useData, type CandidateStatus } from "@/app/data";
 import { translateCandidateStatus, useLanguage } from "@/app/i18n";
 import ListPagination from "@/app/components/ListPagination";
@@ -87,7 +87,8 @@ export default function CandidateInbox() {
                 (jobFilter === "all" || application.jobId === jobFilter)
                 && (statusFilter === "all" || application.status === statusFilter)
               ) ?? candidate.applications[0];
-              const bestScore = Math.max(0, ...candidate.applications.map(application => application.aiScore));
+              const completedApplications = candidate.applications.filter(application => application.aiStatus === "completed");
+              const bestScore = Math.max(0, ...completedApplications.map(application => application.aiScore));
 
               return (
                 <Link key={candidate.id} to={`/admin/candidates/${candidate.id}${latestApplication ? `?application=${latestApplication.applicationId}` : ""}`} className="flex items-center gap-4 p-4 hover:bg-pink-50/50 transition-colors group">
@@ -102,7 +103,7 @@ export default function CandidateInbox() {
                   </div>
                   {latestApplication && <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
                     <div className="text-right">
-                      <div className={`text-sm font-black ${bestScore >= 90 ? "text-emerald-600" : bestScore >= 75 ? "text-amber-600" : "text-muted-foreground"}`}>{bestScore}%</div>
+                      <div className={`text-sm font-black ${bestScore >= 90 ? "text-emerald-600" : bestScore >= 75 ? "text-amber-600" : "text-muted-foreground"}`}>{completedApplications.length ? `${bestScore}%` : "AI…"}</div>
                       <div className="text-[10px] text-muted-foreground">{t("admin.bestMatch")}</div>
                     </div>
                     <span className={`rounded-full border px-2 py-1 text-[10px] font-bold ${CANDIDATE_STATUS_CONFIG[latestApplication.status].badgeClass}`}>{translateCandidateStatus(latestApplication.status, language)}</span>

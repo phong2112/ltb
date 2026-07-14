@@ -4,6 +4,38 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE=(docker compose -f "$ROOT_DIR/docker-compose.dev.yml" --project-name hr-copilot-dev)
 
+load_env_file() {
+  local file="$1"
+
+  [[ -f "$file" ]] || return 0
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+
+    [[ -z "$line" || "$line" == \#* || "$line" != *=* ]] && continue
+
+    local key="${line%%=*}"
+    local value="${line#*=}"
+
+    key="${key%"${key##*[![:space:]]}"}"
+    key="${key#export }"
+
+    if [[ ! "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ || -n "${!key+x}" ]]; then
+      continue
+    fi
+
+    value="${value#"${value%%[![:space:]]*}"}"
+    value="${value%"${value##*[![:space:]]}"}"
+    value="${value%\"}"
+    value="${value#\"}"
+    value="${value%\'}"
+    value="${value#\'}"
+
+    export "$key=$value"
+  done < "$file"
+}
+
 usage() {
   cat <<'USAGE'
 Usage:
@@ -29,7 +61,29 @@ require_docker() {
 }
 
 prepare() {
-  mkdir -p "$ROOT_DIR/uploads"
+  load_env_file "$ROOT_DIR/.env.local"
+  load_env_file "$ROOT_DIR/.env"
+
+  export CV_STORAGE_DRIVER="${CV_STORAGE_DRIVER:-vercel-blob}"
+
+  if [[ "$CV_STORAGE_DRIVER" == "vercel-blob" && -z "${BLOB_READ_WRITE_TOKEN:-}" ]]; then
+    cat >&2 <<'ERROR'
+BLOB_READ_WRITE_TOKEN is required because run.sh now stores CV uploads in Vercel Blob by default.
+run.sh runs the API in local Docker, so Vercel OIDC/BLOB_STORE_ID alone is not enough.
+
+Add it to .env.local or export it before running:
+  BLOB_READ_WRITE_TOKEN=vercel_blob_rw_... ./run.sh
+
+To use local files instead:
+  CV_STORAGE_DRIVER=local ./run.sh
+ERROR
+    exit 1
+  fi
+
+  if [[ "$CV_STORAGE_DRIVER" == "local" ]]; then
+    mkdir -p "$ROOT_DIR/uploads"
+  fi
+
   "${COMPOSE[@]}" run --rm setup
 }
 
@@ -44,8 +98,9 @@ up() {
   echo "Open http://localhost:8080"
   echo "API docs http://localhost:8080/api-docs"
   echo "Admin demo credential: hr / hr123456"
+  echo "Local AI: Ollama ${OLLAMA_MODEL:-qwen3:4b} (the first start downloads the model)"
   echo
-  "${COMPOSE[@]}" up --remove-orphans nginx web api db redis
+  "${COMPOSE[@]}" up --remove-orphans nginx web api db redis ollama ollama-model
 }
 
 seed() {

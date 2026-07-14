@@ -6,16 +6,20 @@ import { useData } from "@/app/data";
 import { translateJobType, useLanguage } from "@/app/i18n";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 
-const MAX_CV_FILE_SIZE_MB = Number(
-  import.meta.env.VITE_MAX_CV_FILE_SIZE_MB ?? 10,
-);
+const MAX_CV_FILE_SIZE_MB = readMaxCvFileSizeMb();
 const MAX_CV_FILE_SIZE_BYTES = MAX_CV_FILE_SIZE_MB * 1024 * 1024;
+const MAX_SCREENING_ANSWER_LENGTH = 1000;
 const ALLOWED_CV_MIME_TYPES = new Set([
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ]);
 const ALLOWED_CV_EXTENSIONS = new Set(["pdf", "doc", "docx"]);
+
+function readMaxCvFileSizeMb() {
+  const configured = Number(import.meta.env.VITE_MAX_CV_FILE_SIZE_MB ?? 10);
+  return Number.isFinite(configured) && configured > 0 ? configured : 10;
+}
 
 type ApplicationFormProps = {
   job: Job;
@@ -121,6 +125,7 @@ export default function ApplicationForm({
     note: "",
     agreed: false,
   });
+  const [questionAnswers, setQuestionAnswers] = useState<Record<string, string>>({});
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -167,6 +172,14 @@ export default function ApplicationForm({
       const fileError = validateCvFile(cvFile);
       if (fileError) nextErrors.cv = fileError;
     }
+    job.questions.forEach((question) => {
+      const answer = questionAnswers[question.id]?.trim() ?? "";
+      if (question.required && !answer) {
+        nextErrors[`question-${question.id}`] = "Vui lòng trả lời câu hỏi bắt buộc";
+      } else if (answer.length > MAX_SCREENING_ANSWER_LENGTH) {
+        nextErrors[`question-${question.id}`] = `Câu trả lời tối đa ${MAX_SCREENING_ANSWER_LENGTH} ký tự`;
+      }
+    });
     if (!form.agreed) nextErrors.agreed = t("apply.agreeError");
     return nextErrors;
   }
@@ -183,6 +196,11 @@ export default function ApplicationForm({
   function updateTextField(name: TextFieldName, value: string) {
     setForm((current) => ({ ...current, [name]: value }));
     clearErrors(name === "cvUrl" ? "cv" : name);
+  }
+
+  function updateQuestionAnswer(questionId: string, value: string) {
+    setQuestionAnswers((current) => ({ ...current, [questionId]: value }));
+    clearErrors(`question-${questionId}`);
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -221,6 +239,10 @@ export default function ApplicationForm({
         jobId: job.id,
         jobTitle: job.title,
         status: "new",
+        questionAnswers: job.questions.map((question) => ({
+          questionId: question.id,
+          answer: questionAnswers[question.id]?.trim() ?? "",
+        })),
       });
       onSuccess();
     } catch (error) {
@@ -454,6 +476,59 @@ export default function ApplicationForm({
           className={`${fieldControlClassName} min-h-[106px] resize-y border-border leading-5`}
         />
       </Field>
+
+      {job.questions.length > 0 && (
+        <section className="rounded-2xl border border-border/80 bg-white p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h3 className="text-sm font-black text-foreground">
+              {t("admin.screeningQuestions")}
+            </h3>
+            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-black text-primary">
+              {job.questions.length}
+            </span>
+          </div>
+          <div className="space-y-3">
+            {job.questions.map((question, index) => {
+              const error = errors[`question-${question.id}`];
+              const answerId = fieldId(`question-${question.id}`);
+
+              return (
+                <div key={question.id} className="rounded-xl border border-border bg-background/60 p-3">
+                  <label htmlFor={answerId} className="block text-xs font-bold leading-5 text-foreground">
+                    <span className="mr-1 text-primary">{String(index + 1).padStart(2, "0")}.</span>
+                    {question.label}
+                    {question.required && <span className="ml-0.5 text-primary">*</span>}
+                  </label>
+                  <textarea
+                    id={answerId}
+                    rows={3}
+                    value={questionAnswers[question.id] ?? ""}
+                    onChange={(event) => updateQuestionAnswer(question.id, event.target.value)}
+                    maxLength={MAX_SCREENING_ANSWER_LENGTH}
+                    aria-invalid={Boolean(error)}
+                    aria-describedby={error ? `${answerId}-error` : undefined}
+                    className={`${fieldControlClassName} mt-2 min-h-[94px] resize-y leading-5 ${error ? "border-red-300 focus:border-red-500" : "border-border"}`}
+                  />
+                  <div className="mt-1.5 flex min-h-4 justify-between gap-3 text-[11px] leading-4">
+                    {error ? (
+                      <p id={`${answerId}-error`} role="alert" className="font-semibold text-red-600">
+                        {error}
+                      </p>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {question.required ? "Bắt buộc" : "Không bắt buộc"}
+                      </span>
+                    )}
+                    <span className="flex-none text-muted-foreground">
+                      {(questionAnswers[question.id] ?? "").length}/{MAX_SCREENING_ANSWER_LENGTH}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <div
         className={`rounded-xl border p-3.5 transition-colors ${errors.agreed ? "border-red-300 bg-red-50/60" : "border-primary/15 bg-primary/[0.025] hover:border-primary/30"}`}

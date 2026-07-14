@@ -1,29 +1,15 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Post,
-  UploadedFile,
-  UseInterceptors,
-} from "@nestjs/common";
+import { BadRequestException, Body, Controller, Post, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { FileInterceptor } from "@nestjs/platform-express";
+import { ThrottlerGuard } from "@nestjs/throttler";
 import { ApiBadRequestResponse, ApiBody, ApiConsumes, ApiCreatedResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { memoryStorage } from "multer";
 import { extname } from "node:path";
 import { CreateApplicationDto } from "./dto/create-application.dto";
 import { ApplicationsService } from "./applications.service";
 
-const allowedMimeTypes = new Set<string>([
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-]);
-
-const allowedExtensions = new Set([".pdf", ".doc", ".docx"]);
-
 @ApiTags("Applications")
 @Controller("applications")
+@UseGuards(ThrottlerGuard)
 export class ApplicationsController {
   constructor(
     private readonly applicationsService: ApplicationsService,
@@ -39,14 +25,29 @@ export class ApplicationsController {
       properties: {
         jobId: { type: "string", example: "cmjob123" },
         fullName: { type: "string", example: "Nguyen Van A" },
-        email: { type: "string", example: "candidate@example.com", format: "email" },
+        email: {
+          type: "string",
+          example: "candidate@example.com",
+          format: "email",
+        },
         phone: { type: "string", example: "0901234567" },
         applicationArea: { type: "string", example: "Hà Nội" },
-        linkedinUrl: { type: "string", example: "https://www.linkedin.com/in/candidate" },
+        linkedinUrl: {
+          type: "string",
+          example: "https://www.linkedin.com/in/candidate",
+        },
         portfolioUrl: { type: "string", example: "https://candidate.dev" },
         salaryExpectation: { type: "string", example: "25,000,000 VND" },
         noticePeriod: { type: "string", example: "30 days" },
-        screeningAnswers: { type: "string", example: "I have 4 years of React and TypeScript experience." },
+        screeningAnswers: {
+          type: "string",
+          example: "I have 4 years of React and TypeScript experience.",
+        },
+        questionAnswers: {
+          type: "string",
+          description: "JSON array of screening question answers.",
+          example: JSON.stringify([{ questionId: "cmquestion123", answer: "4 years" }]),
+        },
         consentAccepted: { type: "boolean", example: true },
         cv: {
           type: "string",
@@ -57,23 +58,11 @@ export class ApplicationsController {
     },
   })
   @ApiCreatedResponse({ description: "Application submission result." })
-  @ApiBadRequestResponse({ description: "Invalid form data, consent, file type, or file size." })
+  @ApiBadRequestResponse({
+    description: "Invalid form data, consent, file type, or file size.",
+  })
   @Post()
-  @UseInterceptors(
-    FileInterceptor("cv", {
-      storage: memoryStorage(),
-      fileFilter: (_req, file, cb) => {
-        const extension = extname(file.originalname).toLowerCase();
-
-        if (!allowedExtensions.has(extension) || !allowedMimeTypes.has(file.mimetype)) {
-          cb(new BadRequestException("CV must be a PDF, DOC, or DOCX file"), false);
-          return;
-        }
-
-        cb(null, true);
-      },
-    }),
-  )
+  @UseInterceptors(FileInterceptor("cv"))
   async createApplication(@Body() dto: CreateApplicationDto, @UploadedFile() cv?: Express.Multer.File) {
     const maxSizeMb = this.configService.get<number>("MAX_CV_FILE_SIZE_MB") ?? 10;
 
@@ -111,11 +100,7 @@ function hasAllowedFileSignature(file: Express.Multer.File) {
 
   if (extension === ".docx") {
     const zipSignature = bytes.subarray(0, 4);
-    return (
-      zipSignature.equals(Buffer.from([0x50, 0x4b, 0x03, 0x04])) ||
-      zipSignature.equals(Buffer.from([0x50, 0x4b, 0x05, 0x06])) ||
-      zipSignature.equals(Buffer.from([0x50, 0x4b, 0x07, 0x08]))
-    );
+    return zipSignature.equals(Buffer.from([0x50, 0x4b, 0x03, 0x04])) || zipSignature.equals(Buffer.from([0x50, 0x4b, 0x05, 0x06])) || zipSignature.equals(Buffer.from([0x50, 0x4b, 0x07, 0x08]));
   }
 
   return false;

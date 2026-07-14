@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { Bell, Calendar, Copy, MessageSquare, ChevronRight, CheckCircle } from "lucide-react";
+import { Bell, Calendar, Copy, ChevronRight, CheckCircle } from "lucide-react";
 import { useData } from "@/app/data";
 import { translateCandidateStatus, useLanguage } from "@/app/i18n";
 import AdminLayout from "@/app/layouts/AdminLayout";
@@ -10,7 +10,7 @@ export default function FollowUp() {
   const { language, t } = useLanguage();
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const needFollowUp = candidates.filter(c => c.status !== "rejected" && c.status !== "offered");
+  const needFollowUp = candidates.filter(c => c.status !== "rejected" && c.status !== "offer");
   const overdue = needFollowUp.filter(c => c.followUpDate && c.followUpDate < new Date().toISOString().split("T")[0]);
   const upcoming = needFollowUp.filter(c => c.followUpDate && c.followUpDate >= new Date().toISOString().split("T")[0]);
   const noDate = needFollowUp.filter(c => !c.followUpDate);

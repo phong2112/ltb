@@ -12,11 +12,12 @@ export default function AdminDashboard() {
   const publishedJobs = jobs.filter(j => j.status === "published").length;
   const draftJobs = jobs.filter(j => j.status === "draft").length;
   const newCandidates = candidateProfiles.filter(candidate => candidate.applications.some(application => application.status === "new")).length;
-  const followUps = candidates.filter(c => c.followUpDate && c.status !== "rejected" && c.status !== "offered").length;
-  const topMatch = [...candidates].sort((a, b) => b.aiScore - a.aiScore).slice(0, 3);
+  const followUps = candidates.filter(c => c.followUpDate && c.status !== "rejected" && c.status !== "offer").length;
+  const completedMatches = candidates.filter(candidate => candidate.aiStatus === "completed");
+  const topMatch = [...completedMatches].sort((a, b) => b.aiScore - a.aiScore).slice(0, 3);
   const recentCandidates = [...candidates].sort((a, b) => b.appliedAt.localeCompare(a.appliedAt)).slice(0, 5);
-  const averageScore = candidates.length ? Math.round(candidates.reduce((sum, candidate) => sum + candidate.aiScore, 0) / candidates.length) : 0;
-  const activePipeline = candidates.filter(candidate => candidate.status !== "rejected" && candidate.status !== "offered").length;
+  const averageScore = completedMatches.length ? Math.round(completedMatches.reduce((sum, candidate) => sum + candidate.aiScore, 0) / completedMatches.length) : 0;
+  const activePipeline = candidates.filter(candidate => candidate.status !== "rejected" && candidate.status !== "offer").length;
 
   const stats = [
     { label: t("admin.openJobs"), val: publishedJobs, meta: `${draftJobs} ${t("admin.draftCount")}`, icon: <Briefcase size={19} />, color: "text-primary bg-pink-50", link: "/admin/jobs" },

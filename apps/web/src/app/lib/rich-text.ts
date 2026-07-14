@@ -48,7 +48,7 @@ export function sanitizeRichText(value: string) {
   return DOMPurify.sanitize(value, SANITIZE_CONFIG);
 }
 
-export function richTextToPlainText(value: string) {
+function richTextToPlainText(value: string) {
   if (!RICH_TEXT_TAG_PATTERN.test(value)) return value;
 
   const htmlWithSpacing = sanitizeRichText(value)

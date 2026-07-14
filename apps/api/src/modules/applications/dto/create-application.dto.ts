@@ -1,8 +1,56 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { Transform } from "class-transformer";
-import { IsBoolean, IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, Matches } from "class-validator";
+import { Transform, Type } from "class-transformer";
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsBoolean,
+  IsEmail,
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  ValidateNested,
+} from "class-validator";
 
-export const APPLICATION_AREAS = ["Hà Nội", "Đà Nẵng", "Hải Phòng", "Quảng Ninh", "TP Hồ Chí Minh", "Remote"] as const;
+const APPLICATION_AREAS = ["Hà Nội", "Đà Nẵng", "Hải Phòng", "Quảng Ninh", "TP Hồ Chí Minh", "Remote"] as const;
+
+function ParseJsonArray() {
+  return Transform(({ value }) => {
+    if (value === undefined || value === null || value === "") return undefined;
+    if (Array.isArray(value)) return value;
+    if (typeof value !== "string") return value;
+
+    try {
+      return JSON.parse(value) as unknown;
+    } catch {
+      return value;
+    }
+  });
+}
+
+function TrimOptionalString() {
+  return Transform(({ value }) => {
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim();
+    return trimmed || undefined;
+  });
+}
+
+export class ApplicationQuestionAnswerDto {
+  @ApiProperty({ example: "cmquestion123" })
+  @IsString()
+  @IsNotEmpty()
+  questionId!: string;
+
+  @ApiPropertyOptional({ example: "I have 4 years of React and TypeScript experience.", maxLength: 1000 })
+  @TrimOptionalString()
+  @IsString()
+  @MaxLength(1000)
+  @IsOptional()
+  answer?: string;
+}
 
 export class CreateApplicationDto {
   @ApiProperty({ example: "cmjob123" })
@@ -57,6 +105,20 @@ export class CreateApplicationDto {
   @IsString()
   @IsOptional()
   screeningAnswers?: string;
+
+  @ApiPropertyOptional({
+    type: ApplicationQuestionAnswerDto,
+    isArray: true,
+    maxItems: 10,
+    description: "JSON string when submitted as multipart/form-data.",
+  })
+  @ParseJsonArray()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @ValidateNested({ each: true })
+  @Type(() => ApplicationQuestionAnswerDto)
+  @IsOptional()
+  questionAnswers?: ApplicationQuestionAnswerDto[];
 
   @ApiProperty({ example: true })
   @Transform(({ value }) => value === true || value === "true" || value === "on")
