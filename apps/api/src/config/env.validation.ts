@@ -12,9 +12,6 @@ const integerVariables = [
   "MAX_CV_FILE_SIZE_MB",
   "JWT_ACCESS_TOKEN_TTL_SECONDS",
   "JWT_REFRESH_TOKEN_TTL_SECONDS",
-  "OLLAMA_TIMEOUT_MS",
-  "OLLAMA_CONTEXT_LENGTH",
-  "AI_JOB_ATTEMPTS",
   "APPLICATION_RATE_LIMIT_MAX",
   "APPLICATION_RATE_LIMIT_WINDOW_SECONDS",
 ];
@@ -93,19 +90,6 @@ export function validateEnv(config: Record<string, unknown>) {
     throw new Error(
       "Vercel Blob storage requires BLOB_READ_WRITE_TOKEN, or BLOB_STORE_ID when running on Vercel with OIDC enabled",
     );
-  }
-
-  const aiProvider = String(config.AI_PROVIDER || "disabled");
-  if (!["disabled", "ollama"].includes(aiProvider)) {
-    throw new Error("AI_PROVIDER must be one of: disabled, ollama");
-  }
-
-  if (aiProvider === "ollama") {
-    for (const key of ["REDIS_URL", "OLLAMA_BASE_URL", "OLLAMA_MODEL"]) {
-      if (!hasValue(config[key])) {
-        throw new Error(`${key} is required when AI_PROVIDER=ollama`);
-      }
-    }
   }
 
   return validated;

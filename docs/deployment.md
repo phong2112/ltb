@@ -4,7 +4,7 @@ This project is a pnpm monorepo with:
 
 - `apps/web`: Vite React frontend.
 - `apps/api`: NestJS API.
-- `docker-compose.yml`: local/full-stack Docker setup with Nginx, web, API, PostgreSQL, Redis, and upload volume.
+- `docker-compose.yml`: local/full-stack Docker setup with Nginx, web, API, PostgreSQL, and upload volume.
 
 ## Recommended Production Shape
 
@@ -14,11 +14,10 @@ Use a container host or server for the Docker stack pieces that need long-runnin
 
 - NestJS API.
 - PostgreSQL.
-- Redis.
 - Private CV storage integration.
 - Optional Nginx reverse proxy.
 
-Do not deploy PostgreSQL, Redis, or persistent upload volumes as Vercel frontend output.
+Do not deploy PostgreSQL or persistent upload volumes as Vercel frontend output.
 
 ## 1. Verify Local Build
 
@@ -60,7 +59,7 @@ VITE_API_BASE_PATH=https://your-api-domain.com
 VITE_MAX_CV_FILE_SIZE_MB=10
 ```
 
-Only use `NEXT_PUBLIC_*` for values that are safe to expose in browser code. Do not put private API keys, database URLs, Redis URLs, or storage secrets in Vercel frontend environment variables.
+Only use `NEXT_PUBLIC_*` for values that are safe to expose in browser code. Do not put private API keys, database URLs, or storage secrets in Vercel frontend environment variables.
 
 ## 3. Ship The Docker Stack
 
@@ -80,7 +79,6 @@ Before exposing it publicly, replace local defaults in `docker-compose.yml` with
 ```text
 WEB_ORIGIN=https://your-web-domain.com
 DATABASE_URL=postgresql://<user>:<password>@db:5432/hr_copilot?schema=public
-REDIS_URL=redis://redis:6379
 ADMIN_EMAIL=v.bichlt6@vinsmartfuture.tech
 ADMIN_PASSWORD=<strong-admin-password>
 ADMIN_NAME=Lường Thị Bích
@@ -99,23 +97,15 @@ APPLICATION_RATE_LIMIT_MAX=5
 APPLICATION_RATE_LIMIT_WINDOW_SECONDS=60
 TRUST_PROXY_HOPS=1
 SWAGGER_ENABLED=false
-AI_PROVIDER=disabled
-OLLAMA_BASE_URL=http://ollama:11434
-OLLAMA_MODEL=qwen3:4b
-OLLAMA_TIMEOUT_MS=180000
-OLLAMA_CONTEXT_LENGTH=16384
-AI_JOB_ATTEMPTS=2
 ```
 
 `CV_STORAGE_DRIVER=vercel-blob` stores uploaded CV files in Vercel Blob Private and saves the Blob URL in PostgreSQL `CandidateFile.path`. `UPLOAD_DIR` remains a local development fallback only. In production, keep CV blobs private and serve them through the API after HR authentication checks. `APPLICATION_RATE_LIMIT_MAX` limits public submissions per IP during each `APPLICATION_RATE_LIMIT_WINDOW_SECONDS` window. Set `TRUST_PROXY_HOPS` to the number of trusted reverse proxies in front of the API so client IP rate limiting remains accurate.
 
 Swagger API documentation is available at `/docs` when enabled. It is enabled by default outside production. Keep `SWAGGER_ENABLED=false` for production unless API documentation is intentionally exposed behind appropriate network or auth controls.
 
-The repository runs Ollama only in `docker-compose.dev.yml` for the local demo. Production defaults to `AI_PROVIDER=disabled` unless a long-running Ollama service with sufficient memory is deployed and reachable from the API. Do not point `OLLAMA_BASE_URL` at an unauthenticated public endpoint; CV text is sensitive personal data.
-
 Admin login uses a short-lived JWT access token stored in an `httpOnly` cookie named `access_token` and a longer-lived refresh token stored in an `httpOnly` cookie named `refresh_token`. The frontend calls `/auth/refresh` when an admin request returns `401`. If the Vercel frontend and API are on different HTTPS domains, use `AUTH_COOKIE_SECURE=true` and `AUTH_COOKIE_SAMESITE=none`; keep `JWT_ACCESS_TOKEN_SECRET` and `JWT_REFRESH_TOKEN_SECRET` private and never expose them as frontend variables.
 
-Also change the PostgreSQL username/password and protect public network access. Do not expose database and Redis ports publicly in production.
+Also change the PostgreSQL username/password and protect public network access. Do not expose the database port publicly in production.
 
 ## 4. Domain Wiring
 
