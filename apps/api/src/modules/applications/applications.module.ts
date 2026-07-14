@@ -2,7 +2,6 @@ import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { MulterModule } from "@nestjs/platform-express";
 import { ThrottlerModule } from "@nestjs/throttler";
-import { AiModule } from "../ai/ai.module";
 import { FilesModule } from "../files/files.module";
 import { JobsModule } from "../jobs/jobs.module";
 import { ApplicationsController } from "./applications.controller";
@@ -11,7 +10,6 @@ import { createCvUploadOptions } from "./cv-upload.options";
 
 @Module({
   imports: [
-    AiModule,
     FilesModule,
     JobsModule,
     ThrottlerModule.forRootAsync({

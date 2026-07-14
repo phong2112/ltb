@@ -29,7 +29,7 @@ Implemented:
 - NestJS API in `apps/api`.
 - Prisma schema in `packages/db`.
 - Shared types in `packages/shared`.
-- Docker Compose with Nginx, web, API, PostgreSQL, Redis, and local Ollama for development.
+- Docker Compose with Nginx, web, API, and PostgreSQL for development.
 - Nginx reverse proxy for same-domain routing.
 - Basic Auth protection for `/admin` and `/api/admin`.
 - Swagger API documentation for local/API development.
@@ -71,22 +71,14 @@ Implemented:
 
 ### Phase 5: AI CV Parsing And Matching
 
-Implemented for local demo:
-
-- PDF, DOC, and DOCX text extraction.
-- Ollama provider using the local `qwen3:4b` model.
-- BullMQ background jobs backed by Redis.
-- Evidence-based comparison for each JD requirement.
-- Deterministic score calculation in application code.
-- Parse pending, completed, and failed UI states.
-- AI summary, strengths, risks, missing requirements, screening questions, and evidence confidence.
+Not enabled on the stable branch. The active AI worker implementation is kept on
+the `feature/ai-agent` branch while it is being validated.
 
 ### Phase 6: Outreach Helper
 
 Not implemented yet:
 
 - Message templates.
-- AI outreach drafts.
 - Copy-to-send actions.
 - Email sending.
 
@@ -97,8 +89,6 @@ Start the full Docker development stack with hot reload:
 ```bash
 CV_STORAGE_DRIVER=local ./run.sh
 ```
-
-The first start downloads `qwen3:4b` into the persistent `ollama_data` Docker volume. Later starts reuse the model. Set `OLLAMA_MODEL` before running the command to try another locally available model.
 
 Open:
 
@@ -175,7 +165,6 @@ The seed is idempotent for frontend mock records. It recreates:
 - 11 mock candidates from the current frontend mock data.
 - Applications across multiple statuses.
 - CV file metadata.
-- AI parse/match results.
 - Follow-up tasks.
 - Message templates.
 
@@ -219,26 +208,6 @@ If using Docker Postgres locally, the host port is `55432` to avoid common confl
 postgresql://postgres:postgres@localhost:55432/hr_copilot?schema=public
 ```
 
-Redis host port is `56379`.
-
-Ollama host port is `11434`. Check the downloaded model with:
-
-```bash
-docker compose -f docker-compose.dev.yml --project-name hr-copilot-dev exec ollama ollama list
-```
-
-## Demo AI CV Matching
-
-1. Start the dev stack with `CV_STORAGE_DRIVER=local ./run.sh`.
-2. Publish or select a job with explicit requirements.
-3. Submit a new application with a PDF, DOC, or DOCX CV upload.
-4. Open the candidate detail page. It refreshes while the BullMQ job is pending.
-5. Review the Qwen summary, match score, confidence, strengths, risks, and missing requirements.
-
-The model never supplies the final score. It classifies every JD criterion as `met`, `partial`, `not_met`, or `unknown` with CV evidence; the API calculates the weighted score. AI output is assistive and must not automatically reject a candidate.
-
-Scanned PDFs without an extractable text layer show a failed state for manual review. OCR is intentionally outside this local demo.
-
 ## Architecture Notes
 
 Nginx owns same-domain routing in Docker:
@@ -254,7 +223,5 @@ The API service is not exposed directly by Docker Compose. Public access should 
 
 1. Add real auth/session instead of Nginx Basic Auth for production.
 2. Add private object storage for CV files instead of local container volume.
-3. Add OCR fallback for scanned PDFs.
-4. Add an admin retry action for failed AI jobs.
-5. Add outreach templates and copy-to-send workflow.
-6. Add email notifications for new applications.
+3. Add outreach templates and copy-to-send workflow.
+4. Add email notifications for new applications.

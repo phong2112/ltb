@@ -14,8 +14,6 @@ const candidateApplicationInclude = {
     orderBy: { createdAt: "desc" },
   },
   job: true,
-  matchResult: true,
-  cvParseResult: true,
 } satisfies Prisma.ApplicationInclude;
 
 @Injectable()

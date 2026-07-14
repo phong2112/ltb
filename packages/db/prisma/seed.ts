@@ -2,7 +2,6 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import {
   ApplicationStatus,
-  CvParseStatus,
   FileKind,
   JobStatus,
   PrismaClient,
@@ -885,33 +884,6 @@ async function main() {
         mimeType: "text/uri-list",
         sizeBytes: 0,
         path: candidateData.cvUrl,
-        createdAt,
-      },
-    });
-
-    await prisma.cvParseResult.create({
-      data: {
-        applicationId: application.id,
-        candidateFileId: candidateFile.id,
-        status: CvParseStatus.COMPLETED,
-        summary: candidateData.summary,
-        structuredData: {
-          source: "frontend_mock",
-          screeningAnswers: candidateData.screeningAnswers,
-        },
-        extractedText: `Frontend mock CV text for ${candidateData.fullName}.`,
-        createdAt,
-      },
-    });
-
-    await prisma.matchResult.create({
-      data: {
-        applicationId: application.id,
-        score: candidateData.score,
-        strengths: candidateData.strengths,
-        risks: candidateData.risks,
-        missingRequirements: candidateData.missingRequirements,
-        screeningQuestions: candidateData.screeningAnswers.map((item) => item.q),
         createdAt,
       },
     });

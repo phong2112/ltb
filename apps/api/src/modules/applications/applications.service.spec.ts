@@ -1,8 +1,3 @@
-jest.mock("../ai/ai-queue.service", () => ({
-  AiQueueService: class AiQueueService {},
-}));
-
-import type { AiQueueService } from "../ai/ai-queue.service";
 import type { CvStorageService } from "../files/cv-storage.service";
 import type { JobsService } from "../jobs/jobs.service";
 import type { PrismaService } from "../prisma/prisma.service";
@@ -25,7 +20,6 @@ describe("ApplicationsService", () => {
       candidateFile: {
         create: jest.fn().mockResolvedValue({ id: "file-1" }),
       },
-      cvParseResult: { create: jest.fn().mockResolvedValue({}) },
       activityLog: {
         create: jest.fn().mockRejectedValue(new Error("Database write failed")),
       },
@@ -58,7 +52,6 @@ describe("ApplicationsService", () => {
     };
     const service = new ApplicationsService(
       prisma as unknown as PrismaService,
-      {} as AiQueueService,
       storage as unknown as CvStorageService,
       jobs as unknown as JobsService,
     );
@@ -102,7 +95,6 @@ describe("ApplicationsService", () => {
     };
     const service = new ApplicationsService(
       prisma as unknown as PrismaService,
-      {} as AiQueueService,
       storage as unknown as CvStorageService,
       jobs as unknown as JobsService,
     );

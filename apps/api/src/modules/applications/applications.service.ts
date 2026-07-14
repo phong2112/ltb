@@ -1,6 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { ApplicationStatus, CvParseStatus, FileKind, JobStatus, Prisma } from "@prisma/client";
-import { AiQueueService } from "../ai/ai-queue.service";
+import { ApplicationStatus, FileKind, JobStatus, Prisma } from "@prisma/client";
 import { CvStorageService } from "../files/cv-storage.service";
 import { JobsService } from "../jobs/jobs.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -12,7 +11,6 @@ export class ApplicationsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly aiQueueService: AiQueueService,
     private readonly cvStorageService: CvStorageService,
     private readonly jobsService: JobsService,
   ) {}
@@ -122,21 +120,6 @@ export class ApplicationsService {
               candidateFileId = candidateFile.id;
             }
 
-            await tx.cvParseResult.create({
-              data: {
-                applicationId: application.id,
-                candidateFileId,
-                status: cv ? CvParseStatus.PENDING : CvParseStatus.FAILED,
-                summary: cv ? "Hồ sơ đang được Qwen phân tích và đối chiếu với yêu cầu công việc." : "AI matching cần CV được tải lên; liên kết bên ngoài không được tự động truy cập.",
-                errorMessage: cv ? undefined : "Uploaded CV file is required for AI matching",
-                structuredData: {
-                  source: cv ? "ai_match_pending" : "external_link_not_processed",
-                  cvSource: cv ? "uploaded_file" : "external_link",
-                  fileName: cv?.originalname ?? submittedPortfolioUrl ?? "candidate-provided-link",
-                },
-              },
-            });
-
             await tx.activityLog.create({
               data: {
                 candidateId: candidate.id,
@@ -157,7 +140,6 @@ export class ApplicationsService {
             return {
               applicationId: application.id,
               candidateId: candidate.id,
-              candidateFileId,
               status: application.status,
             };
           },
@@ -182,47 +164,13 @@ export class ApplicationsService {
       };
     }
 
-    const { candidateFileId, ...response } = created;
-
-    if (candidateFileId) {
-      let aiUnavailableReason: string | undefined;
-
-      try {
-        const queued = await this.aiQueueService.enqueue(created.applicationId);
-
-        if (!queued) {
-          aiUnavailableReason = "AI matching is disabled in this environment";
-        }
-      } catch {
-        aiUnavailableReason = "AI matching queue is unavailable";
-      }
-
-      if (aiUnavailableReason) {
-        await this.markAiUnavailable(created.applicationId, aiUnavailableReason).catch(() => {
-          this.logger.error("Failed to persist AI unavailability after accepting an application");
-        });
-      }
-    }
-
-    return response;
-  }
-
-  private async markAiUnavailable(applicationId: string, errorMessage: string) {
-    await this.prisma.cvParseResult.update({
-      where: { applicationId },
-      data: {
-        status: CvParseStatus.FAILED,
-        summary: "Không thể bắt đầu phân tích AI. HR vẫn có thể xem CV và đánh giá thủ công.",
-        errorMessage,
-      },
-    });
+    return created;
   }
 }
 
 type CreatedApplication = {
   applicationId: string;
   candidateId: string;
-  candidateFileId?: string;
   status: ApplicationStatus;
 };
 
