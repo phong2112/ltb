@@ -5,11 +5,11 @@ import { useData, type CandidateStatus } from "@/app/data";
 import { translateCandidateStatus, useLanguage } from "@/app/i18n";
 import ListPagination from "@/app/components/ListPagination";
 import AdminLayout from "@/app/layouts/AdminLayout";
-import { CANDIDATE_STATUSES, CANDIDATE_STATUS_CONFIG } from "@/app/status-config";
+import { CANDIDATE_STATUS_CONFIG, CANDIDATE_WORKFLOW_STATUSES } from "@/app/status-config";
 
 const ITEMS_PER_PAGE = 10;
 
-const STATUS_OPTS: (CandidateStatus | "all")[] = ["all", ...CANDIDATE_STATUSES];
+const STATUS_OPTS: (CandidateStatus | "all")[] = ["all", ...CANDIDATE_WORKFLOW_STATUSES];
 
 export default function CandidateInbox() {
   const { candidateProfiles, jobs } = useData();
