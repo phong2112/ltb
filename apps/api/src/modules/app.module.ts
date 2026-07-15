@@ -13,7 +13,14 @@ import { TemplatesModule } from "./templates/templates.module";
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ["../../.env.local", "../../.env", ".env.local", ".env"],
+      envFilePath: [
+        "../../.env.dev",
+        "../../.env.local",
+        "../../.env",
+        ".env.dev",
+        ".env.local",
+        ".env",
+      ],
       validate: validateEnv,
     }),
     PrismaModule,
