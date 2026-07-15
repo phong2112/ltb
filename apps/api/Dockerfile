@@ -20,4 +20,4 @@ ENV NODE_ENV=production
 COPY --from=build /app /app
 RUN mkdir -p /app/uploads
 EXPOSE 4000
-CMD ["sh", "-c", "pnpm --filter @hr-copilot/db prisma migrate deploy && pnpm --filter @hr-copilot/api start:prod"]
+CMD ["sh", "-c", "DATABASE_URL=${MIGRATION_DATABASE_URL:-$DATABASE_URL} pnpm --filter @hr-copilot/db prisma migrate deploy && pnpm --filter @hr-copilot/api start:prod"]
