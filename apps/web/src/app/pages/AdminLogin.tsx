@@ -77,7 +77,7 @@ export default function AdminLogin() {
             {t("admin.workspaceIntro")}
           </p>
           <div className="mt-10 space-y-3">
-            {[t("admin.featureManage"), t("admin.featureCandidateReview"), t("admin.featureFollowUp"), t("admin.featureTemplates")].map(f => (
+            {[t("admin.featureManage"), t("admin.featureAi"), t("admin.featureFollowUp"), t("admin.featureTemplates")].map(f => (
               <div key={f} className="flex items-center gap-2 text-sm text-white/90">
                 <Sparkles size={13} className="text-white/70" /> {f}
               </div>

@@ -12,6 +12,9 @@ const integerVariables = [
   "MAX_CV_FILE_SIZE_MB",
   "JWT_ACCESS_TOKEN_TTL_SECONDS",
   "JWT_REFRESH_TOKEN_TTL_SECONDS",
+  "OLLAMA_TIMEOUT_MS",
+  "OLLAMA_CONTEXT_LENGTH",
+  "AI_JOB_ATTEMPTS",
   "APPLICATION_RATE_LIMIT_MAX",
   "APPLICATION_RATE_LIMIT_WINDOW_SECONDS",
 ];
@@ -133,6 +136,19 @@ export function validateEnv(config: Record<string, unknown>) {
       !hasValue(config.EMAIL_SMTP_PASS))
   ) {
     throw new Error("EMAIL_FROM, EMAIL_SMTP_USER, and EMAIL_SMTP_PASS are required when Gmail SMTP email is configured");
+  }
+
+  const aiProvider = String(config.AI_PROVIDER || "disabled");
+  if (!["disabled", "ollama"].includes(aiProvider)) {
+    throw new Error("AI_PROVIDER must be one of: disabled, ollama");
+  }
+
+  if (aiProvider === "ollama") {
+    for (const key of ["REDIS_URL", "OLLAMA_BASE_URL", "OLLAMA_MODEL"]) {
+      if (!hasValue(config[key])) {
+        throw new Error(`${key} is required when AI_PROVIDER=ollama`);
+      }
+    }
   }
 
   return validated;
