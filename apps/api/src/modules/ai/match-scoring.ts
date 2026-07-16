@@ -3,8 +3,8 @@ import type { CriterionEvaluation, CriterionStatus, MatchCriterion } from "./ai.
 export function extractMatchCriteria(requirements: string): MatchCriterion[] {
   const lines = requirements
     .split(/\n+/)
-    .map((line) => line.replace(/^[-*•\d.)\s]+/, "").trim())
-    .filter((line) => line.length >= 3);
+    .map(normalizeCriterionLine)
+    .filter((line) => line.length >= 3 && !isSectionHeading(line));
   const uniqueLines = Array.from(new Map(lines.map((line) => [line.toLocaleLowerCase("vi"), line])).values()).slice(0, 12);
 
   return uniqueLines.map((text, index) => {
@@ -47,3 +47,42 @@ function statusScore(status: CriterionStatus) {
   if (status === "partial") return 0.5;
   return 0;
 }
+
+function normalizeCriterionLine(line: string) {
+  return line
+    .replace(/^[-*•\d.)\s]+/, "")
+    .replace(/&amp;/g, "&")
+    .trim();
+}
+
+function isSectionHeading(line: string) {
+  const normalized = line
+    .replace(/:$/, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLocaleLowerCase("en");
+
+  if (!normalized) return true;
+
+  if (SECTION_HEADINGS.has(normalized)) return true;
+
+  const wordCount = normalized.split(/\s+/).length;
+  return line.endsWith(":") && wordCount <= 6;
+}
+
+const SECTION_HEADINGS = new Set([
+  "benefits",
+  "experience",
+  "job requirements",
+  "key responsibilities",
+  "must have",
+  "nice to have",
+  "preferred qualifications",
+  "qualifications",
+  "requirements",
+  "responsibilities",
+  "soft skills",
+  "technical skills",
+  "tools & development practices",
+  "tools and development practices",
+]);

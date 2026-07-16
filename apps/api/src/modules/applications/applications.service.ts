@@ -183,47 +183,78 @@ export class ApplicationsService {
       throw error;
     }
 
-    await this.emailService
-      .sendApplicationConfirmation({
-        applicationId: created.applicationId,
-        candidateEmail,
-        candidateName: submittedFullName,
-        jobTitle: job.title,
-        companyName: job.company,
-        jobSlug: job.slug,
-        applicationArea: dto.applicationArea,
-      })
-      .catch((error: unknown) => {
-        this.logger.error(
-          error instanceof Error
-            ? `Failed to send application confirmation email: ${error.message}`
-            : "Failed to send application confirmation email",
-        );
-      });
-
     const { candidateFileId, ...response } = created;
 
-    if (candidateFileId) {
-      let aiUnavailableReason: string | undefined;
-
-      try {
-        const queued = await this.aiQueueService.enqueue(created.applicationId);
-
-        if (!queued) {
-          aiUnavailableReason = "AI matching is disabled in this environment";
-        }
-      } catch {
-        aiUnavailableReason = "AI matching queue is unavailable";
-      }
-
-      if (aiUnavailableReason) {
-        await this.markAiUnavailable(created.applicationId, aiUnavailableReason).catch(() => {
-          this.logger.error("Failed to persist AI unavailability after accepting an application");
-        });
-      }
-    }
+    this.scheduleAcceptedApplicationSideEffects({
+      applicationId: created.applicationId,
+      candidateFileId,
+      candidateEmail,
+      candidateName: submittedFullName,
+      jobTitle: job.title,
+      companyName: job.company,
+      jobSlug: job.slug,
+      applicationArea: dto.applicationArea,
+    });
 
     return response;
+  }
+
+  private scheduleAcceptedApplicationSideEffects(input: AcceptedApplicationSideEffects) {
+    void this.runAcceptedApplicationSideEffects(input).catch((error: unknown) => {
+      this.logger.error(
+        error instanceof Error
+          ? `Failed to run accepted application side effects: ${error.message}`
+          : "Failed to run accepted application side effects",
+      );
+    });
+  }
+
+  private async runAcceptedApplicationSideEffects(input: AcceptedApplicationSideEffects) {
+    const sideEffects = [
+      this.emailService
+        .sendApplicationConfirmation({
+          applicationId: input.applicationId,
+          candidateEmail: input.candidateEmail,
+          candidateName: input.candidateName,
+          jobTitle: input.jobTitle,
+          companyName: input.companyName,
+          jobSlug: input.jobSlug,
+          applicationArea: input.applicationArea,
+        })
+        .catch((error: unknown) => {
+          this.logger.error(
+            error instanceof Error
+              ? `Failed to send application confirmation email: ${error.message}`
+              : "Failed to send application confirmation email",
+          );
+        }),
+    ];
+
+    if (input.candidateFileId) {
+      sideEffects.push(this.startAiMatching(input.applicationId));
+    }
+
+    await Promise.all(sideEffects);
+  }
+
+  private async startAiMatching(applicationId: string) {
+    let aiUnavailableReason: string | undefined;
+
+    try {
+      const queued = await this.aiQueueService.enqueue(applicationId);
+
+      if (!queued) {
+        aiUnavailableReason = "AI matching is disabled in this environment";
+      }
+    } catch {
+      aiUnavailableReason = "AI matching queue is unavailable";
+    }
+
+    if (aiUnavailableReason) {
+      await this.markAiUnavailable(applicationId, aiUnavailableReason).catch(() => {
+        this.logger.error("Failed to persist AI unavailability after accepting an application");
+      });
+    }
   }
 
   private async markAiUnavailable(applicationId: string, errorMessage: string) {
@@ -237,6 +268,17 @@ export class ApplicationsService {
     });
   }
 }
+
+type AcceptedApplicationSideEffects = {
+  applicationId: string;
+  candidateFileId?: string;
+  candidateEmail: string;
+  candidateName: string;
+  jobTitle: string;
+  companyName?: string | null;
+  jobSlug?: string | null;
+  applicationArea: string;
+};
 
 type CreatedApplication = {
   applicationId: string;

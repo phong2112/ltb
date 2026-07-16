@@ -211,6 +211,100 @@ describe("ApplicationsService", () => {
     });
   });
 
+  it("returns after accepting an uploaded CV without waiting for AI queue completion", async () => {
+    const transactionClient = {
+      $executeRaw: jest.fn(),
+      candidate: {
+        findMany: jest.fn().mockResolvedValue([]),
+        create: jest.fn().mockResolvedValue({ id: "candidate-1" }),
+      },
+      application: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({
+          id: "application-1",
+          status: "NEW",
+        }),
+      },
+      candidateFile: {
+        create: jest.fn().mockResolvedValue({ id: "file-1" }),
+      },
+      activityLog: {
+        create: jest.fn().mockResolvedValue({ id: "activity-1" }),
+      },
+      cvParseResult: {
+        create: jest.fn().mockResolvedValue({ id: "parse-1" }),
+      },
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        (callback: (tx: typeof transactionClient) => unknown) =>
+          callback(transactionClient),
+      ),
+      cvParseResult: {
+        update: jest.fn(),
+      },
+    };
+    const storage = {
+      storeCandidateCv: jest.fn().mockResolvedValue({
+        originalName: "candidate.pdf",
+        storedName: "candidate.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: 4,
+        path: "cv/candidate-1/application-1/candidate.pdf",
+      }),
+      deleteCandidateCv: jest.fn(),
+    };
+    const jobs = {
+      getAdminJob: jest.fn().mockResolvedValue({
+        id: "job-1",
+        slug: "frontend-engineer",
+        title: "Frontend Engineer",
+        company: "Acme Vietnam",
+        status: "PUBLISHED",
+        locations: ["Hà Nội"],
+        questions: [],
+      }),
+    };
+    const email = { sendApplicationConfirmation: jest.fn().mockResolvedValue(undefined) };
+    const aiQueue = {
+      enqueue: jest.fn().mockReturnValue(new Promise<boolean>(() => {})),
+    };
+    const service = new ApplicationsService(
+      prisma as unknown as PrismaService,
+      aiQueue as unknown as AiQueueService,
+      storage as unknown as CvStorageService,
+      jobs as unknown as JobsService,
+      email as unknown as EmailService,
+    );
+    const file = {
+      originalname: "candidate.pdf",
+      mimetype: "application/pdf",
+      size: 4,
+      buffer: Buffer.from("%PDF"),
+    } as Express.Multer.File;
+
+    await expect(
+      service.createApplication(
+        {
+          jobId: "job-1",
+          fullName: "Candidate",
+          email: "candidate@example.com",
+          phone: "0901234567",
+          applicationArea: "Hà Nội",
+          consentAccepted: true,
+        },
+        file,
+      ),
+    ).resolves.toEqual({
+      applicationId: "application-1",
+      candidateId: "candidate-1",
+      status: "NEW",
+    });
+
+    expect(aiQueue.enqueue).toHaveBeenCalledWith("application-1");
+    expect(prisma.cvParseResult.update).not.toHaveBeenCalled();
+  });
+
   it("rejects duplicate applications before creating a new application", async () => {
     const transactionClient = {
       $executeRaw: jest.fn(),

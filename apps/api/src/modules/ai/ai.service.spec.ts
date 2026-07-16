@@ -10,6 +10,24 @@ describe("AI match scoring", () => {
     expect(criteria[1]).toMatchObject({ required: false, weight: 1 });
   });
 
+  it("ignores section headings when extracting criteria", () => {
+    const criteria = extractMatchCriteria(`
+      Key Responsibilities:
+      - Design, develop, and maintain native iOS applications.
+      Qualifications:
+      Experience
+      - Minimum 5 years of hands-on experience in native iOS application development.
+      Technical Skills
+      - Strong proficiency in Swift and SwiftUI.
+    `);
+
+    expect(criteria.map((criterion) => criterion.text)).toEqual([
+      "Design, develop, and maintain native iOS applications.",
+      "Minimum 5 years of hands-on experience in native iOS application development.",
+      "Strong proficiency in Swift and SwiftUI.",
+    ]);
+  });
+
   it("computes score in code instead of trusting a model-provided score", () => {
     const criteria = extractMatchCriteria("- React bắt buộc\n- TypeScript bắt buộc\n- TailwindCSS là lợi thế");
     const evaluations = evaluationMap([
