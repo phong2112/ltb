@@ -38,7 +38,7 @@ export class CvStorageService {
       const blob = await get(path, { access: "private", useCache: false });
 
       if (!blob || blob.statusCode !== 200) {
-        throw new NotFoundException("Candidate file is missing from Vercel Blob");
+        throw new NotFoundException("Không tìm thấy tệp CV trong kho lưu trữ.");
       }
 
       return {
@@ -51,7 +51,7 @@ export class CvStorageService {
     const fileStat = await stat(path).catch(() => null);
 
     if (!fileStat?.isFile()) {
-      throw new NotFoundException("Candidate file is missing from storage");
+      throw new NotFoundException("Không tìm thấy tệp CV trong kho lưu trữ.");
     }
 
     return {

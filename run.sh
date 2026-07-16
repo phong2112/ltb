@@ -21,7 +21,11 @@ load_env_file() {
     key="${key%"${key##*[![:space:]]}"}"
     key="${key#export }"
 
-    if [[ ! "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ || -n "${!key+x}" ]]; then
+    if [[ ! "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+      continue
+    fi
+
+    if [[ -n "${!key+x}" && -n "${!key}" ]]; then
       continue
     fi
 

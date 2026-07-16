@@ -15,7 +15,7 @@ export class JwtAuthGuard implements CanActivate {
     const token = readCookie(request, ACCESS_TOKEN_COOKIE_NAME);
 
     if (!token) {
-      throw new UnauthorizedException("Missing access token");
+      throw new UnauthorizedException("Thiếu phiên đăng nhập.");
     }
 
     request.user = await this.authService.verifyAccessToken(token);

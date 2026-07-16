@@ -354,7 +354,7 @@ const translations = {
     "success.nextSteps": "Bước tiếp theo",
     "success.step1": "HR sẽ xem xét hồ sơ trong 3-5 ngày làm việc",
     "success.step2": "Nếu phù hợp, bạn sẽ nhận email/Messenger hoặc cuộc gọi để hẹn phỏng vấn",
-    "success.step3": "Kiểm tra email thường xuyên và giữ điện thoại thông máy",
+    "success.step3": "Kiểm tra email thường xuyên và đảm bảo số điện thoại luôn liên lạc được",
     "success.title": "Ứng tuyển thành công!",
   },
   en: {

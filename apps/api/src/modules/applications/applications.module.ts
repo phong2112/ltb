@@ -4,6 +4,7 @@ import { MulterModule } from "@nestjs/platform-express";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { FilesModule } from "../files/files.module";
 import { JobsModule } from "../jobs/jobs.module";
+import { NotificationsModule } from "../notifications/notifications.module";
 import { ApplicationsController } from "./applications.controller";
 import { ApplicationsService } from "./applications.service";
 import { createCvUploadOptions } from "./cv-upload.options";
@@ -12,6 +13,7 @@ import { createCvUploadOptions } from "./cv-upload.options";
   imports: [
     FilesModule,
     JobsModule,
+    NotificationsModule,
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

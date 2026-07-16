@@ -150,7 +150,7 @@ If the project starts small, keep `packages/` minimal. Do not over-abstract unti
 - Database: PostgreSQL.
 - Queue: BullMQ + Redis.
 - Storage: S3-compatible private bucket or Vercel Blob private.
-- Email: Resend, SendGrid, or Amazon SES.
+- Email: Gmail SMTP for the current low-volume MVP confirmation emails.
 - Auth: Auth.js/NextAuth, Clerk, or a simple NestJS JWT/session setup.
 - AI: provider abstraction, initially OpenAI or compatible LLM API.
 - Deploy:

@@ -54,3 +54,13 @@ services:
         value: "1"
       - key: SWAGGER_ENABLED
         value: "false"
+      - key: EMAIL_PROVIDER
+        value: "gmail"
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_REPLY_TO
+        sync: false
+      - key: EMAIL_SMTP_USER
+        sync: false
+      - key: EMAIL_SMTP_PASS
+        sync: false

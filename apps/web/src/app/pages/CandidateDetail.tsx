@@ -264,7 +264,7 @@ function ApplicationHistory({ applications, selectedId, onSelect, title, languag
               <span className="block truncate text-xs font-black">{application.jobTitle}</span>
               <span className="mt-0.5 block text-[10px] font-semibold">{application.appliedAt || "—"}</span>
             </span>
-            <span className="rounded-full bg-white px-2 py-1 text-[11px] font-black text-primary ring-1 ring-border">
+            <span className={`rounded-full border px-2 py-1 text-[11px] font-black ${CANDIDATE_STATUS_CONFIG[application.status].badgeClass}`}>
               {translateCandidateStatus(application.status, language)}
             </span>
           </button>

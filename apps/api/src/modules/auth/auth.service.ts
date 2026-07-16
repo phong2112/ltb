@@ -20,7 +20,7 @@ export class AuthService {
       this.configService.getOrThrow<string>("ADMIN_PASSWORD");
 
     if (normalizedEmail !== adminEmail || password !== adminPassword) {
-      throw new UnauthorizedException("Invalid email or password");
+      throw new UnauthorizedException("Email hoặc mật khẩu không đúng.");
     }
 
     const user: AuthUser = {
@@ -73,7 +73,7 @@ export class AuthService {
         name: payload.name,
       };
     } catch {
-      throw new UnauthorizedException("Invalid or expired access token");
+      throw new UnauthorizedException("Phiên đăng nhập không hợp lệ hoặc đã hết hạn.");
     }
   }
 
@@ -106,7 +106,7 @@ export class AuthService {
         name: payload.name,
       };
     } catch {
-      throw new UnauthorizedException("Invalid or expired refresh token");
+      throw new UnauthorizedException("Phiên làm mới đăng nhập không hợp lệ hoặc đã hết hạn.");
     }
   }
 
