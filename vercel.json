@@ -3,5 +3,11 @@
   "installCommand": "corepack enable && pnpm install --frozen-lockfile",
   "buildCommand": "pnpm --filter @hr-copilot/web build",
   "outputDirectory": "apps/web/dist",
-  "framework": "vite"
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }

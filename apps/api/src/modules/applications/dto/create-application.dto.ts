@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { Transform, Type } from "class-transformer";
+import { plainToInstance, Transform, Type } from "class-transformer";
 import {
   ArrayMaxSize,
   IsArray,
@@ -15,15 +15,17 @@ import {
 } from "class-validator";
 
 const APPLICATION_AREAS = ["Hà Nội", "Đà Nẵng", "Hải Phòng", "Quảng Ninh", "TP Hồ Chí Minh", "Remote"] as const;
+type DtoConstructor<T extends object> = new () => T;
 
-function ParseJsonArray() {
+function ParseJsonArray<T extends object>(dtoClass: DtoConstructor<T>) {
   return Transform(({ value }) => {
     if (value === undefined || value === null || value === "") return undefined;
-    if (Array.isArray(value)) return value;
+    if (Array.isArray(value)) return plainToInstance(dtoClass, value);
     if (typeof value !== "string") return value;
 
     try {
-      return JSON.parse(value) as unknown;
+      const parsed = JSON.parse(value) as unknown;
+      return Array.isArray(parsed) ? plainToInstance(dtoClass, parsed) : parsed;
     } catch {
       return value;
     }
@@ -112,7 +114,7 @@ export class CreateApplicationDto {
     maxItems: 10,
     description: "JSON string when submitted as multipart/form-data.",
   })
-  @ParseJsonArray()
+  @ParseJsonArray(ApplicationQuestionAnswerDto)
   @IsArray()
   @ArrayMaxSize(10)
   @ValidateNested({ each: true })
