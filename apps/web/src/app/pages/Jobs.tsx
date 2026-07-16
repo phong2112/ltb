@@ -23,6 +23,7 @@ export default function Jobs() {
   const [typeFilter, setTypeFilter] = useState(ALL_FILTER);
   const [levelFilter, setLevelFilter] = useState(ALL_FILTER);
   const jobsContentRef = useRef<HTMLDivElement>(null);
+  const focusedJobIdRef = useRef<string | null>(null);
 
   useEffect(() => { setSearch(query); }, [query]);
 
@@ -35,6 +36,25 @@ export default function Jobs() {
     return matchSearch && (typeFilter === ALL_FILTER || j.type === typeFilter) && (levelFilter === ALL_FILTER || j.level === levelFilter);
   });
   const selectedJob = filtered.find(job => job.id === selectedJobId) ?? filtered[0];
+
+  useEffect(() => {
+    if (!selectedJobId || selectedJob?.id !== selectedJobId) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const selectedCard = document.getElementById(`job-card-${selectedJobId}`);
+      if (!selectedCard) return;
+
+      selectedCard.scrollIntoView({
+        behavior: focusedJobIdRef.current === selectedJobId ? "auto" : "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+      selectedCard.focus({ preventScroll: true });
+      focusedJobIdRef.current = selectedJobId;
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [filtered.length, selectedJob?.id, selectedJobId]);
 
   const setJobView = (view: "all" | "saved") => {
     const nextParams = new URLSearchParams(params);

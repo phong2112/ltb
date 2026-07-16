@@ -276,7 +276,7 @@ export class CreateJobDto {
   tags?: string[];
 
   @ApiProperty({
-    example: "Build and maintain public career site and HR workspace features.",
+    example: "Build and maintain public career site and TA workspace features.",
     minLength: 80,
     maxLength: 5000,
   })

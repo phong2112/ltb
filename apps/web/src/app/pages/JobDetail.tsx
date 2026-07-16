@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router";
+import { Link, useParams, useSearchParams } from "react-router";
 import { MapPin, Clock, Users, Briefcase, ChevronLeft, Heart, Building2, DollarSign } from "lucide-react";
 import { useData } from "@/app/data";
 import { translateJobLevel, translateJobType, useLanguage } from "@/app/i18n";
@@ -16,6 +16,7 @@ const typeColors: Record<string, string> = {
 
 export default function JobDetail() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const { jobs, isLoading, isJobSaved, toggleSavedJob } = useData();
   const { language, t } = useLanguage();
   const job = jobs.find(j => j.id === id && j.status === "published");
@@ -38,11 +39,12 @@ export default function JobDetail() {
 
   const saved = isJobSaved(job.id);
   const salaryLabel = job.salary || t("jobs.salaryNegotiable");
+  const backToJobsPath = buildBackToJobsPath(searchParams.get("from"), job.id);
 
   return (
     <PublicLayout>
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <Link to="/jobs" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors mb-6">
+        <Link to={backToJobsPath} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors mb-6">
           <ChevronLeft size={15} /> {t("common.backToList")}
         </Link>
 
@@ -55,7 +57,7 @@ export default function JobDetail() {
                 <div className="w-16 h-16 rounded-2xl bg-pink-100 flex items-center justify-center text-4xl flex-shrink-0 border border-pink-100">{job.logo}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start gap-2 flex-wrap mb-1">
-                    <h1 className="text-2xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{job.title}</h1>
+                    <h1 className="text-2xl font-black text-foreground">{job.title}</h1>
                     {job.urgent && <span className={`mt-1 rounded-full border px-2 py-0.5 text-xs font-bold ${URGENT_BADGE_CLASS}`}>🔥 {t("jobs.urgentHiring")}</span>}
                   </div>
                   <p className="text-muted-foreground font-semibold">{job.company}</p>
@@ -145,4 +147,18 @@ export default function JobDetail() {
       </div>
     </PublicLayout>
   );
+}
+
+function buildBackToJobsPath(returnTo: string | null, jobId: string) {
+  const fallback = `/jobs?job=${encodeURIComponent(jobId)}`;
+  if (!returnTo || returnTo.startsWith("//")) return fallback;
+
+  try {
+    const url = new URL(returnTo, "https://local.app");
+    if (url.pathname !== "/jobs") return fallback;
+    url.searchParams.set("job", jobId);
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return fallback;
+  }
 }

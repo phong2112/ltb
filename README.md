@@ -1,21 +1,21 @@
-# HR Copilot
+# TA Copilot
 
-Lightweight HR Copilot and Career Site for one HR user.
+Lightweight TA Copilot and Career Site for one TA user.
 
-The candidate site and HR workspace run on the same domain:
+The candidate site and TA workspace run on the same domain:
 
 ```text
 /                             same-domain gateway with two site entries
 /jobs                         public candidate job list
 /jobs/[slug]                  public job detail
 /jobs/[slug]/apply            public application form
-/admin                        protected HR workspace
+/admin                        protected TA workspace
 /admin/jobs                   protected job management
 /admin/candidates             protected candidate inbox
 /api/health                   public API health
 /docs                         Swagger API docs when enabled
 /api/applications             public application intake
-/api/admin/*                  protected HR API
+/api/admin/*                  protected TA API
 ```
 
 ## Current Implementation Status
@@ -40,8 +40,8 @@ Implemented:
 
 - Public job list.
 - Public job detail.
-- HR job list.
-- HR create job form.
+- TA job list.
+- TA create job form.
 - Published/draft job support.
 - SEO-friendly slug generation.
 
@@ -61,7 +61,7 @@ Implemented:
 
 Implemented:
 
-- HR candidate inbox.
+- TA candidate inbox.
 - Candidate detail page.
 - Candidate file metadata.
 - Application status update.
@@ -97,7 +97,7 @@ http://localhost:8080
 http://localhost:8080/docs
 ```
 
-Default protected HR credential for local/demo Docker:
+Default protected TA credential for local/demo Docker:
 
 ```text
 username: hr
@@ -136,7 +136,7 @@ Open:
 http://localhost:8080
 ```
 
-Default protected HR credential for local/demo Docker:
+Default protected TA credential for local/demo Docker:
 
 ```text
 username: hr
@@ -174,7 +174,7 @@ Public candidate data can be checked at:
 http://localhost:8080/jobs
 ```
 
-Private HR data can be checked at:
+Private TA data can be checked at:
 
 ```text
 http://localhost:8080/admin/candidates
@@ -214,7 +214,7 @@ Nginx owns same-domain routing in Docker:
 
 - `/api/admin/*` -> NestJS `/admin/*`, protected by Basic Auth.
 - `/api/*` -> NestJS public API.
-- `/admin*` -> Next.js HR workspace, protected by Basic Auth.
+- `/admin*` -> Next.js TA workspace, protected by Basic Auth.
 - `/*` -> Next.js public site.
 
 The API service is not exposed directly by Docker Compose. Public access should go through Nginx.

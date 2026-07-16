@@ -16,7 +16,7 @@ export default function FollowUp() {
   const noDate = needFollowUp.filter(c => !c.followUpDate);
 
   function copyEmail(c: typeof candidates[0]) {
-    const msg = `Chào ${c.name},\n\nCảm ơn bạn đã ứng tuyển vị trí ${c.jobTitle}. Tôi muốn cập nhật tình trạng hồ sơ của bạn...\n\nTrân trọng,\nLường Thị Bích`;
+    const msg = `Chào ${c.name},\n\nCảm ơn bạn đã ứng tuyển vị trí ${c.jobTitle}. Tôi muốn cập nhật tình trạng hồ sơ của bạn...\n\nTrân trọng,\nLường Bích`;
     navigator.clipboard.writeText(msg);
     setCopiedId(c.id);
     setTimeout(() => setCopiedId(null), 2000);

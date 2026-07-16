@@ -36,7 +36,7 @@ export class JobsController {
     return this.jobsService.getPublicJob(slug);
   }
 
-  @ApiOperation({ summary: "List jobs for the HR workspace" })
+  @ApiOperation({ summary: "List jobs for the TA workspace" })
   @ApiCookieAuth(ACCESS_TOKEN_SECURITY_NAME)
   @ApiOkResponse({ description: "All jobs ordered by newest first." })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token." })
@@ -46,10 +46,10 @@ export class JobsController {
     return this.jobsService.listAdminJobs();
   }
 
-  @ApiOperation({ summary: "Get a job for HR editing" })
+  @ApiOperation({ summary: "Get a job for TA editing" })
   @ApiCookieAuth(ACCESS_TOKEN_SECURITY_NAME)
   @ApiParam({ name: "id", example: "cmjob123" })
-  @ApiOkResponse({ description: "Job detail for the HR workspace." })
+  @ApiOkResponse({ description: "Job detail for the TA workspace." })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token." })
   @ApiNotFoundResponse({ description: "Job not found." })
   @Get("admin/jobs/:id")

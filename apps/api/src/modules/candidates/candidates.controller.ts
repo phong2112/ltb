@@ -19,7 +19,7 @@ export class CandidatesController {
     private readonly configService: ConfigService,
   ) {}
 
-  @ApiOperation({ summary: "List candidates for the HR inbox" })
+  @ApiOperation({ summary: "List candidates for the TA inbox" })
   @ApiOkResponse({
     description: "Candidate profiles with their application history.",
   })

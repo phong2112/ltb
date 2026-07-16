@@ -582,7 +582,7 @@ export default function CreateEditJob() {
                   <ChevronLeft size={14} /> {t("common.backToList")}
                 </Link>
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
-                  <h1 className="truncate text-2xl font-black leading-tight text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{isEdit ? form.title || existing?.title : t("admin.newJob")}</h1>
+                  <h1 className="truncate text-2xl font-black leading-tight text-foreground">{isEdit ? form.title || existing?.title : t("admin.newJob")}</h1>
                   {form.urgent && <span className={`flex-none rounded-full border px-2 py-0.5 text-[10px] font-bold ${URGENT_BADGE_CLASS}`}>🔥 {t("jobs.urgent")}</span>}
                 </div>
                 <p className="mt-1.5 flex items-center gap-2 text-sm font-semibold text-muted-foreground">

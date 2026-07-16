@@ -37,7 +37,7 @@ const CONTENT: Record<Language, TermsPageContent> = {
     sections: [
       {
         title: "1. Giới thiệu",
-        body: `Chào mừng bạn đến với nền tảng tuyển dụng do **Lường Thị Bích — Tư vấn Nhân sự** vận hành ("chúng tôi", "của chúng tôi", hoặc "nền tảng"). Khi truy cập hoặc sử dụng website này, bạn đồng ý tuân thủ các điều khoản và điều kiện dưới đây.
+        body: `Chào mừng bạn đến với nền tảng tuyển dụng do **Lường Bích — Tư vấn tuyển dụng** vận hành ("chúng tôi", "của chúng tôi", hoặc "nền tảng"). Khi truy cập hoặc sử dụng website này, bạn đồng ý tuân thủ các điều khoản và điều kiện dưới đây.
 
 Vui lòng đọc kỹ các Điều khoản này trước khi sử dụng dịch vụ. Nếu bạn không đồng ý với bất kỳ nội dung nào trong Điều khoản, vui lòng ngừng sử dụng nền tảng ngay lập tức.`,
       },
@@ -46,7 +46,7 @@ Vui lòng đọc kỹ các Điều khoản này trước khi sử dụng dịch 
         body: `- **Nền tảng**: Website tuyển dụng trên tên miền này, bao gồm tất cả các trang và tính năng liên quan.
 - **Ứng viên**: Cá nhân sử dụng nền tảng để tìm kiếm cơ hội việc làm và gửi hồ sơ ứng tuyển.
 - **Nhà tuyển dụng**: Công ty hoặc tổ chức đăng tin tuyển dụng thông qua nền tảng.
-- **Tư vấn Nhân sự**: Lường Thị Bích, cá nhân trực tiếp vận hành và quản lý nền tảng này.
+- **Tư vấn tuyển dụng**: Lường Bích, cá nhân trực tiếp vận hành và quản lý nền tảng này.
 - **Dữ liệu cá nhân**: Thông tin có thể nhận diện bạn, bao gồm họ tên, địa chỉ email, số điện thoại và CV.`,
       },
       {
@@ -66,7 +66,7 @@ Chúng tôi có quyền từ chối, tạm ngưng hoặc gỡ bỏ tài khoản 
         body: `**Quyền của ứng viên:**
 - Tìm kiếm, xem và ứng tuyển vào các vị trí đang được đăng công khai trên nền tảng.
 - Yêu cầu chỉnh sửa hoặc xóa dữ liệu cá nhân theo Chính sách quyền riêng tư.
-- Nhận phản hồi từ HR trong một khoảng thời gian hợp lý sau khi nộp hồ sơ.
+- Nhận phản hồi từ TA trong một khoảng thời gian hợp lý sau khi nộp hồ sơ.
 
 **Trách nhiệm của ứng viên:**
 - Chịu trách nhiệm về tính chính xác của thông tin và CV do mình cung cấp.
@@ -77,7 +77,7 @@ Chúng tôi có quyền từ chối, tạm ngưng hoặc gỡ bỏ tài khoản 
         title: "5. Quyền và trách nhiệm của nhà tuyển dụng",
         body: `**Quyền của nhà tuyển dụng:**
 - Đăng tin tuyển dụng hợp pháp và truy cập các hồ sơ ứng viên có liên quan.
-- Yêu cầu Tư vấn Nhân sự hỗ trợ sàng lọc, tư vấn và kết nối ứng viên.
+- Yêu cầu Tư vấn tuyển dụng hỗ trợ sàng lọc, tư vấn và kết nối ứng viên.
 
 **Trách nhiệm của nhà tuyển dụng:**
 - Đăng tải thông tin tuyển dụng trung thực, rõ ràng và không gây hiểu nhầm.
@@ -96,7 +96,7 @@ Chúng tôi không chịu trách nhiệm đối với các tổn thất phát si
       },
       {
         title: "7. Sở hữu trí tuệ",
-        body: `Toàn bộ nội dung trên nền tảng, bao gồm thiết kế giao diện, logo, văn bản và hình ảnh, thuộc sở hữu của Lường Thị Bích HR Consultant, trừ khi có ghi chú khác.
+        body: `Toàn bộ nội dung trên nền tảng, bao gồm thiết kế giao diện, logo, văn bản và hình ảnh, thuộc sở hữu của Lường Bích TA Consultant, trừ khi có ghi chú khác.
 
 Bạn không được sao chép, phân phối, chỉnh sửa hoặc sử dụng cho mục đích thương mại bất kỳ nội dung nào nếu chưa có sự đồng ý bằng văn bản của chúng tôi.`,
       },
@@ -114,7 +114,7 @@ Ngày cập nhật: **10 tháng 7, 2026**.`,
         title: "10. Liên hệ",
         body: `Nếu bạn có câu hỏi về Điều khoản sử dụng này, vui lòng liên hệ:
 
-**Lường Thị Bích — Tư vấn Nhân sự**
+**Lường Bích — Tư vấn tuyển dụng**
 Email: ${contactConfig.email}
 Zalo/Số điện thoại: Vui lòng liên hệ qua biểu mẫu trên website`,
       },
@@ -133,7 +133,7 @@ Zalo/Số điện thoại: Vui lòng liên hệ qua biểu mẫu trên website`,
     sections: [
       {
         title: "1. Introduction",
-        body: `Welcome to the recruiting platform operated by **Lường Thị Bích — HR Consultant** ("we", "us", "our", or "the platform"). By accessing or using this website, you agree to comply with the terms and conditions below.
+        body: `Welcome to the recruiting platform operated by **Lường Bích — TA Consultant** ("we", "us", "our", or "the platform"). By accessing or using this website, you agree to comply with the terms and conditions below.
 
 Please read these Terms carefully before using the service. If you do not agree with any part of these Terms, please stop using the platform immediately.`,
       },
@@ -142,7 +142,7 @@ Please read these Terms carefully before using the service. If you do not agree 
         body: `- **Platform**: The recruiting website on this domain, including all related pages and features.
 - **Candidate**: An individual who uses the platform to search for job opportunities and submit applications.
 - **Employer**: A company or organization that publishes job openings through the platform.
-- **HR Consultant**: Lường Thị Bích, the individual operating and managing this platform.
+- **TA Consultant**: Lường Bích, the individual operating and managing this platform.
 - **Personal data**: Information that can identify you, including full name, email address, phone number, and CV.`,
       },
       {
@@ -162,7 +162,7 @@ We may reject, suspend, or remove accounts or profiles that violate these Terms 
         body: `**Candidate rights:**
 - Search, view, and apply to publicly posted job openings on the platform.
 - Request correction or deletion of personal data as described in the Privacy Policy.
-- Receive a response from HR within a reasonable period after submitting an application.
+- Receive a response from TA within a reasonable period after submitting an application.
 
 **Candidate responsibilities:**
 - Be responsible for the accuracy of the information and CV you provide.
@@ -173,7 +173,7 @@ We may reject, suspend, or remove accounts or profiles that violate these Terms 
         title: "5. Employer Rights and Responsibilities",
         body: `**Employer rights:**
 - Publish lawful job openings and access relevant candidate profiles.
-- Request support from the HR Consultant for screening, advisory, and candidate connection activities.
+- Request support from the TA Consultant for screening, advisory, and candidate connection activities.
 
 **Employer responsibilities:**
 - Publish truthful, clear, and non-misleading recruitment information.
@@ -192,7 +192,7 @@ We are not liable for losses arising from hiring decisions, inaccurate user-prov
       },
       {
         title: "7. Intellectual Property",
-        body: `All content on the platform, including interface design, logos, text, and images, belongs to Lường Thị Bích HR Consultant unless otherwise stated.
+        body: `All content on the platform, including interface design, logos, text, and images, belongs to Lường Bích TA Consultant unless otherwise stated.
 
 You may not copy, distribute, modify, or commercially use any content without our written consent.`,
       },
@@ -210,7 +210,7 @@ Last updated: **July 10, 2026**.`,
         title: "10. Contact",
         body: `If you have questions about these Terms of Use, please contact:
 
-**Lường Thị Bích — HR Consultant**
+**Lường Bích — TA Consultant**
 Email: ${contactConfig.email}
 Zalo/Phone: Please contact us through the website form`,
       },

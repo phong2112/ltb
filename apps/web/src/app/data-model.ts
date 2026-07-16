@@ -88,7 +88,7 @@ export function mapJob(job: ApiJob): Job {
   return {
     id: job.id,
     title: job.title,
-    company: job.company ?? job.department ?? "Lường Thị Bích HR",
+    company: job.company ?? job.department ?? "Lường Bích TA",
     locations,
     location: formatJobLocations(locations),
     type: job.employment ?? "Full-time",

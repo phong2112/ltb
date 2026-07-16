@@ -26,7 +26,7 @@ export class AuthService {
     const user: AuthUser = {
       sub: "hr-admin",
       email: adminEmail,
-      name: this.configService.get<string>("ADMIN_NAME") ?? "Lường Thị Bích",
+      name: this.configService.get<string>("ADMIN_NAME") ?? "Lường Bích",
     };
 
     const accessToken = await this.jwtService.signAsync(user, {

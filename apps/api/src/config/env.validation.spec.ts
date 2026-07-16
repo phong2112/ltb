@@ -51,7 +51,7 @@ describe("validateEnv", () => {
     expect(() => validateEnv({
       ...requiredConfig,
       EMAIL_PROVIDER: "gmail",
-      EMAIL_FROM: "Lường Thị Bích <sender@gmail.com>",
+      EMAIL_FROM: "Lường Bích <sender@gmail.com>",
       EMAIL_SMTP_USER: "sender@gmail.com",
       EMAIL_SMTP_PASS: "google-app-password",
     })).not.toThrow();

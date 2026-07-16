@@ -76,7 +76,7 @@ const jobs = [
     logo: "🍑",
   },
   {
-    title: "HR Business Partner",
+    title: "TA Business Partner",
     slug: "hr-business-partner",
     company: "Rosé Ventures",
     department: "People",
@@ -84,11 +84,11 @@ const jobs = [
     employment: "Full-time",
     level: "Senior",
     salaryRange: "1,200 – 2,000 USD",
-    tags: ["HR", "Recruitment", "People Ops"],
+    tags: ["TA", "Recruitment", "People Ops"],
     description:
-      "Rosé Ventures tuyển **HR Business Partner** để hỗ trợ phát triển đội ngũ và văn hóa tổ chức trên toàn Việt Nam.\n\nVị trí này đòi hỏi khả năng kết hợp giữa tư duy chiến lược và kỹ năng thực thi tốc độ cao trong môi trường startup đang scale.",
+      "Rosé Ventures tuyển **TA Business Partner** để hỗ trợ phát triển đội ngũ và văn hóa tổ chức trên toàn Việt Nam.\n\nVị trí này đòi hỏi khả năng kết hợp giữa tư duy chiến lược và kỹ năng thực thi tốc độ cao trong môi trường startup đang scale.",
     requirements:
-      "- 4+ năm kinh nghiệm HR\n- Nền tảng HRBP hoặc HR Generalist\n- Kỹ năng lắng nghe và coaching xuất sắc\n- Am hiểu Luật Lao động Việt Nam\n- Kinh nghiệm trong môi trường startup là lợi thế",
+      "- 4+ năm kinh nghiệm TA\n- Nền tảng TABP hoặc TA Generalist\n- Kỹ năng lắng nghe và coaching xuất sắc\n- Am hiểu Luật Lao động Việt Nam\n- Kinh nghiệm trong môi trường startup là lợi thế",
     benefits:
       "- Lương 1,200 – 2,000 USD\n- Equity options\n- Flexible working hours\n- Văn phòng tại Hoàn Kiếm, Hà Nội",
     status: JobStatus.PUBLISHED,
@@ -248,7 +248,7 @@ const jobs = [
     description:
       "PeopleGarden tuyển **Talent Acquisition Specialist** để hỗ trợ tuyển dụng các vị trí công nghệ và vận hành.\n\nBạn sẽ sourcing, screening, điều phối phỏng vấn và chăm sóc trải nghiệm ứng viên.",
     requirements:
-      "- 1+ năm kinh nghiệm recruitment hoặc HR\n- Biết sourcing trên LinkedIn và cộng đồng nghề nghiệp\n- Giao tiếp rõ ràng, theo dõi pipeline cẩn thận\n- Ưu tiên từng tuyển vị trí tech",
+      "- 1+ năm kinh nghiệm recruitment hoặc TA\n- Biết sourcing trên LinkedIn và cộng đồng nghề nghiệp\n- Giao tiếp rõ ràng, theo dõi pipeline cẩn thận\n- Ưu tiên từng tuyển vị trí tech",
     benefits:
       "- Lương 700 – 1,200 USD\n- Commission theo vị trí tuyển thành công\n- Đào tạo sourcing và interviewing\n- Văn phòng trung tâm Quận 1",
     status: JobStatus.PUBLISHED,
@@ -728,31 +728,31 @@ const templates = [
     name: "Mời phỏng vấn",
     channel: "Zalo / Messenger",
     content:
-      "Chào [Tên ứng viên],\n\nCảm ơn bạn đã ứng tuyển vị trí **[Tên vị trí]** tại **[Tên công ty]**.\n\nSau khi xem xét hồ sơ của bạn, chúng tôi rất ấn tượng và muốn mời bạn tham gia buổi phỏng vấn:\n\n📅 Thời gian: [Ngày/giờ]\n📍 Hình thức: [Online / Offline tại địa chỉ...]\n\nBạn có thể tham gia vào thời điểm trên không? Nếu cần đổi lịch, hãy cho tôi biết nhé.\n\nTrân trọng,\nLường Thị Bích — HR Consultant",
+      "Chào [Tên ứng viên],\n\nCảm ơn bạn đã ứng tuyển vị trí **[Tên vị trí]** tại **[Tên công ty]**.\n\nSau khi xem xét hồ sơ của bạn, chúng tôi rất ấn tượng và muốn mời bạn tham gia buổi phỏng vấn:\n\n📅 Thời gian: [Ngày/giờ]\n📍 Hình thức: [Online / Offline tại địa chỉ...]\n\nBạn có thể tham gia vào thời điểm trên không? Nếu cần đổi lịch, hãy cho tôi biết nhé.\n\nTrân trọng,\nLường Bích — TA Consultant",
   },
   {
     name: "Follow-up sau phỏng vấn",
     channel: "Email / Zalo",
     content:
-      "Chào [Tên ứng viên],\n\nCảm ơn bạn đã dành thời gian tham gia buổi phỏng vấn ngày [Ngày]. Tôi rất vui được trò chuyện với bạn!\n\nChúng tôi đang trong quá trình tổng hợp kết quả và sẽ có phản hồi sớm nhất trong vòng [X ngày làm việc].\n\nNếu bạn có bất kỳ câu hỏi nào trong thời gian này, đừng ngần ngại liên hệ với tôi.\n\nTrân trọng,\nLường Thị Bích",
+      "Chào [Tên ứng viên],\n\nCảm ơn bạn đã dành thời gian tham gia buổi phỏng vấn ngày [Ngày]. Tôi rất vui được trò chuyện với bạn!\n\nChúng tôi đang trong quá trình tổng hợp kết quả và sẽ có phản hồi sớm nhất trong vòng [X ngày làm việc].\n\nNếu bạn có bất kỳ câu hỏi nào trong thời gian này, đừng ngần ngại liên hệ với tôi.\n\nTrân trọng,\nLường Bích",
   },
   {
     name: "Offer Letter thông báo",
     channel: "Email",
     content:
-      "Chào [Tên ứng viên],\n\nChúng tôi rất vui được thông báo rằng bạn đã được chọn cho vị trí **[Tên vị trí]** tại **[Tên công ty]**!\n\nDưới đây là các điều khoản chính:\n- Mức lương: [Lương]\n- Ngày bắt đầu: [Ngày]\n- Hình thức làm việc: [Full-time / Hybrid / Remote]\n\nChúng tôi sẽ gửi Offer Letter chính thức qua email trong 24 giờ tới.\n\nChúc mừng và mong được chào đón bạn trong team!\n\nTrân trọng,\nLường Thị Bích",
+      "Chào [Tên ứng viên],\n\nChúng tôi rất vui được thông báo rằng bạn đã được chọn cho vị trí **[Tên vị trí]** tại **[Tên công ty]**!\n\nDưới đây là các điều khoản chính:\n- Mức lương: [Lương]\n- Ngày bắt đầu: [Ngày]\n- Hình thức làm việc: [Full-time / Hybrid / Remote]\n\nChúng tôi sẽ gửi Offer Letter chính thức qua email trong 24 giờ tới.\n\nChúc mừng và mong được chào đón bạn trong team!\n\nTrân trọng,\nLường Bích",
   },
   {
     name: "Từ chối khéo léo",
     channel: "Email / Zalo",
     content:
-      "Chào [Tên ứng viên],\n\nCảm ơn bạn đã dành thời gian và công sức ứng tuyển vị trí **[Tên vị trí]**.\n\nSau khi xem xét kỹ lưỡng, chúng tôi đã quyết định tiến hành với ứng viên khác có kinh nghiệm phù hợp hơn với yêu cầu hiện tại của vị trí này.\n\nĐây không phản ánh giá trị hay năng lực của bạn — chúng tôi tin rằng bạn sẽ tìm được cơ hội thật sự phù hợp. Chúng tôi sẽ giữ CV của bạn trong talent pool và liên hệ khi có vị trí phù hợp hơn.\n\nChúc bạn nhiều thành công!\n\nTrân trọng,\nLường Thị Bích",
+      "Chào [Tên ứng viên],\n\nCảm ơn bạn đã dành thời gian và công sức ứng tuyển vị trí **[Tên vị trí]**.\n\nSau khi xem xét kỹ lưỡng, chúng tôi đã quyết định tiến hành với ứng viên khác có kinh nghiệm phù hợp hơn với yêu cầu hiện tại của vị trí này.\n\nĐây không phản ánh giá trị hay năng lực của bạn — chúng tôi tin rằng bạn sẽ tìm được cơ hội thật sự phù hợp. Chúng tôi sẽ giữ CV của bạn trong talent pool và liên hệ khi có vị trí phù hợp hơn.\n\nChúc bạn nhiều thành công!\n\nTrân trọng,\nLường Bích",
   },
   {
     name: "Thêm vào Talent Pool",
     channel: "Zalo / LinkedIn",
     content:
-      "Chào [Tên ứng viên],\n\nCảm ơn bạn đã quan tâm đến các vị trí tại chúng tôi!\n\nMặc dù vị trí bạn ứng tuyển hiện đã được lấp đầy, hồ sơ của bạn đã để lại ấn tượng rất tốt. Tôi muốn giữ kết nối và liên hệ khi có cơ hội phù hợp trong tương lai.\n\nBạn có đồng ý để tôi thêm bạn vào talent network của mình không?\n\nTrân trọng,\nLường Thị Bích — HR Consultant",
+      "Chào [Tên ứng viên],\n\nCảm ơn bạn đã quan tâm đến các vị trí tại chúng tôi!\n\nMặc dù vị trí bạn ứng tuyển hiện đã được lấp đầy, hồ sơ của bạn đã để lại ấn tượng rất tốt. Tôi muốn giữ kết nối và liên hệ khi có cơ hội phù hợp trong tương lai.\n\nBạn có đồng ý để tôi thêm bạn vào talent network của mình không?\n\nTrân trọng,\nLường Bích — TA Consultant",
   },
   {
     name: "Nhắc lịch phỏng vấn",

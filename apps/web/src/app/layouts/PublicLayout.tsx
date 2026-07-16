@@ -15,10 +15,10 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-primary/30 bg-pink-100">
-              <ImageWithFallback src={portraitImg} alt="Lường Thị Bích" className="w-full h-full object-cover object-top" />
+              <ImageWithFallback src={portraitImg} alt="Lường Bích" className="w-full h-full object-cover object-top" />
             </div>
             <div className="leading-none">
-              <div className="text-sm font-bold text-primary tracking-wide" style={{ fontFamily: "'Playfair Display', serif" }}>Lường Thị Bích</div>
+              <div className="text-sm font-bold text-primary tracking-wide" style={{ fontFamily: "'Playfair Display', serif" }}>Lường Bích</div>
               <div className="text-[10px] text-muted-foreground font-semibold tracking-widest uppercase">{t("common.hrConsultant")}</div>
             </div>
           </Link>
@@ -57,10 +57,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-3 text-xs text-muted-foreground">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-full overflow-hidden border-2 border-primary/30 bg-pink-100">
-              <ImageWithFallback src={portraitImg} alt="Lường Thị Bích" className="w-full h-full object-cover object-top" />
+              <ImageWithFallback src={portraitImg} alt="Lường Bích" className="w-full h-full object-cover object-top" />
             </div>
-            <span className="font-bold text-primary" style={{ fontFamily: "'Playfair Display', serif" }}>Lường Thị Bích</span>
-            <span>· {t("common.hrConsultant")} · {t("footer.tagline")}</span>
+            <span className="font-bold text-primary" style={{ fontFamily: "'Playfair Display', serif" }}>Lường Bích</span>
           </div>
           <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 font-semibold">
             <Link to="/terms" className="hover:text-primary transition-colors">{t("footer.terms")}</Link>
