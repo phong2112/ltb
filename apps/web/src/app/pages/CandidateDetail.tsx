@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import {
+  AlertTriangle,
   Briefcase,
   Calendar,
   Check,
+  CheckCircle,
   ChevronLeft,
   ClipboardList,
   ExternalLink,
@@ -15,9 +17,13 @@ import {
   NotebookPen,
   Phone,
   Save,
+  Sparkles,
+  Target,
   UserRound,
+  XCircle,
 } from "lucide-react";
 import {
+  AnalysisGroup,
   CvPreviewPanel,
   getInitials,
   InfoItem,
@@ -35,7 +41,7 @@ import {
 export default function CandidateDetail() {
   const { id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { candidateProfiles, isLoading, updateCandidate } = useData();
+  const { candidateProfiles, isLoading, reloadAdminData, updateCandidate } = useData();
   const { language, t } = useLanguage();
   const candidate = candidateProfiles.find(profile => profile.id === id);
   const requestedApplicationId = searchParams.get("application");
@@ -53,6 +59,12 @@ export default function CandidateDetail() {
     setFollowUp(selectedApplication.followUpDate || "");
     setError("");
   }, [selectedApplication]);
+
+  useEffect(() => {
+    if (selectedApplication?.aiStatus !== "pending") return;
+    const interval = window.setInterval(() => void reloadAdminData(), 5_000);
+    return () => window.clearInterval(interval);
+  }, [selectedApplication?.aiStatus, reloadAdminData]);
 
   if (!candidate && isLoading) {
     return (
@@ -99,9 +111,22 @@ export default function CandidateDetail() {
     }
   }
 
+  const scoreTone = application.aiStatus !== "completed"
+    ? { text: "text-slate-600", soft: "bg-slate-50", border: "border-slate-200", bar: "bg-slate-400" }
+    : application.aiScore >= 90
+      ? { text: "text-emerald-700", soft: "bg-emerald-50", border: "border-emerald-200", bar: "bg-emerald-500" }
+      : application.aiScore >= 75
+        ? { text: "text-amber-700", soft: "bg-amber-50", border: "border-amber-200", bar: "bg-amber-500" }
+        : application.aiScore >= 60
+          ? { text: "text-orange-700", soft: "bg-orange-50", border: "border-orange-200", bar: "bg-orange-500" }
+          : { text: "text-red-700", soft: "bg-red-50", border: "border-red-200", bar: "bg-red-500" };
   const hasCv = Boolean(application.cvUrl && application.cvUrl !== "#");
   const primaryEmail = candidate.email || application.email || "—";
   const primaryPhone = candidate.phone || application.phone || "—";
+  const scoreValue = Math.max(0, Math.min(application.aiScore, 100));
+  const scoreLabel = application.aiStatus === "completed"
+    ? `${application.aiScore}/100`
+    : application.aiStatus === "pending" ? "Đang phân tích" : "Chưa có kết quả";
 
   return (
     <AdminLayout>
@@ -132,6 +157,11 @@ export default function CandidateDetail() {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+              <div className={`flex h-10 items-center gap-2 rounded-xl border px-3 ${scoreTone.soft} ${scoreTone.border}`}>
+                <Sparkles size={15} className={scoreTone.text} />
+                <span className="text-xs font-black text-muted-foreground">{t("admin.matchScore")}</span>
+                <span className={`text-sm font-black ${scoreTone.text}`}>{scoreLabel}</span>
+              </div>
               {application.email && (
                 <a href={`mailto:${application.email}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-white px-3.5 text-xs font-bold text-muted-foreground hover:border-primary/40 hover:text-primary">
                   <Mail size={15} /> Email
@@ -155,7 +185,6 @@ export default function CandidateDetail() {
             selectedId={application.id}
             onSelect={applicationId => setSearchParams({ application: applicationId }, { replace: true })}
             title={t("admin.applicationHistory")}
-            language={language}
           />
         )}
 
@@ -166,6 +195,9 @@ export default function CandidateDetail() {
                 <SectionHeading icon={<UserRound size={16} />} title={t("admin.personalInfo")} />
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge status={application.status} language={language} />
+                  <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${scoreTone.soft} ${scoreTone.border} ${scoreTone.text}`}>
+                    {t("admin.matchScore")} {scoreLabel}
+                  </span>
                 </div>
               </div>
               <dl className="mt-4 grid gap-3 md:grid-cols-2">
@@ -182,6 +214,41 @@ export default function CandidateDetail() {
                   <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-foreground">{application.coverNote || "—"}</p>
                 </div>
                 <ScreeningAnswers answers={application.screeningAnswers} title={t("admin.screeningQuestions")} />
+              </div>
+            </section>
+
+            <section className="overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_10px_30px_rgba(120,70,86,0.04)]">
+              <div className="grid gap-5 border-b border-border px-5 py-5 lg:grid-cols-[minmax(0,1fr)_220px]">
+                <div className="min-w-0">
+                  <SectionHeading icon={<Sparkles size={16} />} title={t("common.aiAnalysis")} />
+                  <p className="mt-3 max-w-4xl text-sm leading-6 text-foreground">{application.aiSummary}</p>
+                  {application.aiStatus === "completed" && application.aiConfidence !== null && (
+                    <p className="mt-2 text-xs font-semibold text-muted-foreground">Độ tin cậy của bằng chứng: {application.aiConfidence}%</p>
+                  )}
+                  {application.aiStatus === "failed" && application.aiError && (
+                    <p className="mt-2 text-xs font-semibold text-red-600">{application.aiError}</p>
+                  )}
+                </div>
+                <div className={`rounded-2xl border p-4 ${scoreTone.soft} ${scoreTone.border}`}>
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">{t("admin.matchScore")}</p>
+                      <p className={`mt-1 text-4xl font-black leading-none ${scoreTone.text}`} style={{ fontFamily: "'Playfair Display', serif" }}>
+                        {application.aiStatus === "completed" ? application.aiScore : "—"}
+                        {application.aiStatus === "completed" && <span className="ml-1 text-sm font-bold text-muted-foreground">/100</span>}
+                      </p>
+                    </div>
+                    <Target size={24} className={scoreTone.text} />
+                  </div>
+                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/80">
+                    <div className={`h-full rounded-full ${scoreTone.bar}`} style={{ width: `${application.aiStatus === "completed" ? scoreValue : 0}%` }} />
+                  </div>
+                </div>
+              </div>
+              <div className="grid divide-y divide-border lg:grid-cols-3 lg:divide-x lg:divide-y-0">
+                <AnalysisGroup icon={<CheckCircle size={14} />} title={t("admin.strengths")} items={application.strengths} emptyText="—" tone="text-emerald-700" bulletClass="bg-emerald-500" />
+                <AnalysisGroup icon={<AlertTriangle size={14} />} title={t("admin.risks")} items={application.risks} emptyText={t("admin.noRisk")} tone="text-amber-700" bulletClass="bg-amber-500" />
+                <AnalysisGroup icon={<XCircle size={14} />} title={t("admin.missingRequirements")} items={application.missingReqs} emptyText={t("admin.meetsRequirements")} tone="text-red-600" bulletClass="bg-red-500" />
               </div>
             </section>
 
@@ -245,12 +312,11 @@ function StatusBadge({ status, language }: { status: CandidateStatus; language: 
   );
 }
 
-function ApplicationHistory({ applications, selectedId, onSelect, title, language }: {
+function ApplicationHistory({ applications, selectedId, onSelect, title }: {
   applications: ReturnType<typeof useData>["candidates"];
   selectedId: string;
   onSelect: (applicationId: string) => void;
   title: string;
-  language: "vi" | "en";
 }) {
   return (
     <section className="rounded-2xl border border-border/80 bg-white px-4 py-3 shadow-[0_8px_24px_rgba(120,70,86,0.04)]">
@@ -264,8 +330,8 @@ function ApplicationHistory({ applications, selectedId, onSelect, title, languag
               <span className="block truncate text-xs font-black">{application.jobTitle}</span>
               <span className="mt-0.5 block text-[10px] font-semibold">{application.appliedAt || "—"}</span>
             </span>
-            <span className={`rounded-full border px-2 py-1 text-[11px] font-black ${CANDIDATE_STATUS_CONFIG[application.status].badgeClass}`}>
-              {translateCandidateStatus(application.status, language)}
+            <span className="rounded-full bg-white px-2 py-1 text-[11px] font-black text-primary ring-1 ring-border">
+              {application.aiStatus === "completed" ? `${application.aiScore}%` : "AI…"}
             </span>
           </button>
         ))}

@@ -102,8 +102,9 @@ up() {
   echo "Open http://localhost:8080"
   echo "API docs http://localhost:8080/api-docs"
   echo "Admin demo credential: hr / hr123456"
+  echo "Local AI: Ollama ${OLLAMA_MODEL:-qwen3:4b} (the first start downloads the model)"
   echo
-  "${COMPOSE[@]}" up --remove-orphans nginx web api db
+  "${COMPOSE[@]}" up --remove-orphans nginx web api db redis ollama ollama-model
 }
 
 seed() {

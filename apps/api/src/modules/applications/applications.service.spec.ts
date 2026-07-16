@@ -1,3 +1,8 @@
+jest.mock("../ai/ai-queue.service", () => ({
+  AiQueueService: class AiQueueService {},
+}));
+
+import type { AiQueueService } from "../ai/ai-queue.service";
 import type { CvStorageService } from "../files/cv-storage.service";
 import type { JobsService } from "../jobs/jobs.service";
 import type { EmailService } from "../notifications/email.service";
@@ -22,6 +27,7 @@ describe("ApplicationsService", () => {
       candidateFile: {
         create: jest.fn().mockResolvedValue({ id: "file-1" }),
       },
+      cvParseResult: { create: jest.fn().mockResolvedValue({}) },
       activityLog: {
         create: jest.fn().mockRejectedValue(new Error("Database write failed")),
       },
@@ -55,6 +61,7 @@ describe("ApplicationsService", () => {
     const email = { sendApplicationConfirmation: jest.fn() };
     const service = new ApplicationsService(
       prisma as unknown as PrismaService,
+      {} as AiQueueService,
       storage as unknown as CvStorageService,
       jobs as unknown as JobsService,
       email as unknown as EmailService,
@@ -101,6 +108,7 @@ describe("ApplicationsService", () => {
     const email = { sendApplicationConfirmation: jest.fn() };
     const service = new ApplicationsService(
       prisma as unknown as PrismaService,
+      {} as AiQueueService,
       storage as unknown as CvStorageService,
       jobs as unknown as JobsService,
       email as unknown as EmailService,
@@ -142,6 +150,9 @@ describe("ApplicationsService", () => {
       activityLog: {
         create: jest.fn().mockResolvedValue({ id: "activity-1" }),
       },
+      cvParseResult: {
+        create: jest.fn().mockResolvedValue({ id: "parse-1" }),
+      },
     };
     const prisma = {
       $transaction: jest.fn(
@@ -167,6 +178,7 @@ describe("ApplicationsService", () => {
     const email = { sendApplicationConfirmation: jest.fn().mockResolvedValue(undefined) };
     const service = new ApplicationsService(
       prisma as unknown as PrismaService,
+      {} as AiQueueService,
       storage as unknown as CvStorageService,
       jobs as unknown as JobsService,
       email as unknown as EmailService,
@@ -241,6 +253,7 @@ describe("ApplicationsService", () => {
     const email = { sendApplicationConfirmation: jest.fn() };
     const service = new ApplicationsService(
       prisma as unknown as PrismaService,
+      {} as AiQueueService,
       storage as unknown as CvStorageService,
       jobs as unknown as JobsService,
       email as unknown as EmailService,
@@ -320,6 +333,7 @@ describe("ApplicationsService", () => {
     const email = { sendApplicationConfirmation: jest.fn() };
     const service = new ApplicationsService(
       prisma as unknown as PrismaService,
+      {} as AiQueueService,
       storage as unknown as CvStorageService,
       jobs as unknown as JobsService,
       email as unknown as EmailService,
