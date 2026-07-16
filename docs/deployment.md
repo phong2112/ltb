@@ -61,7 +61,7 @@ Candidate application confirmation email is optional and uses Gmail SMTP. For a 
 
 ```text
 EMAIL_PROVIDER=gmail
-EMAIL_FROM="Lường Thị Bích <your-gmail-address@gmail.com>"
+EMAIL_FROM="Lường Bích <your-gmail-address@gmail.com>"
 EMAIL_REPLY_TO=your-gmail-address@gmail.com
 EMAIL_SMTP_USER=your-gmail-address@gmail.com
 EMAIL_SMTP_PASS=<google-app-password>
@@ -173,7 +173,7 @@ WEB_ORIGIN=https://your-web-domain.com
 DATABASE_URL=postgresql://<user>:<password>@db:5432/hr_copilot?schema=public
 ADMIN_EMAIL=v.bichlt6@vinsmartfuture.tech
 ADMIN_PASSWORD=<strong-admin-password>
-ADMIN_NAME=Lường Thị Bích
+ADMIN_NAME=Lường Bích
 JWT_ACCESS_TOKEN_SECRET=<long-random-secret>
 JWT_ACCESS_TOKEN_TTL_SECONDS=28800
 JWT_REFRESH_TOKEN_SECRET=<different-long-random-secret>
@@ -190,13 +190,13 @@ APPLICATION_RATE_LIMIT_WINDOW_SECONDS=60
 TRUST_PROXY_HOPS=1
 SWAGGER_ENABLED=false
 EMAIL_PROVIDER=gmail
-EMAIL_FROM="Lường Thị Bích <your-gmail-address@gmail.com>"
+EMAIL_FROM="Lường Bích <your-gmail-address@gmail.com>"
 EMAIL_REPLY_TO=your-gmail-address@gmail.com
 EMAIL_SMTP_USER=your-gmail-address@gmail.com
 EMAIL_SMTP_PASS=<google-app-password>
 ```
 
-`CV_STORAGE_DRIVER=vercel-blob` stores uploaded CV files in Vercel Blob Private and saves the Blob URL in PostgreSQL `CandidateFile.path`. `UPLOAD_DIR` remains a local development fallback only. In production, keep CV blobs private and serve them through the API after HR authentication checks. `APPLICATION_RATE_LIMIT_MAX` limits public submissions per IP during each `APPLICATION_RATE_LIMIT_WINDOW_SECONDS` window. Set `TRUST_PROXY_HOPS` to the number of trusted reverse proxies in front of the API so client IP rate limiting remains accurate.
+`CV_STORAGE_DRIVER=vercel-blob` stores uploaded CV files in Vercel Blob Private and saves the Blob URL in PostgreSQL `CandidateFile.path`. `UPLOAD_DIR` remains a local development fallback only. In production, keep CV blobs private and serve them through the API after TA authentication checks. `APPLICATION_RATE_LIMIT_MAX` limits public submissions per IP during each `APPLICATION_RATE_LIMIT_WINDOW_SECONDS` window. Set `TRUST_PROXY_HOPS` to the number of trusted reverse proxies in front of the API so client IP rate limiting remains accurate.
 
 Swagger API documentation is available at `/docs` when enabled. It is enabled by default outside production. Keep `SWAGGER_ENABLED=false` for production unless API documentation is intentionally exposed behind appropriate network or auth controls.
 

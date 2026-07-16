@@ -48,7 +48,7 @@ export class EmailService {
       this.configService.get<string>("WEB_ORIGIN"),
       this.configService.get<string>("NEXT_PUBLIC_APP_URL"),
     );
-    const brandName = this.configService.get<string>("ADMIN_NAME")?.trim() || "Lường Thị Bích";
+    const brandName = this.configService.get<string>("ADMIN_NAME")?.trim() || "Lường Bích";
     const smtpUser = this.configService.get<string>("EMAIL_SMTP_USER")?.trim();
     const smtpPass = this.configService.get<string>("EMAIL_SMTP_PASS")?.trim();
 
@@ -111,11 +111,11 @@ function buildApplicationConfirmationEmail(input: ApplicationConfirmationEmail, 
     input.applicationArea ? `Khu vực ứng tuyển: ${input.applicationArea}` : "",
     jobUrl ? `Xem lại thông tin công việc: ${jobUrl}` : "",
     "",
-    "HR sẽ xem xét hồ sơ và liên hệ trong khoảng 3-5 ngày làm việc nếu hồ sơ phù hợp với tiêu chí tuyển dụng.",
+    "TA sẽ xem xét hồ sơ và liên hệ trong khoảng 3-5 ngày làm việc nếu hồ sơ phù hợp với tiêu chí tuyển dụng.",
     "Nếu sau thời gian này bạn chưa nhận được liên hệ, rất có thể hồ sơ hiện tại chưa phù hợp với vị trí này. Chúng tôi sẽ lưu lại thông tin của bạn để cân nhắc cho các cơ hội phù hợp hơn trong tương lai.",
     "",
     "Trân trọng,",
-    `${brandName} HR`,
+    `${brandName} TA`,
   ].filter(Boolean);
 
   const html = `
@@ -137,7 +137,7 @@ function buildApplicationConfirmationEmail(input: ApplicationConfirmationEmail, 
                       </td>
                       <td style="padding-left:12px;vertical-align:middle">
                         <div style="font-family:Georgia,'Times New Roman',serif;color:#C85B7A;font-size:19px;font-weight:700;line-height:1.15">${escapeHtml(brandName)}</div>
-                        <div style="color:#8C5F70;font-size:11px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase">HR Consultant</div>
+                        <div style="color:#8C5F70;font-size:11px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase">TA Consultant</div>
                       </td>
                     </tr>
                   </table>
@@ -167,7 +167,7 @@ function buildApplicationConfirmationEmail(input: ApplicationConfirmationEmail, 
 
                     <div style="margin:0 0 18px;padding:16px 18px;border-left:4px solid #C85B7A;background:#FDF0F4;border-radius:12px">
                       <p style="margin:0;color:#2D1B22;font-size:14px;font-weight:800">Bước tiếp theo</p>
-                      <p style="margin:6px 0 0;color:#5E3B49;font-size:14px">HR sẽ xem xét hồ sơ và liên hệ với bạn qua email hoặc số điện thoại đã cung cấp trong khoảng <strong>3-5 ngày làm việc</strong> nếu hồ sơ phù hợp với tiêu chí tuyển dụng.</p>
+                      <p style="margin:6px 0 0;color:#5E3B49;font-size:14px">TA sẽ xem xét hồ sơ và liên hệ với bạn qua email hoặc số điện thoại đã cung cấp trong khoảng <strong>3-5 ngày làm việc</strong> nếu hồ sơ phù hợp với tiêu chí tuyển dụng.</p>
                     </div>
 
                     <p style="margin:0 0 18px;color:#5E3B49;font-size:14px">Nếu sau thời gian này bạn chưa nhận được liên hệ, rất có thể hồ sơ hiện tại chưa phù hợp với vị trí này. Chúng tôi sẽ lưu lại thông tin của bạn để cân nhắc cho các cơ hội phù hợp hơn trong tương lai.</p>
@@ -184,7 +184,7 @@ function buildApplicationConfirmationEmail(input: ApplicationConfirmationEmail, 
                 <td style="padding:18px 4px 0;color:#8C5F70;font-size:12px;text-align:center">
                   Email này được gửi tự động để xác nhận hồ sơ ứng tuyển của bạn. Vui lòng không gửi CV hoặc thông tin nhạy cảm qua phản hồi tự động.
                   <br>
-                  <span style="font-weight:800;color:#C85B7A">${escapeHtml(brandName)} HR</span>
+                  <span style="font-weight:800;color:#C85B7A">${escapeHtml(brandName)} TA</span>
                 </td>
               </tr>
             </table>

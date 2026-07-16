@@ -92,7 +92,7 @@ export default function AdminJobs() {
                 <div className="w-10 h-10 rounded-xl bg-pink-50 border border-pink-100 flex items-center justify-center text-xl flex-shrink-0">{job.logo}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-bold text-foreground text-sm truncate hover:text-primary" style={{ fontFamily: "'Playfair Display', serif" }}>{job.title}</p>
+                    <p className="font-bold text-foreground text-sm truncate hover:text-primary">{job.title}</p>
                     <span className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold ${JOB_STATUS_CONFIG[job.status].badgeClass}`}>
                       {translateJobStatus(job.status, language)}
                     </span>

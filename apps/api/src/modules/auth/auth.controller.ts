@@ -22,7 +22,7 @@ export class AuthController {
     private readonly configService: ConfigService,
   ) {}
 
-  @ApiOperation({ summary: "Log in as the HR admin" })
+  @ApiOperation({ summary: "Log in as the TA admin" })
   @ApiOkResponse({ description: "Returns the admin user and sets access/refresh httpOnly cookies." })
   @ApiUnauthorizedResponse({ description: "Invalid email or password." })
   @Post("login")
@@ -93,7 +93,7 @@ export class AuthController {
     return { ok: true };
   }
 
-  @ApiOperation({ summary: "Get the current HR admin session" })
+  @ApiOperation({ summary: "Get the current TA admin session" })
   @ApiCookieAuth(ACCESS_TOKEN_SECURITY_NAME)
   @ApiOkResponse({ description: "Current admin user." })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token." })

@@ -4,7 +4,7 @@ This file defines the working rules for coding agents in this repository. Read t
 
 ## 1. Product Context
 
-This project is a lightweight HR Copilot and Career Site for one HR user.
+This project is a lightweight TA Copilot and Career Site for one TA user.
 
 The product is not intended to be an enterprise ATS in the MVP. Keep implementation focused on:
 
@@ -12,7 +12,7 @@ The product is not intended to be an enterprise ATS in the MVP. Keep implementat
 - Receiving candidate applications.
 - Uploading and protecting CV files.
 - Parsing and matching CVs with AI.
-- Helping HR review candidates and follow up faster.
+- Helping TA review candidates and follow up faster.
 
 ## 2. Default Engineering Rules
 
@@ -97,7 +97,7 @@ Comments:
 
 ## 6. Next.js Rules
 
-- Keep public career pages and HR workspace routes clearly separated.
+- Keep public career pages and TA workspace routes clearly separated.
 - Use server components by default when practical.
 - Use client components only for interactive UI.
 - Do not call private backend APIs directly from unauthenticated client code.
@@ -194,7 +194,7 @@ Expected AI output shape for candidate matching:
 
 ## 11. Security And Privacy Rules
 
-- Require login for HR workspace.
+- Require login for TA workspace.
 - Protect all admin APIs.
 - Rate-limit public forms.
 - Add anti-spam protection before real launch.
@@ -226,10 +226,10 @@ Testing expectations:
 ## 13. UI Rules
 
 - Build the usable product screen first, not a marketing landing page.
-- Keep HR workspace dense, clear, and task-focused.
+- Keep TA workspace dense, clear, and task-focused.
 - Use tables/lists for candidate review where appropriate.
 - Use cards only for repeated items or genuinely framed tools.
-- Avoid decorative UI that slows down HR work.
+- Avoid decorative UI that slows down TA work.
 - Ensure text does not overflow buttons, cards, or tables.
 - Include clear empty states and failed states.
 

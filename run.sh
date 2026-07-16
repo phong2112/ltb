@@ -98,7 +98,7 @@ start() {
 
 up() {
   echo
-  echo "Starting HR Copilot dev stack..."
+  echo "Starting TA Copilot dev stack..."
   echo "Open http://localhost:8080"
   echo "API docs http://localhost:8080/api-docs"
   echo "Admin demo credential: hr / hr123456"

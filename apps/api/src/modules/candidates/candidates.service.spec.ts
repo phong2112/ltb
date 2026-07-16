@@ -3,7 +3,7 @@ import type { CvStorageService } from "../files/cv-storage.service";
 import { CandidatesService } from "./candidates.service";
 
 describe("CandidatesService", () => {
-  it("does not overwrite application status when only the HR note changes", async () => {
+  it("does not overwrite application status when only the TA note changes", async () => {
     const application = {
       id: "application-1",
       candidateId: "candidate-1",

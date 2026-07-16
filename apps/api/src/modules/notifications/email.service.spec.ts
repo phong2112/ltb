@@ -36,11 +36,11 @@ describe("EmailService", () => {
     const service = new EmailService(
       createConfigService({
         EMAIL_PROVIDER: "gmail",
-        EMAIL_FROM: "Lường Thị Bích <xuanphongpham2112@gmail.com>",
+        EMAIL_FROM: "Lường Bích <xuanphongpham2112@gmail.com>",
         EMAIL_REPLY_TO: "xuanphongpham2112@gmail.com",
         EMAIL_SMTP_USER: "xuanphongpham2112@gmail.com",
         EMAIL_SMTP_PASS: "google-app-password",
-        ADMIN_NAME: "Lường Thị Bích",
+        ADMIN_NAME: "Lường Bích",
         WEB_ORIGIN: "https://careers.example.com",
       }),
     );
@@ -63,7 +63,7 @@ describe("EmailService", () => {
       },
     });
     expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({
-      from: "Lường Thị Bích <xuanphongpham2112@gmail.com>",
+      from: "Lường Bích <xuanphongpham2112@gmail.com>",
       to: "candidate@example.com",
       replyTo: "xuanphongpham2112@gmail.com",
       subject: "Hồ sơ ứng tuyển Frontend Engineer đã được ghi nhận",
@@ -88,7 +88,7 @@ describe("EmailService", () => {
     } as unknown as ReturnType<typeof nodemailer.createTransport>);
     const service = new EmailService(
       createConfigService({
-        EMAIL_FROM: "Lường Thị Bích <xuanphongpham2112@gmail.com>",
+        EMAIL_FROM: "Lường Bích <xuanphongpham2112@gmail.com>",
         EMAIL_SMTP_USER: "xuanphongpham2112@gmail.com",
         EMAIL_SMTP_PASS: "google-app-password",
       }),

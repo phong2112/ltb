@@ -19,7 +19,7 @@ describe("CreateJobDto", () => {
       salaryRange: null,
       tags: ["React", "TypeScript"],
       description:
-        "<p>Build candidate-facing and HR-facing product workflows with stable UI and clear backend integration.</p>",
+        "<p>Build candidate-facing and TA-facing product workflows with stable UI and clear backend integration.</p>",
       requirements:
         "<p>Strong React TypeScript experience and clear communication across product and engineering teams.</p>",
       benefits: "<p>Competitive benefits.</p>",

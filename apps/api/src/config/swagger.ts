@@ -13,8 +13,8 @@ export function setupSwagger(app: INestApplication) {
   if (!isSwaggerEnabled(configService)) return;
 
   const config = new DocumentBuilder()
-    .setTitle("HR Copilot API")
-    .setDescription("API documentation for the HR Copilot career site and protected HR workspace.")
+    .setTitle("TA Copilot API")
+    .setDescription("API documentation for the TA Copilot career site and protected TA workspace.")
     .setVersion("0.1.0")
     .addCookieAuth(
       ACCESS_TOKEN_COOKIE_NAME,
@@ -39,7 +39,7 @@ export function setupSwagger(app: INestApplication) {
   const document = SwaggerModule.createDocument(app, config);
 
   SwaggerModule.setup(SWAGGER_PATH, app, document, {
-    customSiteTitle: "HR Copilot API Docs",
+    customSiteTitle: "TA Copilot API Docs",
     swaggerOptions: {
       persistAuthorization: true,
       withCredentials: true,

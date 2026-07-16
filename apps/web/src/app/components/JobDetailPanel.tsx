@@ -29,7 +29,7 @@ export default function JobDetailPanel({ job }: { job: Job }) {
         <div className="flex items-start gap-3">
           <div className="flex size-12 flex-none items-center justify-center rounded-xl border border-pink-100 bg-pink-50 text-2xl">{job.logo}</div>
           <div className="min-w-0 flex-1">
-            <h2 className="text-xl font-black leading-tight text-foreground lg:text-[22px]" style={{ fontFamily: "'Playfair Display', serif" }}>{job.title}</h2>
+            <h2 className="text-xl font-black leading-tight text-foreground lg:text-[22px]">{job.title}</h2>
             <p className="mt-0.5 text-sm font-semibold text-muted-foreground">{job.company}</p>
             <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
               <span className="flex items-center gap-1"><MapPin size={12} />{job.location}</span>

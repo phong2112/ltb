@@ -127,7 +127,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </button>
               ))}
             </div>
-            <span className="text-xs text-muted-foreground font-semibold">HR · Lường Thị Bích</span>
+            <span className="text-xs text-muted-foreground font-semibold">TA · Lường Bích</span>
             <div className="h-7 w-7 overflow-hidden rounded-full border border-primary/30 bg-pink-100">
               <ImageWithFallback src={logoImg} alt="Bích Candy" className="h-full w-full object-cover object-[50%_58%]" />
             </div>

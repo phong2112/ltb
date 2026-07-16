@@ -24,14 +24,14 @@ import { TemplatesService } from "./templates.service";
 export class TemplatesController {
   constructor(private readonly templatesService: TemplatesService) {}
 
-  @ApiOperation({ summary: "List message templates for HR follow-up" })
+  @ApiOperation({ summary: "List message templates for TA follow-up" })
   @ApiOkResponse({ description: "Message templates ordered by creation date." })
   @Get()
   listTemplates() {
     return this.templatesService.listTemplates();
   }
 
-  @ApiOperation({ summary: "Create a message template for HR follow-up" })
+  @ApiOperation({ summary: "Create a message template for TA follow-up" })
   @ApiCreatedResponse({ description: "Created message template." })
   @Post()
   createTemplate(@Body() dto: CreateTemplateDto) {

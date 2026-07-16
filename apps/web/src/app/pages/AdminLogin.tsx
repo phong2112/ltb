@@ -8,6 +8,8 @@ import { contactConfig } from "@/app/contact-config";
 
 const logoImg = "/images/bich-candy-logo.jpg";
 const SETTINGS_STORAGE_KEY = "hr-copilot-admin-settings";
+const LOCAL_ADMIN_PASSWORD = "demo123";
+const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"]);
 
 function getDefaultAdminPath() {
   try {
@@ -21,12 +23,17 @@ function getDefaultAdminPath() {
   return "/admin/dashboard";
 }
 
+function shouldPrefillLocalCredentials() {
+  return typeof window !== "undefined" && LOCAL_HOSTNAMES.has(window.location.hostname);
+}
+
 export default function AdminLogin() {
   const { login, isAdminLoggedIn } = useData();
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const [email, setEmail] = useState<string>(contactConfig.email);
-  const [password, setPassword] = useState("demo123");
+  const shouldPrefillCredentials = shouldPrefillLocalCredentials();
+  const [email, setEmail] = useState<string>(shouldPrefillCredentials ? contactConfig.email : "");
+  const [password, setPassword] = useState(shouldPrefillCredentials ? LOCAL_ADMIN_PASSWORD : "");
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -98,7 +105,7 @@ export default function AdminLogin() {
                   <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="email" value={email} onChange={e => { setEmail(e.target.value); setError(""); }}
-                    placeholder={contactConfig.email}
+                    placeholder={shouldPrefillCredentials ? contactConfig.email : "you@example.com"}
                     className="w-full pl-9 pr-3 py-2.5 bg-input-background border border-border rounded-xl text-sm outline-none focus:border-primary transition-colors"
                   />
                 </div>
@@ -129,12 +136,6 @@ export default function AdminLogin() {
                 {loading ? t("admin.loginLoading") : t("admin.loginSubmit")}
               </button>
             </form>
-
-            <div className="mt-4 p-3 bg-pink-50 border border-pink-100 rounded-xl text-xs text-muted-foreground">
-              <strong className="text-foreground">{t("admin.demoCredentials")}:</strong><br />
-              Email: <code className="text-primary">{contactConfig.email}</code><br />
-              Password: <code className="text-primary">demo123</code>
-            </div>
           </div>
         </div>
       </div>

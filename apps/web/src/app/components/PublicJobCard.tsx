@@ -1,4 +1,5 @@
-import { Link } from "react-router";
+import type { MouseEvent } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
 import { ChevronRight, Clock, Heart, MapPin, Users } from "lucide-react";
 import type { Job } from "@/app/data";
 import { useLanguage } from "@/app/i18n";
@@ -20,10 +21,23 @@ export default function PublicJobCard({
   onRemoveSaved,
 }: PublicJobCardProps) {
   const { t } = useLanguage();
+  const location = useLocation();
+  const navigate = useNavigate();
   const interactive = Boolean(onSelect);
+  const focusedJobsPath = buildFocusedJobsPath(job.id, location.pathname === "/jobs" ? location.search : "");
+  const detailPath = `/jobs/${encodeURIComponent(job.id)}?from=${encodeURIComponent(focusedJobsPath)}`;
 
   function selectJob() {
     onSelect?.(job.id);
+  }
+
+  function openDetails(event: MouseEvent<HTMLAnchorElement>) {
+    event.stopPropagation();
+    if (!interactive) return;
+
+    event.preventDefault();
+    navigate(focusedJobsPath, { replace: true });
+    navigate(detailPath);
   }
 
   return (
@@ -38,7 +52,8 @@ export default function PublicJobCard({
           selectJob();
         }
       } : undefined}
-      className={`group relative flex min-h-48 flex-col overflow-hidden rounded-2xl border bg-white p-4 text-left shadow-sm outline-none transition-all duration-200 ${interactive ? "cursor-pointer active:scale-[0.99]" : "h-full"} ${active ? "border-primary bg-pink-50/40 shadow-md ring-1 ring-primary/15" : "border-border hover:border-primary/60 hover:shadow-md"}`}
+      aria-current={active ? "true" : undefined}
+      className={`group relative flex min-h-48 flex-col overflow-hidden rounded-2xl border bg-white p-4 text-left shadow-sm outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/35 ${interactive ? "cursor-pointer active:scale-[0.99]" : "h-full"} ${active ? "border-primary bg-pink-50/40 shadow-md ring-1 ring-primary/15" : "border-border hover:border-primary/60 hover:shadow-md"}`}
     >
       {job.urgent && (
         <span className={`absolute right-4 top-4 rounded-full border px-2.5 py-1 text-[10px] font-bold ${URGENT_BADGE_CLASS}`}>
@@ -51,7 +66,7 @@ export default function PublicJobCard({
           {job.logo}
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className={`line-clamp-2 text-base font-black leading-snug text-foreground transition-colors group-hover:text-primary ${job.urgent ? "pr-16" : ""}`} style={{ fontFamily: "'Playfair Display', serif" }}>
+          <h3 className={`line-clamp-2 text-base font-black leading-snug text-foreground transition-colors group-hover:text-primary ${job.urgent ? "pr-16" : ""}`}>
             {interactive ? (
               job.title
             ) : (
@@ -102,8 +117,8 @@ export default function PublicJobCard({
             </button>
           )}
           <Link
-            to={`/jobs/${job.id}`}
-            onClick={event => event.stopPropagation()}
+            to={detailPath}
+            onClick={openDetails}
             className="ml-auto inline-flex flex-none items-center gap-0.5 text-xs font-bold text-primary transition-all hover:gap-1.5 hover:underline"
           >
             {t("common.viewDetails")} <ChevronRight size={12} />
@@ -112,4 +127,11 @@ export default function PublicJobCard({
       </div>
     </article>
   );
+}
+
+function buildFocusedJobsPath(jobId: string, currentSearch: string) {
+  const params = new URLSearchParams(currentSearch);
+  params.set("job", jobId);
+  const search = params.toString();
+  return `/jobs${search ? `?${search}` : ""}`;
 }

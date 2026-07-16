@@ -38,7 +38,7 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/hr_copilot?schema=public
       ADMIN_EMAIL: ${ADMIN_EMAIL:-v.bichlt6@vinsmartfuture.tech}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-demo123}
-      ADMIN_NAME: ${ADMIN_NAME:-Lường Thị Bích}
+      ADMIN_NAME: ${ADMIN_NAME:-Lường Bích}
       JWT_ACCESS_TOKEN_SECRET: ${JWT_ACCESS_TOKEN_SECRET:-dev-only-change-me-at-least-32-characters}
       JWT_ACCESS_TOKEN_TTL_SECONDS: ${JWT_ACCESS_TOKEN_TTL_SECONDS:-28800}
       JWT_REFRESH_TOKEN_SECRET: ${JWT_REFRESH_TOKEN_SECRET:-dev-only-refresh-change-me-at-least-32-characters}

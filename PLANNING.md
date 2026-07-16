@@ -1,10 +1,10 @@
-# HR Copilot + Career Site Planning
+# TA Copilot + Career Site Planning
 
 ## 1. Product Goal
 
-Build a lightweight recruiting assistant for one HR user, not a heavy company-wide ATS.
+Build a lightweight recruiting assistant for one TA user, not a heavy company-wide ATS.
 
-The system should help HR:
+The system should help TA:
 
 - Publish job descriptions on a public career site.
 - Receive applications and CV uploads from candidates.
@@ -17,14 +17,14 @@ The system should help HR:
 Primary workflow:
 
 ```text
-HR creates JD
+TA creates JD
 -> system publishes job page
 -> candidate applies and uploads CV
 -> backend stores file privately
 -> AI parses CV and matches it to JD
--> HR reviews candidate in inbox
+-> TA reviews candidate in inbox
 -> AI suggests outreach/follow-up message
--> HR sends via email or copies message to Zalo/Facebook/LinkedIn
+-> TA sends via email or copies message to Zalo/Facebook/LinkedIn
 -> system tracks status and reminder
 ```
 
@@ -38,7 +38,7 @@ HR creates JD
   - Apply form.
   - CV upload.
   - Application success page.
-- HR workspace:
+- TA workspace:
   - Login.
   - Create/edit/publish/close/archive jobs.
   - Candidate inbox.
@@ -64,7 +64,7 @@ HR creates JD
 ### Should Have
 
 - Email notification when a new candidate applies.
-- Email sending from HR workspace.
+- Email sending from TA workspace.
 - Message templates with copy button for Zalo/Facebook/LinkedIn.
 - Duplicate candidate detection by email, phone, and normalized name.
 - Basic activity timeline.
@@ -85,7 +85,7 @@ Recommended deployment split:
 ```text
 Next.js web app
   - public career site
-  - HR workspace
+  - TA workspace
   - deployed on Vercel Pro
 
 NestJS API
@@ -179,7 +179,7 @@ Initial entities:
 Candidate identity rules for the MVP:
 
 - Public applicants are not authenticated users, so `Application` remains the source of truth for each submission.
-- Store submission snapshots on `Application` (`submittedFullName`, `submittedEmail`, `submittedPhone`, links, cover note, HR notes), not in a shared candidate note/profile field.
+- Store submission snapshots on `Application` (`submittedFullName`, `submittedEmail`, `submittedPhone`, links, cover note, TA notes), not in a shared candidate note/profile field.
 - Keep application-scoped child records (`CandidateFile`, `CandidateMessage`, `FollowUpTask`) linked by `applicationId` only; derive their candidate through `Application.candidateId`.
 - Store normalized email and phone on `Candidate` for lookup, but do not use name as an automatic duplicate key.
 - Store normalized email and phone snapshots on `Application` and enforce one application per job per normalized email/phone.
@@ -196,7 +196,7 @@ closed
 archived
 ```
 
-Job records should not be hard-deleted from normal HR workflows. If a published job is no longer accepting applications, move it to `closed`. If HR wants to hide old jobs from the active workspace, move them to `archived`. Keep applications, CV metadata, parse results, and match results intact for audit and review.
+Job records should not be hard-deleted from normal TA workflows. If a published job is no longer accepting applications, move it to `closed`. If TA wants to hide old jobs from the active workspace, move them to `archived`. Keep applications, CV metadata, parse results, and match results intact for audit and review.
 
 Recommended application statuses:
 
@@ -226,7 +226,7 @@ talent_pool
 
 ### Phase 2: Jobs And Career Site
 
-- Build job CRUD in HR workspace.
+- Build job CRUD in TA workspace.
 - Build public job listing and job detail pages.
 - Add publish/close/archive flow.
 - Add SEO-friendly job slugs.
@@ -239,7 +239,7 @@ talent_pool
 - Save candidate/application records.
 - Add consent checkbox.
 - Add rate limit and basic anti-spam protection.
-- Send HR notification on new application.
+- Send TA notification on new application.
 
 ### Phase 4: Candidate Inbox
 
@@ -296,13 +296,13 @@ talent_pool
 
 The MVP is done when:
 
-- HR can create and publish a JD.
+- TA can create and publish a JD.
 - Candidate can open a public JD page and apply with CV.
-- CV is stored privately and visible only after HR login.
-- Candidate appears in HR inbox.
+- CV is stored privately and visible only after TA login.
+- Candidate appears in TA inbox.
 - AI summary and match result are generated or a clear failed state is shown.
-- HR can update status, write notes, and set follow-up.
-- HR can generate/copy outreach messages.
+- TA can update status, write notes, and set follow-up.
+- TA can generate/copy outreach messages.
 - Production environment is deployed and documented.
 - Core happy paths have been tested manually and with automated tests where practical.
 
@@ -312,9 +312,9 @@ The current implementation uses one public domain with Nginx routing:
 
 ```text
 /jobs and /jobs/*        Candidate site
-/admin and /admin/*      HR workspace
+/admin and /admin/*      TA workspace
 /api/applications        Public candidate intake API
-/api/admin/*             Protected HR API
+/api/admin/*             Protected TA API
 /api/health              Public health check
 ```
 
@@ -326,7 +326,7 @@ Docker Compose runs:
 - `db` for PostgreSQL.
 - `redis` for future queue workers.
 
-Local Docker HR workspace uses the in-app demo login only:
+Local Docker TA workspace uses the in-app demo login only:
 
 ```text
 email: v.bichlt6@vinsmartfuture.tech

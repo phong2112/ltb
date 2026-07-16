@@ -86,7 +86,7 @@ const CONTENT: Record<Language, PrivacyPageContent> = {
         body: `Dữ liệu của bạn được sử dụng cho các mục đích sau:
 
 - **Xử lý hồ sơ ứng tuyển**: Chia sẻ thông tin với nhà tuyển dụng liên quan và sắp xếp lịch phỏng vấn.
-- **Liên lạc**: Gửi cập nhật về trạng thái ứng tuyển, thông báo phỏng vấn và phản hồi từ HR.
+- **Liên lạc**: Gửi cập nhật về trạng thái ứng tuyển, thông báo phỏng vấn và phản hồi từ TA.
 - **Cải thiện dịch vụ**: Phân tích dữ liệu đã ẩn danh để cải thiện trải nghiệm người dùng.
 - **Tuân thủ pháp luật**: Lưu giữ hồ sơ khi pháp luật yêu cầu.
 - **Nguồn ứng viên tiềm năng**: Với sự đồng ý của bạn, lưu thông tin để kết nối với các cơ hội trong tương lai.
@@ -98,8 +98,8 @@ Chúng tôi **không** bán, cho thuê hoặc chia sẻ dữ liệu của bạn 
         body: `**Nhà tuyển dụng liên quan:**
 Khi bạn ứng tuyển vào một vị trí, thông tin ứng tuyển của bạn, bao gồm họ tên, email, CV và thư giới thiệu, chỉ được chia sẻ với nhà tuyển dụng của vị trí đó. Nhà tuyển dụng có trách nhiệm bảo mật thông tin theo Điều khoản sử dụng của chúng tôi.
 
-**Tư vấn Nhân sự:**
-Lường Thị Bích và các trợ lý trực tiếp, nếu có, có thể truy cập hồ sơ ứng tuyển để hỗ trợ quá trình tuyển dụng.
+**Tư vấn tuyển dụng:**
+Lường Bích và các trợ lý trực tiếp, nếu có, có thể truy cập hồ sơ ứng tuyển để hỗ trợ quá trình tuyển dụng.
 
 **Đơn vị cung cấp dịch vụ kỹ thuật:**
 Các đơn vị hạ tầng như dịch vụ lưu trữ hoặc email có thể xử lý dữ liệu theo nghĩa vụ bảo mật. Họ không được phép sử dụng dữ liệu của bạn cho mục đích riêng.
@@ -166,7 +166,7 @@ Ngày cập nhật: **10 tháng 7, 2026**.`,
         title: "10. Liên hệ về quyền riêng tư",
         body: `Nếu bạn có câu hỏi, lo ngại hoặc muốn thực hiện các quyền của mình:
 
-**Lường Thị Bích — Tư vấn Nhân sự**
+**Lường Bích — Tư vấn tuyển dụng**
 Email: ${contactConfig.email}
 Thời gian phản hồi: Trong vòng 7 ngày làm việc
 
@@ -219,7 +219,7 @@ Bạn cũng có thể gửi khiếu nại tới cơ quan có thẩm quyền về
         body: `Your data is used for the following purposes:
 
 - **Application processing**: Share information with the relevant employer and arrange interviews.
-- **Communication**: Provide application status updates, interview notices, and HR feedback.
+- **Communication**: Provide application status updates, interview notices, and TA feedback.
 - **Service improvement**: Analyze anonymized data to improve the user experience.
 - **Legal compliance**: Retain records where legally required.
 - **Talent pool**: With your consent, keep your information to connect you with future opportunities.
@@ -231,8 +231,8 @@ We **do not** sell, rent, or share your data with third parties for commercial p
         body: `**Relevant employers:**
 When you apply for a role, your application information, including name, email, CV, and cover note, is shared with the employer for that role only. Employers are expected to keep information confidential under our Terms of Use.
 
-**HR Consultant:**
-Lường Thị Bích and direct assistants, if any, may access application profiles to support the recruitment process.
+**TA Consultant:**
+Lường Bích and direct assistants, if any, may access application profiles to support the recruitment process.
 
 **Technical service providers:**
 Infrastructure providers, such as hosting and email services, may process data under confidentiality obligations. They may not use your data for their own purposes.
@@ -299,7 +299,7 @@ Last updated: **July 10, 2026**.`,
         title: "10. Privacy contact",
         body: `If you have questions, concerns, or want to exercise your rights:
 
-**Lường Thị Bích — HR Consultant**
+**Lường Bích — TA Consultant**
 Email: ${contactConfig.email}
 Response time: Within 7 business days
 
