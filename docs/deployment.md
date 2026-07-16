@@ -119,6 +119,7 @@ Install Command: corepack enable && pnpm install --frozen-lockfile
 Build Command: pnpm --filter @hr-copilot/web build
 Output Directory: apps/web/dist
 Framework: Vite
+SPA fallback: all browser routes rewrite to /index.html
 ```
 
 Set production environment variables in Vercel:
@@ -131,6 +132,14 @@ VITE_MAX_CV_FILE_SIZE_MB=10
 ```
 
 Only use `NEXT_PUBLIC_*` for values that are safe to expose in browser code. Do not put private API keys, database URLs, or storage secrets in Vercel frontend environment variables.
+
+Deploy from the CLI:
+
+```bash
+./deploy-fe.sh
+```
+
+Use `./deploy-fe.sh --preview` for a Vercel preview deploy, or `./deploy-fe.sh --check-only` to run frontend verification without deploying. Set `VERCEL_TOKEN` for non-interactive deploys.
 
 ## 3. Ship The Docker Stack
 
@@ -195,6 +204,14 @@ WEB_ORIGINS=https://your-web-domain.com,https://your-project-*-your-team.vercel.
 ```
 
 If using the existing Nginx config, requests under `/api/` are proxied to the NestJS API. If the frontend is on Vercel and the API is on a separate domain, configure frontend API calls to use the API domain instead of a local `/api` path.
+
+Deploy the Render API service from the CLI by creating a Render Deploy Hook for the API service, then running:
+
+```bash
+RENDER_DEPLOY_HOOK_URL=https://api.render.com/deploy/... ./deploy-be.sh
+```
+
+Use `./deploy-be.sh --check-only` to run backend verification without triggering Render. If Render auto-deploys from Git, run the check-only command locally and push the branch.
 
 ## 5. Database Migration
 

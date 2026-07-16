@@ -145,12 +145,12 @@ function NormalizeQuestions() {
       const record = question as Record<string, unknown>;
       const label = typeof record.label === "string" ? record.label.trim() : record.label;
 
-      return {
+      return Object.assign(new JobQuestionDto(), {
         ...record,
         label,
         required: record.required === true,
         sortOrder: Number.isInteger(record.sortOrder) ? record.sortOrder : index,
-      };
+      });
     });
   });
 }

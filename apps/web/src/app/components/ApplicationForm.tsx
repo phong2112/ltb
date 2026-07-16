@@ -28,6 +28,7 @@ type ApplicationFormProps = {
 };
 
 type TextFieldName = "name" | "email" | "phone" | "applicationArea" | "cvUrl" | "note";
+type ScreeningQuestion = Job["questions"][number];
 
 const APPLICATION_AREAS = [
   { value: "Hà Nội", labelKey: "apply.areaHaNoi" },
@@ -40,6 +41,24 @@ const APPLICATION_AREAS = [
 
 const fieldControlClassName =
   "min-h-[42px] w-full rounded-xl border bg-input-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary";
+
+function getMeaningfulAnswerLength(value: string) {
+  return value.trim().replace(/\s+/gu, " ").length;
+}
+
+function getScreeningAnswerError(question: ScreeningQuestion, value: string) {
+  const answerLength = getMeaningfulAnswerLength(value);
+
+  if (question.required && answerLength === 0) {
+    return "Vui lòng trả lời câu hỏi bắt buộc";
+  }
+
+  if (answerLength > MAX_SCREENING_ANSWER_LENGTH) {
+    return `Câu trả lời tối đa ${MAX_SCREENING_ANSWER_LENGTH} ký tự nội dung`;
+  }
+
+  return "";
+}
 
 function Field({
   label,
@@ -178,12 +197,8 @@ export default function ApplicationForm({
       if (fileError) nextErrors.cv = fileError;
     }
     job.questions.forEach((question) => {
-      const answer = questionAnswers[question.id]?.trim() ?? "";
-      if (question.required && !answer) {
-        nextErrors[`question-${question.id}`] = "Vui lòng trả lời câu hỏi bắt buộc";
-      } else if (answer.length > MAX_SCREENING_ANSWER_LENGTH) {
-        nextErrors[`question-${question.id}`] = `Câu trả lời tối đa ${MAX_SCREENING_ANSWER_LENGTH} ký tự`;
-      }
+      const error = getScreeningAnswerError(question, questionAnswers[question.id] ?? "");
+      if (error) nextErrors[`question-${question.id}`] = error;
     });
     if (!form.agreed) nextErrors.agreed = t("apply.agreeError");
     return nextErrors;
@@ -203,9 +218,24 @@ export default function ApplicationForm({
     clearErrors(name === "cvUrl" ? "cv" : name);
   }
 
-  function updateQuestionAnswer(questionId: string, value: string) {
-    setQuestionAnswers((current) => ({ ...current, [questionId]: value }));
-    clearErrors(`question-${questionId}`);
+  function updateQuestionAnswer(question: ScreeningQuestion, value: string) {
+    setQuestionAnswers((current) => ({ ...current, [question.id]: value }));
+    setQuestionAnswerError(question, value);
+  }
+
+  function setQuestionAnswerError(question: ScreeningQuestion, value: string) {
+    const error = getScreeningAnswerError(question, value);
+
+    setErrors((previous) => {
+      const next = { ...previous };
+      if (error) {
+        next[`question-${question.id}`] = error;
+      } else {
+        delete next[`question-${question.id}`];
+      }
+      delete next.submit;
+      return next;
+    });
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -496,6 +526,13 @@ export default function ApplicationForm({
             {job.questions.map((question, index) => {
               const error = errors[`question-${question.id}`];
               const answerId = fieldId(`question-${question.id}`);
+              const answer = questionAnswers[question.id] ?? "";
+              const answerLength = getMeaningfulAnswerLength(answer);
+              const hintId = `${answerId}-hint`;
+              const countId = `${answerId}-count`;
+              const describedBy = [error ? `${answerId}-error` : hintId, countId]
+                .filter(Boolean)
+                .join(" ");
 
               return (
                 <div key={question.id} className="rounded-xl border border-border bg-background/60 p-3">
@@ -507,11 +544,13 @@ export default function ApplicationForm({
                   <textarea
                     id={answerId}
                     rows={3}
-                    value={questionAnswers[question.id] ?? ""}
-                    onChange={(event) => updateQuestionAnswer(question.id, event.target.value)}
+                    value={answer}
+                    onChange={(event) => updateQuestionAnswer(question, event.target.value)}
+                    onBlur={(event) => setQuestionAnswerError(question, event.target.value)}
                     maxLength={MAX_SCREENING_ANSWER_LENGTH}
+                    required={question.required}
                     aria-invalid={Boolean(error)}
-                    aria-describedby={error ? `${answerId}-error` : undefined}
+                    aria-describedby={describedBy}
                     className={`${fieldControlClassName} mt-2 min-h-[94px] resize-y leading-5 ${error ? "border-red-300 focus:border-red-500" : "border-border"}`}
                   />
                   <div className="mt-1.5 flex min-h-4 justify-between gap-3 text-[11px] leading-4">
@@ -520,12 +559,12 @@ export default function ApplicationForm({
                         {error}
                       </p>
                     ) : (
-                      <span className="text-muted-foreground">
+                      <span id={hintId} className="text-muted-foreground">
                         {question.required ? "Bắt buộc" : "Không bắt buộc"}
                       </span>
                     )}
-                    <span className="flex-none text-muted-foreground">
-                      {(questionAnswers[question.id] ?? "").length}/{MAX_SCREENING_ANSWER_LENGTH}
+                    <span id={countId} className={`flex-none ${answerLength > MAX_SCREENING_ANSWER_LENGTH ? "font-semibold text-red-600" : "text-muted-foreground"}`}>
+                      {answerLength}/{MAX_SCREENING_ANSWER_LENGTH} ký tự nội dung
                     </span>
                   </div>
                 </div>
