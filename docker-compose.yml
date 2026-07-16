@@ -31,11 +31,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     environment:
       NODE_ENV: production
       PORT: 4000
       WEB_ORIGIN: http://localhost:8080
       DATABASE_URL: postgresql://postgres:postgres@db:5432/hr_copilot?schema=public
+      REDIS_URL: redis://redis:6379
       ADMIN_EMAIL: ${ADMIN_EMAIL:-v.bichlt6@vinsmartfuture.tech}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-demo123}
       ADMIN_NAME: ${ADMIN_NAME:-Lường Thị Bích}
@@ -78,6 +81,14 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "56379:6379"
+    volumes:
+      - redis_data:/data
+
 volumes:
   postgres_data:
+  redis_data:
   cv_uploads:

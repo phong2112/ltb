@@ -98,6 +98,9 @@ export default function JobApplicantsAside({ jobId }: { jobId: string }) {
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${CANDIDATE_STATUS_CONFIG[candidate.status].badgeClass}`}>{translateCandidateStatus(candidate.status, language)}</span>
                       <span className="text-[10px] font-semibold text-muted-foreground">{candidate.appliedAt}</span>
+                      <span className="ml-auto rounded-full bg-secondary px-2 py-0.5 text-[10px] font-black text-primary">
+                        {candidate.aiStatus === "completed" ? `${candidate.aiScore}% AI` : candidate.aiStatus === "pending" ? "AI đang xử lý" : "AI lỗi"}
+                      </span>
                     </div>
                   </div>
                   <ChevronRight size={15} className="flex-none text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-primary" />
