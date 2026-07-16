@@ -38,7 +38,7 @@ export class TemplatesService {
     });
 
     if (!template) {
-      throw new NotFoundException("Message template not found");
+      throw new NotFoundException("Không tìm thấy mẫu tin nhắn.");
     }
   }
 }

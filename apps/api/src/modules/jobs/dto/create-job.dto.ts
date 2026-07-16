@@ -83,6 +83,16 @@ function meaningfulTextLength(value: string) {
   return richTextToPlainText(value).trim().replace(/\s+/gu, " ").length;
 }
 
+function getFieldLabel(property?: string) {
+  const labels: Record<string, string> = {
+    benefits: "Phúc lợi",
+    description: "Mô tả công việc",
+    requirements: "Yêu cầu công việc",
+  };
+
+  return labels[property ?? ""] ?? "Nội dung";
+}
+
 function SanitizeRichText(optional = false) {
   return Transform(({ value }) => {
     if (typeof value !== "string") return value;
@@ -99,7 +109,7 @@ function MinMeaningfulLength(minimum: number, validationOptions?: ValidationOpti
     constraints: [minimum],
     validator: {
       validate: (value: unknown) => typeof value === "string" && meaningfulTextLength(value) >= minimum,
-      defaultMessage: (args) => `${args?.property ?? "value"} must contain at least ${minimum} meaningful characters`,
+      defaultMessage: (args) => `${getFieldLabel(args?.property)} cần có ít nhất ${minimum} ký tự nội dung`,
     },
   }, validationOptions);
 }
@@ -110,7 +120,7 @@ function MaxMeaningfulLength(maximum: number, validationOptions?: ValidationOpti
     constraints: [maximum],
     validator: {
       validate: (value: unknown) => typeof value === "string" && meaningfulTextLength(value) <= maximum,
-      defaultMessage: (args) => `${args?.property ?? "value"} must contain at most ${maximum} meaningful characters`,
+      defaultMessage: (args) => `${getFieldLabel(args?.property)} không được vượt quá ${maximum} ký tự nội dung`,
     },
   }, validationOptions);
 }
@@ -128,7 +138,7 @@ function MaxSalaryValue(validationOptions?: ValidationOptions) {
           return digits.length > 0 && BigInt(digits) <= MAX_SALARY_VALUE;
         });
       },
-      defaultMessage: () => "salaryRange values must not exceed 1,000,000,000,000",
+      defaultMessage: () => "Khoảng lương không được vượt quá 1,000,000,000,000",
     },
   }, validationOptions);
 }
@@ -181,7 +191,7 @@ export class CreateJobDto {
   @IsNotEmpty()
   @Length(5, 120)
   @Matches(TEXT_PATTERN, {
-    message: "title contains unsupported characters",
+    message: "Tiêu đề chứa ký tự không được hỗ trợ.",
   })
   title!: string;
 
@@ -191,7 +201,7 @@ export class CreateJobDto {
   @IsNotEmpty()
   @Length(2, 100)
   @Matches(TEXT_PATTERN, {
-    message: "company contains unsupported characters",
+    message: "Công ty chứa ký tự không được hỗ trợ.",
   })
   company!: string;
 
@@ -201,7 +211,7 @@ export class CreateJobDto {
   @IsOptional()
   @MaxLength(100)
   @Matches(TEXT_PATTERN, {
-    message: "department contains unsupported characters",
+    message: "Phòng ban chứa ký tự không được hỗ trợ.",
   })
   department?: string;
 
@@ -234,7 +244,7 @@ export class CreateJobDto {
   @IsOptional()
   @MaxLength(40)
   @Matches(SALARY_PATTERN, {
-    message: "salaryRange must look like 20,000,000 - 30,000,000 VND or 3,000 USD",
+    message: "Khoảng lương cần có dạng 20,000,000 - 30,000,000 VND hoặc 3,000 USD.",
   })
   @MaxSalaryValue()
   salaryRange?: string | null;
@@ -260,7 +270,7 @@ export class CreateJobDto {
   @Length(2, 30, { each: true })
   @Matches(TAG_PATTERN, {
     each: true,
-    message: "each tag may only contain letters, numbers, spaces, +, #, ., / or -",
+    message: "Mỗi thẻ kỹ năng chỉ được chứa chữ, số, khoảng trắng, +, #, ., / hoặc -.",
   })
   @IsOptional()
   tags?: string[];

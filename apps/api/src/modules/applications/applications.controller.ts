@@ -2,7 +2,7 @@ import { BadRequestException, Body, Controller, Post, UploadedFile, UseGuards, U
 import { ConfigService } from "@nestjs/config";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ThrottlerGuard } from "@nestjs/throttler";
-import { ApiBadRequestResponse, ApiBody, ApiConsumes, ApiCreatedResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { ApiBadRequestResponse, ApiBody, ApiConflictResponse, ApiConsumes, ApiCreatedResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { extname } from "node:path";
 import { CreateApplicationDto } from "./dto/create-application.dto";
 import { ApplicationsService } from "./applications.service";
@@ -61,25 +61,28 @@ export class ApplicationsController {
   @ApiBadRequestResponse({
     description: "Invalid form data, consent, file type, or file size.",
   })
+  @ApiConflictResponse({
+    description: "Candidate has already applied to this job with the same email or phone.",
+  })
   @Post()
   @UseInterceptors(FileInterceptor("cv"))
   async createApplication(@Body() dto: CreateApplicationDto, @UploadedFile() cv?: Express.Multer.File) {
     const maxSizeMb = this.configService.get<number>("MAX_CV_FILE_SIZE_MB") ?? 10;
 
     if (!dto.consentAccepted) {
-      throw new BadRequestException("Candidate consent is required");
+      throw new BadRequestException("Bạn cần đồng ý cho phép xử lý thông tin ứng tuyển.");
     }
 
     if (!cv && !dto.portfolioUrl?.trim()) {
-      throw new BadRequestException("CV file or CV/portfolio link is required");
+      throw new BadRequestException("Vui lòng tải CV hoặc cung cấp liên kết CV/portfolio.");
     }
 
     if (cv && cv.size > maxSizeMb * 1024 * 1024) {
-      throw new BadRequestException(`CV file must be ${maxSizeMb} MB or smaller`);
+      throw new BadRequestException(`Tệp CV không được vượt quá ${maxSizeMb} MB.`);
     }
 
     if (cv && !hasAllowedFileSignature(cv)) {
-      throw new BadRequestException("CV file content does not match an allowed PDF, DOC, or DOCX file");
+      throw new BadRequestException("Nội dung tệp CV không đúng định dạng PDF, DOC hoặc DOCX.");
     }
 
     return this.applicationsService.createApplication(dto, cv);

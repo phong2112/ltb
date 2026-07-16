@@ -61,7 +61,8 @@ STORAGE_BUCKET
 STORAGE_ACCESS_KEY_ID
 STORAGE_SECRET_ACCESS_KEY
 OPENAI_API_KEY
-EMAIL_API_KEY
+EMAIL_SMTP_USER
+EMAIL_SMTP_PASS
 NEXT_PUBLIC_APP_URL
 API_BASE_URL
 ```
@@ -274,4 +275,3 @@ Before final response:
 - Report what changed.
 - Report verification performed.
 - Report any skipped verification and why.
-

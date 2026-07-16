@@ -55,7 +55,7 @@ export class CandidatesService {
     });
 
     if (!candidate) {
-      throw new NotFoundException("Candidate not found");
+      throw new NotFoundException("Không tìm thấy ứng viên.");
     }
 
     return candidate;
@@ -74,11 +74,11 @@ export class CandidatesService {
     });
 
     if (!file) {
-      throw new NotFoundException("Candidate file not found");
+      throw new NotFoundException("Không tìm thấy tệp ứng viên.");
     }
 
     if (/^https?:\/\//.test(file.path) && !this.cvStorageService.isManagedStoragePath(file.path)) {
-      throw new BadRequestException("External CV links should be opened directly");
+      throw new BadRequestException("Liên kết CV bên ngoài cần được mở trực tiếp.");
     }
 
     const openedFile = await this.cvStorageService.openCandidateCv(file.path, file.mimeType);
@@ -105,7 +105,7 @@ export class CandidatesService {
     const content = dto.content.trim();
 
     if (!content) {
-      throw new BadRequestException("Message content is required");
+      throw new BadRequestException("Vui lòng nhập nội dung tin nhắn.");
     }
 
     const application = await this.prisma.application.findUnique({
@@ -114,7 +114,7 @@ export class CandidatesService {
     });
 
     if (!application) {
-      throw new NotFoundException("Application not found");
+      throw new NotFoundException("Không tìm thấy hồ sơ ứng tuyển.");
     }
 
     return this.prisma.$transaction(async tx => {
@@ -155,11 +155,11 @@ export class CandidatesService {
     });
 
     if (applications.length === 0) {
-      throw new NotFoundException("Candidate not found");
+      throw new NotFoundException("Không tìm thấy ứng viên.");
     }
 
     if (applications.length > 1) {
-      throw new BadRequestException("Candidate has multiple applications; applicationId is required");
+      throw new BadRequestException("Ứng viên có nhiều hồ sơ ứng tuyển; vui lòng cung cấp ID hồ sơ ứng tuyển.");
     }
 
     return this.createMessageForApplication(applications[0].id, dto);
@@ -172,7 +172,7 @@ export class CandidatesService {
     });
 
     if (!application) {
-      throw new NotFoundException("Application not found");
+      throw new NotFoundException("Không tìm thấy hồ sơ ứng tuyển.");
     }
 
     const updated = await this.prisma.$transaction(async tx => {

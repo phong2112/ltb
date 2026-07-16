@@ -22,7 +22,7 @@ export function createCvUploadOptions(maxSizeMb: number): MulterModuleOptions {
         !ALLOWED_CV_MIME_TYPES.has(file.mimetype)
       ) {
         callback(
-          new BadRequestException("CV must be a PDF, DOC, or DOCX file"),
+          new BadRequestException("CV phải là tệp PDF, DOC hoặc DOCX."),
           false,
         );
         return;

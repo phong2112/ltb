@@ -33,7 +33,7 @@ export class JobsService {
     });
 
     if (!job) {
-      throw new NotFoundException("Published job not found");
+      throw new NotFoundException("Không tìm thấy vị trí tuyển dụng đã công khai.");
     }
 
     return job;
@@ -53,7 +53,7 @@ export class JobsService {
     });
 
     if (!job) {
-      throw new NotFoundException("Job not found");
+      throw new NotFoundException("Không tìm thấy vị trí tuyển dụng.");
     }
 
     return job;

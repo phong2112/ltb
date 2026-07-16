@@ -92,6 +92,28 @@ export function validateEnv(config: Record<string, unknown>) {
     );
   }
 
+  const emailProvider = config.EMAIL_PROVIDER;
+  if (
+    hasValue(emailProvider) &&
+    String(emailProvider) !== "gmail"
+  ) {
+    throw new Error("EMAIL_PROVIDER must be gmail");
+  }
+
+  const hasEmailConfig =
+    hasValue(config.EMAIL_FROM) ||
+    hasValue(config.EMAIL_REPLY_TO) ||
+    hasValue(config.EMAIL_SMTP_USER) ||
+    hasValue(config.EMAIL_SMTP_PASS);
+  if (
+    hasEmailConfig &&
+    (!hasValue(config.EMAIL_FROM) ||
+      !hasValue(config.EMAIL_SMTP_USER) ||
+      !hasValue(config.EMAIL_SMTP_PASS))
+  ) {
+    throw new Error("EMAIL_FROM, EMAIL_SMTP_USER, and EMAIL_SMTP_PASS are required when Gmail SMTP email is configured");
+  }
+
   return validated;
 }
 

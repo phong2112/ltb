@@ -1,7 +1,8 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { ApplicationStatus, FileKind, JobStatus, Prisma } from "@prisma/client";
 import { CvStorageService } from "../files/cv-storage.service";
 import { JobsService } from "../jobs/jobs.service";
+import { EmailService } from "../notifications/email.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateApplicationDto } from "./dto/create-application.dto";
 
@@ -13,17 +14,18 @@ export class ApplicationsService {
     private readonly prisma: PrismaService,
     private readonly cvStorageService: CvStorageService,
     private readonly jobsService: JobsService,
+    private readonly emailService: EmailService,
   ) {}
 
   async createApplication(dto: CreateApplicationDto, cv?: Express.Multer.File) {
     const job = await this.jobsService.getAdminJob(dto.jobId);
 
     if (job.status !== JobStatus.PUBLISHED) {
-      throw new NotFoundException("Published job not found");
+      throw new NotFoundException("Không tìm thấy vị trí tuyển dụng đã công khai.");
     }
 
     if (!job.locations.includes(dto.applicationArea)) {
-      throw new BadRequestException("Application area must be one of the job locations");
+      throw new BadRequestException("Khu vực ứng tuyển phải nằm trong danh sách địa điểm của vị trí tuyển dụng.");
     }
 
     const normalizedEmail = normalizeEmail(dto.email);
@@ -37,7 +39,7 @@ export class ApplicationsService {
     const screeningAnswers = buildScreeningAnswerSnapshots(job.questions, dto.questionAnswers ?? []);
 
     let storedCvPath: string | undefined;
-    let created: CreatedApplication | null;
+    let created: CreatedApplication;
 
     try {
       created = await createWithContactRetry<CreatedApplication>(async () =>
@@ -58,7 +60,7 @@ export class ApplicationsService {
             const existingCandidate = contactMatches[0];
 
             if (contactMatches.length > 1 && contactMatches[0].id !== contactMatches[1].id) {
-              throw new BadRequestException("Candidate email and phone match different existing profiles");
+              throw new BadRequestException("Email và số điện thoại đang khớp với hai hồ sơ ứng viên khác nhau.");
             }
 
             const candidate =
@@ -75,6 +77,13 @@ export class ApplicationsService {
                   source: "career_site",
                 },
               }));
+
+            await ensureCandidateHasNotApplied(tx, {
+              candidateId: candidate.id,
+              jobId: job.id,
+              normalizedEmail,
+              normalizedPhone,
+            });
 
             const application = await tx.application.create({
               data: {
@@ -156,13 +165,23 @@ export class ApplicationsService {
       throw error;
     }
 
-    if (!created) {
-      return {
-        applicationId: null,
-        candidateId: null,
-        status: ApplicationStatus.NEW,
-      };
-    }
+    await this.emailService
+      .sendApplicationConfirmation({
+        applicationId: created.applicationId,
+        candidateEmail,
+        candidateName: submittedFullName,
+        jobTitle: job.title,
+        companyName: job.company,
+        jobSlug: job.slug,
+        applicationArea: dto.applicationArea,
+      })
+      .catch((error: unknown) => {
+        this.logger.error(
+          error instanceof Error
+            ? `Failed to send application confirmation email: ${error.message}`
+            : "Failed to send application confirmation email",
+        );
+      });
 
     return created;
   }
@@ -186,13 +205,15 @@ type QuestionAnswerInput = {
   answer?: string;
 };
 
+const DUPLICATE_APPLICATION_MESSAGE = "Bạn đã ứng tuyển vị trí này bằng email hoặc số điện thoại này.";
+
 function buildScreeningAnswerSnapshots(questions: JobQuestion[], answers: QuestionAnswerInput[]) {
   const questionsById = new Map(questions.map(question => [question.id, question]));
   const answerByQuestionId = new Map<string, string>();
 
   for (const answer of answers) {
     if (!questionsById.has(answer.questionId)) {
-      throw new BadRequestException("Screening answer does not belong to this job");
+      throw new BadRequestException("Câu trả lời sàng lọc không thuộc vị trí tuyển dụng này.");
     }
 
     answerByQuestionId.set(answer.questionId, answer.answer?.trim() ?? "");
@@ -204,7 +225,7 @@ function buildScreeningAnswerSnapshots(questions: JobQuestion[], answers: Questi
   });
 
   if (missingRequiredQuestion) {
-    throw new BadRequestException(`Required screening question is missing: ${missingRequiredQuestion.label}`);
+    throw new BadRequestException(`Vui lòng trả lời câu hỏi sàng lọc bắt buộc: ${missingRequiredQuestion.label}`);
   }
 
   return questions.map(question => ({
@@ -226,7 +247,7 @@ async function createWithContactRetry<T>(create: () => Promise<T>) {
       return await create();
     } catch (error: unknown) {
       if (isDuplicateApplicationError(error)) {
-        return null;
+        throw new ConflictException(DUPLICATE_APPLICATION_MESSAGE);
       }
 
       if (attempt === 0 && isCandidateContactUniqueError(error)) {
@@ -238,7 +259,38 @@ async function createWithContactRetry<T>(create: () => Promise<T>) {
     }
   }
 
-  throw lastContactConflict ?? new Error("Application creation retry exited unexpectedly");
+  throw lastContactConflict ?? new Error("Quá trình tạo hồ sơ ứng tuyển kết thúc ngoài dự kiến.");
+}
+
+async function ensureCandidateHasNotApplied(
+  tx: Prisma.TransactionClient,
+  input: {
+    candidateId: string;
+    jobId: string;
+    normalizedEmail: string;
+    normalizedPhone?: string;
+  },
+) {
+  const duplicateFilters: Prisma.ApplicationWhereInput[] = [
+    { candidateId: input.candidateId },
+    { normalizedEmail: input.normalizedEmail },
+  ];
+
+  if (input.normalizedPhone) {
+    duplicateFilters.push({ normalizedPhone: input.normalizedPhone });
+  }
+
+  const existingApplication = await tx.application.findFirst({
+    where: {
+      jobId: input.jobId,
+      OR: duplicateFilters,
+    },
+    select: { id: true },
+  });
+
+  if (existingApplication) {
+    throw new ConflictException(DUPLICATE_APPLICATION_MESSAGE);
+  }
 }
 
 async function lockCandidateContacts(tx: Prisma.TransactionClient, normalizedEmail: string, normalizedPhone?: string) {
@@ -269,7 +321,7 @@ function normalizePhone(value?: string) {
 }
 
 function isDuplicateApplicationError(error: unknown) {
-  if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") {
+  if (!isUniqueConstraintError(error)) {
     return false;
   }
 
@@ -281,7 +333,7 @@ function isDuplicateApplicationError(error: unknown) {
 }
 
 function isCandidateContactUniqueError(error: unknown) {
-  if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") {
+  if (!isUniqueConstraintError(error)) {
     return false;
   }
 
@@ -295,12 +347,61 @@ function isCandidateContactUniqueError(error: unknown) {
   );
 }
 
-function getUniqueErrorTarget(error: Prisma.PrismaClientKnownRequestError) {
-  const target = error.meta?.target;
-
-  if (Array.isArray(target)) {
-    return target.join(",");
+function isUniqueConstraintError(error: unknown) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    return true;
   }
 
-  return String(target ?? "");
+  const adapterCause = getDriverAdapterCause(error);
+  return adapterCause?.originalCode === "23505" || adapterCause?.kind === "UniqueConstraintViolation";
+}
+
+function getUniqueErrorTarget(error: unknown) {
+  const parts: string[] = [];
+  const errorRecord = toRecord(error);
+  const meta = toRecord(errorRecord?.meta);
+  const target = meta?.target;
+
+  if (Array.isArray(target)) {
+    parts.push(target.map(value => String(value)).join(","));
+  } else if (target !== undefined) {
+    parts.push(String(target));
+  }
+
+  const modelName = meta?.modelName;
+  if (modelName !== undefined) {
+    parts.push(String(modelName));
+  }
+
+  const adapterCause = getDriverAdapterCause(error);
+  const constraint = toRecord(adapterCause?.constraint);
+  const fields = constraint?.fields;
+
+  if (Array.isArray(fields)) {
+    parts.push(fields.map(value => String(value).replaceAll("\"", "")).join(","));
+  }
+
+  for (const key of ["originalMessage", "kind", "originalCode"]) {
+    const value = adapterCause?.[key];
+    if (value !== undefined) {
+      parts.push(String(value));
+    }
+  }
+
+  return parts.join(",");
+}
+
+function getDriverAdapterCause(error: unknown) {
+  const errorRecord = toRecord(error);
+  const meta = toRecord(errorRecord?.meta);
+  const driverAdapterError = toRecord(meta?.driverAdapterError) ?? toRecord(errorRecord?.driverAdapterError);
+  return toRecord(driverAdapterError?.cause) ?? toRecord(errorRecord?.cause);
+}
+
+function toRecord(value: unknown): Record<string, unknown> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value as Record<string, unknown>;
 }

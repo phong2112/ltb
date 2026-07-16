@@ -1,10 +1,11 @@
-import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import helmet from "helmet";
 import { createCorsOriginOptions } from "./config/cors";
 import { setupSwagger } from "./config/swagger";
+import { VietnameseExceptionFilter } from "./config/vietnamese-exception.filter";
+import { createVietnameseValidationPipe } from "./config/vietnamese-validation.pipe";
 import { AppModule } from "./modules/app.module";
 
 async function bootstrap() {
@@ -19,13 +20,8 @@ async function bootstrap() {
   });
   setupSwagger(app);
   app.use(helmet());
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      transform: true,
-      forbidNonWhitelisted: true,
-    }),
-  );
+  app.useGlobalFilters(new VietnameseExceptionFilter());
+  app.useGlobalPipes(createVietnameseValidationPipe());
 
   const port = config.get<number>("PORT") ?? 4000;
   await app.listen(port);
