@@ -94,17 +94,15 @@ prepare() {
   load_env_file "$ROOT_DIR/.env"
 
   export CV_STORAGE_DRIVER="${CV_STORAGE_DRIVER:-r2}"
+  export CV_ARCHIVE_STORAGE_DRIVER="${CV_ARCHIVE_STORAGE_DRIVER:-vercel-blob}"
 
-  if [[ "$CV_STORAGE_DRIVER" == "vercel-blob" && -z "${BLOB_READ_WRITE_TOKEN:-}" ]]; then
+  if [[ ("$CV_STORAGE_DRIVER" == "vercel-blob" || "$CV_ARCHIVE_STORAGE_DRIVER" == "vercel-blob") && -z "${BLOB_READ_WRITE_TOKEN:-}" ]]; then
     cat >&2 <<'ERROR'
-BLOB_READ_WRITE_TOKEN is required because CV_STORAGE_DRIVER=vercel-blob.
+BLOB_READ_WRITE_TOKEN is required because Vercel Blob stores archived CV files.
 run.sh runs the API in local Docker, so Vercel OIDC/BLOB_STORE_ID alone is not enough.
 
 Add it to .env.local or export it before running:
   BLOB_READ_WRITE_TOKEN=vercel_blob_rw_... ./run.sh
-
-To use local files instead:
-  CV_STORAGE_DRIVER=local ./run.sh
 ERROR
     exit 1
   fi

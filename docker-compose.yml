@@ -18,11 +18,8 @@ services:
       - api
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_APP_URL: http://localhost:8080
-      NEXT_PUBLIC_API_BASE_PATH: /api
       VITE_API_BASE_PATH: /api
-      VITE_MAX_CV_FILE_SIZE_MB: ${VITE_MAX_CV_FILE_SIZE_MB:-10}
-      API_BASE_URL: http://api:4000
+      VITE_MAX_CV_FILE_SIZE_MB: ${MAX_CV_FILE_SIZE_MB:-10}
 
   api:
     build:
@@ -46,6 +43,7 @@ services:
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
       AUTH_COOKIE_SAMESITE: ${AUTH_COOKIE_SAMESITE:-lax}
       CV_STORAGE_DRIVER: ${CV_STORAGE_DRIVER:-r2}
+      CV_ARCHIVE_STORAGE_DRIVER: ${CV_ARCHIVE_STORAGE_DRIVER:-vercel-blob}
       R2_ENDPOINT: ${R2_ENDPOINT:-}
       R2_BUCKET: ${R2_BUCKET:-}
       R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}

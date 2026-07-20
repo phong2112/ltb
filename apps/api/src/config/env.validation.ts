@@ -96,6 +96,23 @@ export function validateEnv(config: Record<string, unknown>) {
     validateR2Config(config);
   }
 
+  const archiveStorageDriver = config.CV_ARCHIVE_STORAGE_DRIVER;
+  if (
+    hasValue(archiveStorageDriver) &&
+    String(archiveStorageDriver) !== "vercel-blob"
+  ) {
+    throw new Error("CV_ARCHIVE_STORAGE_DRIVER must be vercel-blob");
+  }
+
+  if (
+    String(archiveStorageDriver || "") === "vercel-blob" &&
+    !hasVercelBlobCredentials(config)
+  ) {
+    throw new Error(
+      "Vercel Blob archive storage requires BLOB_READ_WRITE_TOKEN, or BLOB_STORE_ID when running on Vercel with OIDC enabled",
+    );
+  }
+
   const emailProvider = config.EMAIL_PROVIDER;
   if (
     hasValue(emailProvider) &&

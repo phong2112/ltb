@@ -186,6 +186,7 @@ Candidate identity rules for the MVP:
 - Do not let unauthenticated duplicate submissions overwrite an existing candidate, application, or CV.
 - Keep CV parse status controlled by enum values (`PENDING`, `COMPLETED`, `FAILED`) instead of free-form strings.
 - Store direct nullable audit links on `ActivityLog` (`applicationId`, `jobId`, `candidateFileId`) for sensitive actions; keep JSON metadata only as context.
+- Store active CV objects in private Cloudflare R2. When a job becomes `ARCHIVED`, move its CV objects to private Vercel Blob storage and mark `CandidateFile.storageTier=ARCHIVE`; restore them to R2 when the job is restored.
 
 Recommended job statuses:
 

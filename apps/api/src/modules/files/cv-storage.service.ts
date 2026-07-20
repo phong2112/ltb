@@ -23,6 +23,20 @@ export type OpenedCvFile = {
   sizeBytes: number;
 };
 
+export type RelocatedCvFile = {
+  storedName: string;
+  path: string;
+};
+
+export type CvRelocationContext = {
+  path: string;
+  storedName: string;
+  originalName: string;
+  mimeType: string;
+  candidateId: string;
+  applicationId: string;
+};
+
 type StorageDriver = "local" | "vercel-blob" | "r2";
 
 type R2StorageConfig = {
@@ -99,6 +113,49 @@ export class CvStorageService {
     await unlink(path).catch((error: unknown) => {
       if (!isMissingFileError(error)) throw error;
     });
+  }
+
+  async archiveCandidateCv(file: CvRelocationContext): Promise<RelocatedCvFile> {
+    if (this.isVercelBlobPath(file.path)) {
+      return { storedName: file.storedName, path: file.path };
+    }
+
+    const openedFile = await this.openCandidateCv(file.path, file.mimeType);
+    const pathname = `archive/cv/${file.candidateId}/${file.applicationId}/${Date.now()}-${normalizeFilename(file.originalName)}`;
+    const blob = await put(pathname, openedFile.stream, {
+      access: "private",
+      contentType: openedFile.contentType,
+      addRandomSuffix: false,
+      allowOverwrite: false,
+    });
+
+    return {
+      storedName: blob.pathname,
+      path: blob.pathname,
+    };
+  }
+
+  async restoreCandidateCv(file: CvRelocationContext): Promise<RelocatedCvFile> {
+    if (this.isR2Path(file.path)) {
+      return { storedName: file.storedName, path: file.path };
+    }
+
+    const openedFile = await this.openCandidateCv(file.path, file.mimeType);
+    const { bucket } = this.getR2Config();
+    const key = `cv/${file.candidateId}/${file.applicationId}/${Date.now()}-${normalizeFilename(file.originalName)}`;
+
+    await this.getR2Client().send(new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: openedFile.stream,
+      ContentLength: openedFile.sizeBytes,
+      ContentType: openedFile.contentType,
+    }));
+
+    return {
+      storedName: key,
+      path: buildR2Path(bucket, key),
+    };
   }
 
   isManagedStoragePath(path: string) {
@@ -259,7 +316,7 @@ export class CvStorageService {
   }
 
   private isVercelBlobPath(path: string) {
-    return /^https:\/\/[^/]+\.blob\.vercel-storage\.com\//.test(path) || path.startsWith("cv/");
+    return /^https:\/\/[^/]+\.blob\.vercel-storage\.com\//.test(path) || path.startsWith("cv/") || path.startsWith("archive/cv/");
   }
 }
 

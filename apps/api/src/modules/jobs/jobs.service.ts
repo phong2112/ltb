@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { JobStatus, Prisma } from "@prisma/client";
 import slugify from "slugify";
+import { CvStorageLifecycleService } from "../files/cv-storage-lifecycle.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateJobDto } from "./dto/create-job.dto";
 import { UpdateJobDto } from "./dto/update-job.dto";
@@ -16,7 +17,10 @@ const jobInclude = {
 
 @Injectable()
 export class JobsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cvStorageLifecycleService: CvStorageLifecycleService,
+  ) {}
 
   listPublicJobs() {
     return this.prisma.job.findMany({
@@ -111,7 +115,7 @@ export class JobsService {
       logo: jobDto.logo,
     };
 
-    return this.prisma.$transaction(async (tx) => {
+    const updatedJob = await this.prisma.$transaction(async (tx) => {
       const job = await tx.job.update({
         where: { id },
         data,
@@ -137,6 +141,14 @@ export class JobsService {
         include: jobInclude,
       });
     });
+
+    if (dto.status === JobStatus.ARCHIVED) {
+      await this.cvStorageLifecycleService.archiveJobCandidateFiles(id);
+    } else if (dto.status !== undefined) {
+      await this.cvStorageLifecycleService.restoreJobCandidateFiles(id);
+    }
+
+    return updatedJob;
   }
 
   private async createUniqueSlug(baseSlug: string) {

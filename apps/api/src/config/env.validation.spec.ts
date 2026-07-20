@@ -88,4 +88,19 @@ describe("validateEnv", () => {
       s3_SECRET_KEY: "secret-access-key",
     })).not.toThrow();
   });
+
+  it("requires Vercel Blob credentials when archive storage is enabled", () => {
+    expect(() => validateEnv({
+      ...requiredConfig,
+      CV_ARCHIVE_STORAGE_DRIVER: "vercel-blob",
+    })).toThrow("Vercel Blob archive storage requires BLOB_READ_WRITE_TOKEN");
+  });
+
+  it("accepts Vercel Blob as the archive storage tier", () => {
+    expect(() => validateEnv({
+      ...requiredConfig,
+      CV_ARCHIVE_STORAGE_DRIVER: "vercel-blob",
+      BLOB_READ_WRITE_TOKEN: "vercel-blob-token",
+    })).not.toThrow();
+  });
 });
