@@ -1,0 +1,45 @@
+name: Keep Render API alive
+
+on:
+  schedule:
+    # UTC: run every 12 minutes, offset from the top of the hour.
+    - cron: "7-59/12 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: render-keep-alive
+  cancel-in-progress: true
+
+jobs:
+  ping-health:
+    name: Ping Render health endpoint
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      RENDER_HEALTH_URL: ${{ vars.RENDER_HEALTH_URL }}
+    steps:
+      - name: Validate health URL
+        shell: bash
+        run: |
+          if [[ ! "$RENDER_HEALTH_URL" =~ ^https://.+/health$ ]]; then
+            echo "Set the RENDER_HEALTH_URL repository variable to the full HTTPS /health URL." >&2
+            exit 1
+          fi
+
+      - name: Ping health endpoint
+        shell: bash
+        run: |
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --location \
+            --connect-timeout 10 \
+            --max-time 90 \
+            --retry 2 \
+            --retry-delay 5 \
+            --retry-all-errors \
+            --output /dev/null \
+            "$RENDER_HEALTH_URL"

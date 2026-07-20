@@ -108,6 +108,30 @@ Then verify the browser flow:
 - CV upload stores in Cloudflare R2, not local disk.
 - Neon has migrated tables and new submitted application rows.
 
+### 5. Keep The Free Render API Warm
+
+The repository includes `.github/workflows/render-keep-alive.yml`. On the
+default branch, GitHub Actions calls the public API health endpoint every 12
+minutes. The schedule is offset from the top of the hour to reduce scheduler
+congestion.
+
+Add the deployed health URL as a GitHub Actions repository variable:
+
+```bash
+gh variable set RENDER_HEALTH_URL \
+  --body "https://your-render-service.onrender.com/health"
+```
+
+Push the workflow to the default branch, then run it once from GitHub Actions
+with **Run workflow** and confirm that the job succeeds. The health endpoint
+does not query PostgreSQL, so this keeps the Render API warm while still
+allowing Neon to scale to zero.
+
+Scheduled GitHub Actions can run late and GitHub automatically disables
+scheduled workflows in public repositories after 60 days without repository
+activity. This keep-alive is appropriate for a free demo/MVP, not an uptime
+guarantee for production.
+
 ## 1. Verify Local Build
 
 If `pnpm` is not directly available, use Corepack:
