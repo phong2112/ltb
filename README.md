@@ -55,7 +55,7 @@ Implemented:
 - File size validation.
 - Consent checkbox.
 - Candidate/application/file metadata saved to PostgreSQL.
-- CV file stored in container volume.
+- CV file stored through the configured private storage driver.
 
 ### Phase 4: Candidate Inbox
 

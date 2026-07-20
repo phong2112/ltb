@@ -56,4 +56,36 @@ describe("validateEnv", () => {
       EMAIL_SMTP_PASS: "google-app-password",
     })).not.toThrow();
   });
+
+  it("accepts Cloudflare R2 CV storage settings", () => {
+    expect(() => validateEnv({
+      ...requiredConfig,
+      CV_STORAGE_DRIVER: "r2",
+      R2_ENDPOINT: "https://account-id.r2.cloudflarestorage.com",
+      R2_BUCKET: "candidate-cvs",
+      R2_ACCESS_KEY_ID: "access-key-id",
+      R2_SECRET_ACCESS_KEY: "secret-access-key",
+    })).not.toThrow();
+  });
+
+  it("requires a bucket when Cloudflare R2 storage is enabled", () => {
+    expect(() => validateEnv({
+      ...requiredConfig,
+      CV_STORAGE_DRIVER: "r2",
+      R2_ENDPOINT: "https://account-id.r2.cloudflarestorage.com",
+      R2_ACCESS_KEY_ID: "access-key-id",
+      R2_SECRET_ACCESS_KEY: "secret-access-key",
+    })).toThrow("Cloudflare R2 storage requires R2_BUCKET, STORAGE_BUCKET, or S3_BUCKET");
+  });
+
+  it("accepts S3-compatible aliases for Cloudflare R2 storage", () => {
+    expect(() => validateEnv({
+      ...requiredConfig,
+      CV_STORAGE_DRIVER: "r2",
+      S3_API: "https://account-id.r2.cloudflarestorage.com",
+      S3_BUCKET: "candidate-cvs",
+      s3_ACCESS_KEY: "access-key-id",
+      s3_SECRET_KEY: "secret-access-key",
+    })).not.toThrow();
+  });
 });
