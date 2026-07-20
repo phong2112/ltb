@@ -64,15 +64,40 @@ require_docker() {
 
 }
 
+has_any_env() {
+  local key
+
+  for key in "$@"; do
+    if [[ -n "${!key:-}" ]]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+require_any_env() {
+  local label="$1"
+  shift
+
+  if has_any_env "$@"; then
+    return 0
+  fi
+
+  echo "Missing ${label}. Set one of: $*" >&2
+  return 1
+}
+
 prepare() {
+  load_env_file "$ROOT_DIR/.env.dev"
   load_env_file "$ROOT_DIR/.env.local"
   load_env_file "$ROOT_DIR/.env"
 
-  export CV_STORAGE_DRIVER="${CV_STORAGE_DRIVER:-vercel-blob}"
+  export CV_STORAGE_DRIVER="${CV_STORAGE_DRIVER:-r2}"
 
   if [[ "$CV_STORAGE_DRIVER" == "vercel-blob" && -z "${BLOB_READ_WRITE_TOKEN:-}" ]]; then
     cat >&2 <<'ERROR'
-BLOB_READ_WRITE_TOKEN is required because run.sh now stores CV uploads in Vercel Blob by default.
+BLOB_READ_WRITE_TOKEN is required because CV_STORAGE_DRIVER=vercel-blob.
 run.sh runs the API in local Docker, so Vercel OIDC/BLOB_STORE_ID alone is not enough.
 
 Add it to .env.local or export it before running:
@@ -82,6 +107,38 @@ To use local files instead:
   CV_STORAGE_DRIVER=local ./run.sh
 ERROR
     exit 1
+  fi
+
+  if [[ "$CV_STORAGE_DRIVER" == "r2" ]]; then
+    local missing_r2_config=0
+
+    require_any_env "Cloudflare R2 endpoint or account id" \
+      R2_ENDPOINT STORAGE_ENDPOINT S3_API CLOUD_FLARE_STORAGE_ACCOUNT_ID CLOUDFLARE_R2_ACCOUNT_ID \
+      || missing_r2_config=1
+    require_any_env "Cloudflare R2 bucket" \
+      R2_BUCKET R2_BUCKET_NAME STORAGE_BUCKET S3_BUCKET S3_BUCKET_NAME s3_BUCKET s3_BUCKET_NAME \
+      || missing_r2_config=1
+    require_any_env "Cloudflare R2 access key id" \
+      R2_ACCESS_KEY_ID STORAGE_ACCESS_KEY_ID S3_ACCESS_KEY_ID s3_ACCESS_KEY \
+      || missing_r2_config=1
+    require_any_env "Cloudflare R2 secret access key" \
+      R2_SECRET_ACCESS_KEY STORAGE_SECRET_ACCESS_KEY S3_SECRET_ACCESS_KEY s3_SECRET_ACCESS_KEY S3_SECRET_KEY s3_SECRET_KEY \
+      || missing_r2_config=1
+
+    if [[ "$missing_r2_config" -ne 0 ]]; then
+      cat >&2 <<'ERROR'
+
+Cloudflare R2 storage is enabled, but its configuration is incomplete.
+Recommended names:
+  R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+  R2_BUCKET=<bucket-name>
+  R2_ACCESS_KEY_ID=<access-key-id>
+  R2_SECRET_ACCESS_KEY=<secret-access-key>
+
+Keep BLOB_READ_WRITE_TOKEN only if you still need to read legacy Vercel Blob CV paths.
+ERROR
+      exit 1
+    fi
   fi
 
   if [[ "$CV_STORAGE_DRIVER" == "local" ]]; then

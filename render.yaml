@@ -39,7 +39,15 @@ services:
       - key: AUTH_COOKIE_SAMESITE
         value: "none"
       - key: CV_STORAGE_DRIVER
-        value: "vercel-blob"
+        value: "r2"
+      - key: R2_ENDPOINT
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
       - key: BLOB_READ_WRITE_TOKEN
         sync: false
       - key: UPLOAD_DIR

@@ -78,18 +78,22 @@ export function validateEnv(config: Record<string, unknown>) {
   const storageDriver = config.CV_STORAGE_DRIVER;
   if (
     hasValue(storageDriver) &&
-    !["local", "vercel-blob"].includes(String(storageDriver))
+    !["local", "vercel-blob", "r2"].includes(String(storageDriver))
   ) {
-    throw new Error("CV_STORAGE_DRIVER must be one of: local, vercel-blob");
+    throw new Error("CV_STORAGE_DRIVER must be one of: local, vercel-blob, r2");
   }
 
   if (
-    String(storageDriver || "vercel-blob") === "vercel-blob" &&
+    String(storageDriver || "r2") === "vercel-blob" &&
     !hasVercelBlobCredentials(config)
   ) {
     throw new Error(
       "Vercel Blob storage requires BLOB_READ_WRITE_TOKEN, or BLOB_STORE_ID when running on Vercel with OIDC enabled",
     );
+  }
+
+  if (String(storageDriver || "r2") === "r2") {
+    validateR2Config(config);
   }
 
   const emailProvider = config.EMAIL_PROVIDER;
@@ -125,6 +129,59 @@ function hasVercelBlobCredentials(config: Record<string, unknown>) {
     hasValue(config.VERCEL_ENV) ||
     hasValue(config.VERCEL_OIDC_TOKEN);
   return hasOidcContext && hasValue(config.BLOB_STORE_ID);
+}
+
+function validateR2Config(config: Record<string, unknown>) {
+  const endpointOrAccountId = getFirstValue(config, [
+    "R2_ENDPOINT",
+    "STORAGE_ENDPOINT",
+    "S3_API",
+    "CLOUD_FLARE_STORAGE_ACCOUNT_ID",
+    "CLOUDFLARE_R2_ACCOUNT_ID",
+  ]);
+  const bucket = getFirstValue(config, [
+    "R2_BUCKET",
+    "R2_BUCKET_NAME",
+    "STORAGE_BUCKET",
+    "S3_BUCKET",
+    "S3_BUCKET_NAME",
+    "s3_BUCKET",
+    "s3_BUCKET_NAME",
+  ]);
+  const accessKeyId = getFirstValue(config, [
+    "R2_ACCESS_KEY_ID",
+    "STORAGE_ACCESS_KEY_ID",
+    "S3_ACCESS_KEY_ID",
+    "s3_ACCESS_KEY",
+  ]);
+  const secretAccessKey = getFirstValue(config, [
+    "R2_SECRET_ACCESS_KEY",
+    "STORAGE_SECRET_ACCESS_KEY",
+    "S3_SECRET_ACCESS_KEY",
+    "s3_SECRET_ACCESS_KEY",
+    "S3_SECRET_KEY",
+    "s3_SECRET_KEY",
+  ]);
+
+  if (!endpointOrAccountId) {
+    throw new Error("Cloudflare R2 storage requires R2_ENDPOINT or CLOUDFLARE_R2_ACCOUNT_ID");
+  }
+
+  if (!bucket) {
+    throw new Error("Cloudflare R2 storage requires R2_BUCKET, STORAGE_BUCKET, or S3_BUCKET");
+  }
+
+  if (!accessKeyId) {
+    throw new Error("Cloudflare R2 storage requires R2_ACCESS_KEY_ID, STORAGE_ACCESS_KEY_ID, or s3_ACCESS_KEY");
+  }
+
+  if (!secretAccessKey) {
+    throw new Error("Cloudflare R2 storage requires R2_SECRET_ACCESS_KEY, STORAGE_SECRET_ACCESS_KEY, or s3_SECRET_KEY");
+  }
+}
+
+function getFirstValue(config: Record<string, unknown>, keys: string[]) {
+  return keys.find(key => hasValue(config[key]));
 }
 
 function hasValue(value: unknown) {
