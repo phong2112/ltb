@@ -31,6 +31,11 @@ enum FileKind {
   OTHER
 }
 
+enum FileStorageTier {
+  PRIMARY
+  ARCHIVE
+}
+
 enum CvParseStatus {
   PENDING
   COMPLETED
@@ -151,11 +156,13 @@ model CandidateFile {
   id             String          @id @default(cuid())
   applicationId  String
   kind           FileKind        @default(CV)
+  storageTier    FileStorageTier @default(PRIMARY)
   originalName   String
   storedName     String
   mimeType       String
   sizeBytes      Int
   path           String
+  archivedAt     DateTime?
   application    Application     @relation(fields: [applicationId], references: [id], onDelete: Restrict)
   cvParseResults CvParseResult[]
   activities     ActivityLog[]
@@ -163,6 +170,7 @@ model CandidateFile {
 
   @@index([applicationId])
   @@index([applicationId, kind])
+  @@index([storageTier])
 }
 
 model CvParseResult {

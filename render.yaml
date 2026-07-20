@@ -40,6 +40,8 @@ services:
         value: "none"
       - key: CV_STORAGE_DRIVER
         value: "r2"
+      - key: CV_ARCHIVE_STORAGE_DRIVER
+        value: "vercel-blob"
       - key: R2_ENDPOINT
         sync: false
       - key: R2_BUCKET

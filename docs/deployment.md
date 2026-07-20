@@ -53,6 +53,7 @@ ADMIN_EMAIL=<admin-login-email>
 ADMIN_PASSWORD=<strong-admin-password>
 ADMIN_NAME=<admin-display-name>
 CV_STORAGE_DRIVER=r2
+CV_ARCHIVE_STORAGE_DRIVER=vercel-blob
 R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
 R2_BUCKET=<bucket-name>
 R2_ACCESS_KEY_ID=<access-key-id>
@@ -142,13 +143,11 @@ SPA fallback: all browser routes rewrite to /index.html
 Set production environment variables in Vercel:
 
 ```text
-NEXT_PUBLIC_APP_URL=https://your-web-domain.com
-NEXT_PUBLIC_API_BASE_PATH=https://your-api-domain.com
 VITE_API_BASE_PATH=https://your-api-domain.com
 VITE_MAX_CV_FILE_SIZE_MB=10
 ```
 
-Only use `NEXT_PUBLIC_*` for values that are safe to expose in browser code. Do not put private API keys, database URLs, or storage secrets in Vercel frontend environment variables.
+Vite exposes `VITE_*` values to browser code. Do not put private API keys, database URLs, or storage secrets in Vercel frontend environment variables.
 
 Deploy from the CLI:
 
@@ -186,6 +185,7 @@ JWT_REFRESH_TOKEN_TTL_SECONDS=2592000
 AUTH_COOKIE_SECURE=true
 AUTH_COOKIE_SAMESITE=none
 CV_STORAGE_DRIVER=r2
+CV_ARCHIVE_STORAGE_DRIVER=vercel-blob
 R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
 R2_BUCKET=<bucket-name>
 R2_ACCESS_KEY_ID=<access-key-id>
@@ -206,7 +206,7 @@ EMAIL_SMTP_USER=your-gmail-address@gmail.com
 EMAIL_SMTP_PASS=<google-app-password>
 ```
 
-`CV_STORAGE_DRIVER=r2` stores new uploaded CV files in a private Cloudflare R2 bucket and saves an `r2://<bucket>/cv/...` storage path in PostgreSQL `CandidateFile.path`. Existing Vercel Blob paths remain readable when `BLOB_READ_WRITE_TOKEN` is still configured. `UPLOAD_DIR` remains a local development fallback only. In production, keep CV objects private and serve them through the API after TA authentication checks. `APPLICATION_RATE_LIMIT_MAX` limits public submissions per IP during each `APPLICATION_RATE_LIMIT_WINDOW_SECONDS` window. Set `TRUST_PROXY_HOPS` to the number of trusted reverse proxies in front of the API so client IP rate limiting remains accurate.
+`CV_STORAGE_DRIVER=r2` stores new uploaded CV files in a private Cloudflare R2 bucket and saves an `r2://<bucket>/cv/...` storage path in PostgreSQL `CandidateFile.path`. `CV_ARCHIVE_STORAGE_DRIVER=vercel-blob` moves CVs to private Vercel Blob storage when their job enters `ARCHIVED`; restoring the job moves those CVs back to R2. PostgreSQL records the current `CandidateFile.storageTier` and `archivedAt` values. The move is ordered as copy, database update, then source deletion so a failed intermediate step does not lose the only file copy. `BLOB_READ_WRITE_TOKEN` is therefore required by the API even while R2 remains the primary tier. `UPLOAD_DIR` remains a local development fallback only. In production, keep CV objects private and serve them through the API after TA authentication checks. `APPLICATION_RATE_LIMIT_MAX` limits public submissions per IP during each `APPLICATION_RATE_LIMIT_WINDOW_SECONDS` window. Set `TRUST_PROXY_HOPS` to the number of trusted reverse proxies in front of the API so client IP rate limiting remains accurate.
 
 Swagger API documentation is available at `/docs` when enabled. It is enabled by default outside production. Keep `SWAGGER_ENABLED=false` for production unless API documentation is intentionally exposed behind appropriate network or auth controls.
 

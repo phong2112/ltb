@@ -44,9 +44,8 @@ export class EmailService {
     const provider = this.configService.get<string>("EMAIL_PROVIDER")?.trim() || "gmail";
     const from = this.configService.get<string>("EMAIL_FROM")?.trim();
     const replyTo = this.configService.get<string>("EMAIL_REPLY_TO")?.trim() || this.configService.get<string>("ADMIN_EMAIL")?.trim();
-    const publicBaseUrl = getFirstConfiguredUrl(
+    const publicBaseUrl = normalizeHttpUrl(
       this.configService.get<string>("WEB_ORIGIN"),
-      this.configService.get<string>("NEXT_PUBLIC_APP_URL"),
     );
     const brandName = this.configService.get<string>("ADMIN_NAME")?.trim() || "Lường Bích";
     const smtpUser = this.configService.get<string>("EMAIL_SMTP_USER")?.trim();
@@ -208,15 +207,6 @@ function escapeHtml(value: string) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
-}
-
-function getFirstConfiguredUrl(...values: Array<string | undefined>) {
-  for (const value of values) {
-    const url = normalizeHttpUrl(value);
-    if (url) return url;
-  }
-
-  return undefined;
 }
 
 function normalizeHttpUrl(value?: string) {
