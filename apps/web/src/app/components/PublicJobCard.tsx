@@ -2,7 +2,7 @@ import type { MouseEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { ChevronRight, Clock, Heart, MapPin, Users } from "lucide-react";
 import type { Job } from "@/app/data";
-import { useLanguage } from "@/app/i18n";
+import { translateJobLevel, translateJobType, useLanguage } from "@/app/i18n";
 import { URGENT_BADGE_CLASS } from "@/app/status-config";
 
 type PublicJobCardProps = {
@@ -20,21 +20,26 @@ export default function PublicJobCard({
   showRemoveSaved = false,
   onRemoveSaved,
 }: PublicJobCardProps) {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
-  const interactive = Boolean(onSelect);
   const focusedJobsPath = buildFocusedJobsPath(job.id, location.pathname === "/jobs" ? location.search : "");
   const detailPath = `/jobs/${encodeURIComponent(job.id)}?from=${encodeURIComponent(focusedJobsPath)}`;
 
   function selectJob() {
-    onSelect?.(job.id);
+    if (onSelect) {
+      onSelect(job.id);
+      return;
+    }
+
+    // Keep the jobs list immediately behind detail in browser history, even
+    // when candidates enter from a featured job card on the home page.
+    navigate(focusedJobsPath, { replace: true });
+    navigate(detailPath);
   }
 
   function openDetails(event: MouseEvent<HTMLAnchorElement>) {
     event.stopPropagation();
-    if (!interactive) return;
-
     event.preventDefault();
     navigate(focusedJobsPath, { replace: true });
     navigate(detailPath);
@@ -42,65 +47,65 @@ export default function PublicJobCard({
 
   return (
     <article
-      id={interactive ? `job-card-${job.id}` : undefined}
-      role={interactive ? "button" : undefined}
-      tabIndex={interactive ? 0 : undefined}
-      onClick={interactive ? selectJob : undefined}
-      onKeyDown={interactive ? event => {
+      id={onSelect ? `job-card-${job.id}` : undefined}
+      role="button"
+      tabIndex={0}
+      onClick={selectJob}
+      onKeyDown={event => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
           selectJob();
         }
-      } : undefined}
+      }}
       aria-current={active ? "true" : undefined}
-      className={`group relative flex min-h-48 flex-col overflow-hidden rounded-2xl border bg-white p-4 text-left shadow-sm outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/35 ${interactive ? "cursor-pointer active:scale-[0.99]" : "h-full"} ${active ? "border-primary bg-pink-50/40 shadow-md ring-1 ring-primary/15" : "border-border hover:border-primary/60 hover:shadow-md"}`}
+      aria-label={`${t("common.viewDetails")}: ${job.title}`}
+      className={`group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border bg-white p-4 text-left shadow-sm outline-none transition-all duration-200 active:scale-[0.99] focus:border-primary focus:bg-pink-50/40 focus:shadow-md focus:ring-2 focus:ring-primary/20 lg:min-h-48 ${active ? "lg:border-primary lg:bg-pink-50/40 lg:shadow-md lg:ring-1 lg:ring-primary/15" : "hover:border-primary/60 hover:shadow-md"}`}
     >
-      {job.urgent && (
-        <span className={`absolute right-4 top-4 rounded-full border px-2.5 py-1 text-[10px] font-bold ${URGENT_BADGE_CLASS}`}>
-          🔥 {t("jobs.urgent")}
-        </span>
-      )}
-
       <div className="flex items-start gap-3">
-        <div className="flex size-12 flex-none items-center justify-center rounded-2xl border border-pink-100 bg-pink-50 text-2xl">
+        <div className="flex size-12 flex-none items-center justify-center rounded-xl border border-pink-100 bg-pink-50 text-2xl sm:rounded-2xl">
           {job.logo}
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className={`line-clamp-2 text-base font-black leading-snug text-foreground transition-colors group-hover:text-primary ${job.urgent ? "pr-16" : ""}`}>
-            {interactive ? (
-              job.title
-            ) : (
-              <Link
-                to={`/jobs?job=${encodeURIComponent(job.id)}`}
-                className="rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-              >
-                {job.title}
-              </Link>
-            )}
+          <h3 className="line-clamp-2 text-base font-black leading-snug text-foreground transition-colors group-hover:text-primary">
+            {job.title}
           </h3>
-          <p className="mt-0.5 truncate text-xs font-semibold text-muted-foreground">{job.company}</p>
+          <div className="mt-1 flex min-w-0 items-center gap-2">
+            <p className="min-w-0 flex-1 truncate text-xs font-semibold text-muted-foreground">{job.company}</p>
+            {job.urgent && (
+              <span className={`inline-flex flex-none rounded-full border px-2 py-0.5 text-[10px] font-bold ${URGENT_BADGE_CLASS}`}>
+                🔥 {t("jobs.urgent")}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="mt-4 flex min-h-6 flex-wrap content-start gap-1.5">
-        {job.tags.slice(0, 3).map(tag => (
-          <span key={tag} className="rounded-full bg-pink-50 px-2.5 py-1 text-[10px] font-semibold text-primary">
+      <div className="mt-3 flex min-h-6 flex-wrap content-start gap-1.5">
+        <span className="rounded-full border border-border bg-secondary px-2.5 py-1 text-[10px] font-bold text-secondary-foreground">
+          {translateJobType(job.type, language)}
+        </span>
+        <span className="rounded-full border border-border bg-white px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
+          {translateJobLevel(job.level, language)}
+        </span>
+        {job.tags.slice(0, 1).map(tag => (
+          <span key={tag} className="max-w-32 truncate rounded-full bg-pink-50 px-2.5 py-1 text-[10px] font-semibold text-primary">
             {tag}
           </span>
         ))}
+        {job.tags.length > 1 && <span className="px-1 py-1 text-[10px] font-bold text-muted-foreground">+{job.tags.length - 1}</span>}
       </div>
 
-      <div className="mt-auto pt-3">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+      <div className="mt-auto pt-3.5">
+        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
           <span className="flex min-w-0 items-center gap-1">
-            <MapPin size={11} className="flex-none" />
+            <MapPin size={12} className="flex-none text-primary" />
             <span className="truncate">{job.location}</span>
           </span>
-          <span className="ml-auto truncate font-bold text-amber-600">💰 {job.salary || t("jobs.salaryNegotiable")}</span>
+          <span className="ml-auto max-w-[52%] truncate font-extrabold text-amber-700">💰 {job.salary || t("jobs.salaryNegotiable")}</span>
         </div>
 
-        <div className="mt-3 flex min-h-7 items-center gap-2 border-t border-border pt-3 text-[11px] text-muted-foreground">
-          <span className="flex items-center gap-1"><Users size={11} />{job.applicants} {t("common.candidates")}</span>
+        <div className="mt-3 flex min-h-8 items-center gap-2 border-t border-border pt-3 text-[11px] text-muted-foreground">
+          <span className="hidden items-center gap-1 sm:flex"><Users size={11} />{job.applicants} {t("common.candidates")}</span>
           {job.posted && <span className="flex flex-none items-center gap-1"><Clock size={11} />{job.posted}</span>}
           {showRemoveSaved && onRemoveSaved && (
             <button
