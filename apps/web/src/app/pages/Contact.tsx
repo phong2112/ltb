@@ -52,13 +52,13 @@ export default function Contact() {
   return (
     <PublicLayout>
       <section className="border-b border-pink-100 bg-[#fff7fa]">
-        <div className="mx-auto max-w-7xl px-6 py-9 md:py-10">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:py-10">
           <div className="grid gap-5 lg:grid-cols-[1fr_0.85fr] lg:items-end">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-pink-200 bg-white px-3 py-1.5 text-xs font-bold text-primary">
                 <MessageCircle size={13} /> {t("contact.eyebrow")}
               </div>
-              <h1 className="mt-3 text-4xl font-black leading-tight text-foreground md:text-5xl" style={{ fontFamily: "'Playfair Display', serif" }}>
+              <h1 className="mt-3 text-3xl font-black leading-tight text-foreground sm:text-4xl md:text-5xl" style={{ fontFamily: "'Playfair Display', serif" }}>
                 {t("contact.title")}
               </h1>
               <p className="mt-2.5 max-w-2xl text-base leading-relaxed text-muted-foreground">{t("contact.subtitle")}</p>
@@ -83,9 +83,9 @@ export default function Contact() {
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-6 py-12">
+      <section className="mx-auto max-w-7xl px-4 py-9 sm:px-6 sm:py-12">
         <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-          <div className="rounded-2xl border border-border bg-white p-6">
+          <div className="rounded-2xl border border-border bg-white p-4 sm:p-6">
             <h2 className="text-xl font-black text-foreground">{t("contact.formTitle")}</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t("contact.formSubtitle")}</p>
 
@@ -110,7 +110,7 @@ export default function Contact() {
             </div>
           </div>
 
-          <aside className="rounded-2xl border border-pink-100 bg-white p-6">
+          <aside className="rounded-2xl border border-pink-100 bg-white p-4 sm:p-6">
             <div className="mb-5 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <Briefcase size={18} />

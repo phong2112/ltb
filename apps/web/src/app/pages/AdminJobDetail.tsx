@@ -91,7 +91,7 @@ export default function AdminJobDetail() {
     <AdminLayout>
       <div className="w-full max-w-[1560px]">
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <header className="sticky top-20 z-20 min-w-0 rounded-2xl border border-border/80 bg-white px-5 py-4 shadow-[0_10px_30px_rgba(120,70,86,0.06)]">
+          <header className="sticky top-16 z-20 min-w-0 rounded-2xl border border-border/80 bg-white px-4 py-4 shadow-[0_10px_30px_rgba(120,70,86,0.06)] sm:px-5 md:top-20">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="min-w-0">
                 <Link to="/admin/jobs" className="mb-2 inline-flex cursor-pointer items-center gap-1 text-xs font-bold text-muted-foreground transition-colors hover:text-primary">
@@ -107,7 +107,7 @@ export default function AdminJobDetail() {
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
@@ -149,7 +149,7 @@ export default function AdminJobDetail() {
                     <ExternalLink size={14} /> {t("admin.viewPublic")}
                   </Link>
                 )}
-                <Link to={`/admin/jobs/${job.id}/edit`} className="flex h-10 cursor-pointer items-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md">
+                <Link to={`/admin/jobs/${job.id}/edit`} className="flex h-10 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md sm:flex-none">
                   <Edit2 size={14} /> {t("admin.editJobAction")}
                 </Link>
               </div>
@@ -171,7 +171,7 @@ export default function AdminJobDetail() {
                 <span className={`w-fit flex-none rounded-full border px-3 py-1 text-xs font-bold ${JOB_STATUS_CONFIG[job.status].badgeClass}`}>{translateJobStatus(job.status, language)}</span>
               </div>
 
-              <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-3">
                 <DetailItem icon={<Building2 size={14} />} label={cleanLabel(t("admin.companyName"))}>{job.company}</DetailItem>
                 <DetailItem icon={<MapPin size={14} />} label={cleanLabel(t("admin.location"))}>{job.location}</DetailItem>
                 <DetailItem icon={<Briefcase size={14} />} label={t("admin.workType")}>{translateJobType(job.type, language)}</DetailItem>
@@ -180,7 +180,7 @@ export default function AdminJobDetail() {
                 <DetailItem icon={<Users size={14} />} label={t("common.candidates")}>{job.applicants}</DetailItem>
               </div>
 
-              <div className="border-t border-border px-5 py-4">
+              <div className="border-t border-border px-4 py-4 sm:px-5">
                 <div className="mb-2.5 flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.08em] text-muted-foreground">
                   <Tag size={13} className="text-primary" /> {cleanLabel(t("admin.skillTags"))}
                 </div>

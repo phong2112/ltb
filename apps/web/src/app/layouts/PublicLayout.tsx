@@ -1,5 +1,6 @@
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router";
-import { LogIn } from "lucide-react";
+import { LogIn, Menu, X } from "lucide-react";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 import portraitImg from "@/imports/image.png";
 import { useLanguage, type Language } from "@/app/i18n";
@@ -7,10 +8,21 @@ import { useLanguage, type Language } from "@/app/i18n";
 export default function PublicLayout({ children, hasMobileBottomBar = false }: { children: React.ReactNode; hasMobileBottomBar?: boolean }) {
   const loc = useLocation();
   const { language, setLanguage, t } = useLanguage();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const languages: Language[] = ["vi", "en"];
+  const navItems = [
+    { to: "/", label: t("common.home"), active: loc.pathname === "/" },
+    { to: "/jobs", label: t("common.jobs"), active: loc.pathname.startsWith("/jobs") },
+    { to: "/candidate-guide", label: t("common.candidateGuide"), active: loc.pathname === "/candidate-guide" },
+    { to: "/contact", label: t("common.contact"), active: loc.pathname === "/contact" },
+  ];
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [loc.pathname]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col" style={{ fontFamily: "'Nunito', sans-serif" }}>
+    <div className="flex min-h-screen flex-col overflow-x-clip bg-background text-foreground" style={{ fontFamily: "'Nunito', sans-serif" }}>
       <header className="sticky top-0 z-40 border-b border-border bg-white/95 shadow-sm backdrop-blur">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-4 sm:h-16 sm:px-6">
           <Link to="/" className="flex min-w-0 items-center gap-2 sm:gap-2.5">
@@ -23,11 +35,12 @@ export default function PublicLayout({ children, hasMobileBottomBar = false }: {
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-muted-foreground">
-            <Link to="/" className={`hover:text-primary transition-colors ${loc.pathname === "/" ? "text-primary" : ""}`}>{t("common.home")}</Link>
-            <Link to="/jobs" className={`hover:text-primary transition-colors ${loc.pathname.startsWith("/jobs") ? "text-primary" : ""}`}>{t("common.jobs")}</Link>
-            <Link to="/candidate-guide" className={`hover:text-primary transition-colors ${loc.pathname === "/candidate-guide" ? "text-primary" : ""}`}>{t("common.candidateGuide")}</Link>
-            <Link to="/contact" className={`hover:text-primary transition-colors ${loc.pathname === "/contact" ? "text-primary" : ""}`}>{t("common.contact")}</Link>
+          <nav className="hidden items-center gap-6 text-sm font-semibold text-muted-foreground md:flex">
+            {navItems.map(item => (
+              <Link key={item.to} to={item.to} className={`transition-colors hover:text-primary ${item.active ? "text-primary" : ""}`} aria-current={item.active ? "page" : undefined}>
+                {item.label}
+              </Link>
+            ))}
           </nav>
 
           <div className="flex flex-none items-center gap-1.5 sm:gap-2">
@@ -52,8 +65,32 @@ export default function PublicLayout({ children, hasMobileBottomBar = false }: {
             >
               <LogIn size={15} /> <span className="hidden sm:inline">{t("common.hrLogin")}</span>
             </Link>
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(open => !open)}
+              className="flex size-9 items-center justify-center rounded-full border border-border text-foreground transition-all hover:border-primary hover:text-primary md:hidden"
+              aria-label={mobileMenuOpen ? "Đóng menu" : "Mở menu"}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="public-mobile-navigation"
+            >
+              {mobileMenuOpen ? <X size={16} /> : <Menu size={16} />}
+            </button>
           </div>
         </div>
+        {mobileMenuOpen && (
+          <nav id="public-mobile-navigation" className="grid grid-cols-2 gap-2 border-t border-border bg-white px-4 py-3 md:hidden">
+            {navItems.map(item => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={`flex min-h-10 items-center justify-center rounded-xl px-3 text-center text-sm font-bold transition-colors ${item.active ? "bg-primary text-white" : "bg-background text-muted-foreground hover:bg-pink-50 hover:text-primary"}`}
+                aria-current={item.active ? "page" : undefined}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        )}
       </header>
 
       <main className="flex-1">{children}</main>

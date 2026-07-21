@@ -8,13 +8,13 @@ export default function ApplySuccess() {
 
   return (
     <PublicLayout>
-      <div className="max-w-xl mx-auto px-6 py-20 text-center">
+      <div className="mx-auto max-w-xl px-4 py-14 text-center sm:px-6 sm:py-20">
         <div className="relative inline-flex items-center justify-center w-24 h-24 rounded-full bg-emerald-100 mb-6">
           <CheckCircle size={48} className="text-emerald-500" />
           <div className="absolute -top-1 -right-1 text-2xl">🌸</div>
         </div>
 
-        <h1 className="text-3xl font-black text-foreground mb-3" style={{ fontFamily: "'Playfair Display', serif" }}>
+        <h1 className="mb-3 text-2xl font-black text-foreground sm:text-3xl" style={{ fontFamily: "'Playfair Display', serif" }}>
           {t("success.title")}
         </h1>
         <p className="text-muted-foreground leading-relaxed mb-8">

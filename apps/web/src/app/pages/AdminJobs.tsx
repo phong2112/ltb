@@ -50,12 +50,12 @@ export default function AdminJobs() {
 
   return (
     <AdminLayout>
-      <div className="flex items-center justify-between mb-6">
-        <div>
+      <div className="mb-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{t("admin.jobsManagement")}</h1>
           <p className="text-muted-foreground text-sm mt-0.5">{counts.published} {t("admin.publishedCount")} · {counts.draft} {t("admin.draftCount")} · {counts.closed} {t("admin.closedCount")} · {counts.archived} {t("admin.archivedCount")}</p>
         </div>
-        <Link to="/admin/jobs/new" className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90 transition-all shadow-sm">
+        <Link to="/admin/jobs/new" className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-primary/90 sm:w-auto">
           <Plus size={15} /> {t("admin.createJob")}
         </Link>
       </div>
@@ -87,8 +87,8 @@ export default function AdminJobs() {
 
         <div className="divide-y divide-border">
           {paginatedJobs.map(job => (
-            <div key={job.id} className="flex items-center gap-4 p-4 hover:bg-pink-50/50 transition-colors">
-              <Link to={`/admin/jobs/${job.id}`} className="flex min-w-0 flex-1 cursor-pointer items-center gap-4 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary/40" aria-label={`${t("admin.viewJobDetail")}: ${job.title}`}>
+            <div key={job.id} className="flex flex-col items-stretch gap-3 p-4 transition-colors hover:bg-pink-50/50 sm:flex-row sm:items-center sm:gap-4">
+              <Link to={`/admin/jobs/${job.id}`} className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:gap-4" aria-label={`${t("admin.viewJobDetail")}: ${job.title}`}>
                 <div className="w-10 h-10 rounded-xl bg-pink-50 border border-pink-100 flex items-center justify-center text-xl flex-shrink-0">{job.logo}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -98,15 +98,15 @@ export default function AdminJobs() {
                     </span>
                     {job.urgent && <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${URGENT_BADGE_CLASS}`}>🔥 {t("jobs.urgent")}</span>}
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                    <span>{job.company}</span>
+                  <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                    <span className="max-w-full truncate">{job.company}</span>
                     <span>·</span><span>{job.location}</span>
                     <span>·</span><span>{translateJobType(job.type, language)}</span>
-                    <span className="flex items-center gap-1 ml-2"><Users size={10} />{job.applicants} {t("common.candidates")}</span>
+                    <span className="flex items-center gap-1 sm:ml-2"><Users size={10} />{job.applicants} {t("common.candidates")}</span>
                   </div>
                 </div>
               </Link>
-              <div className="flex items-center gap-1 flex-shrink-0">
+              <div className="flex flex-shrink-0 items-center justify-end gap-1 border-t border-border pt-2 sm:border-0 sm:pt-0">
                 {job.status === "archived" ? (
                   <button disabled className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground/40" title={t("admin.restoreBeforePublishing")}>
                     <Globe size={15} />

@@ -575,7 +575,7 @@ export default function CreateEditJob() {
     <AdminLayout>
       <div className="w-full max-w-[1560px]">
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <header className="sticky top-20 z-20 min-w-0 rounded-2xl border border-border/80 bg-white px-5 py-4 shadow-[0_10px_30px_rgba(120,70,86,0.06)]">
+          <header className="sticky top-16 z-20 min-w-0 rounded-2xl border border-border/80 bg-white px-4 py-4 shadow-[0_10px_30px_rgba(120,70,86,0.06)] sm:px-5 md:top-20">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="min-w-0">
                 <Link to={isEdit && existing ? `/admin/jobs/${existing.id}` : "/admin/jobs"} className="mb-2 inline-flex cursor-pointer items-center gap-1 text-xs font-bold text-muted-foreground transition-colors hover:text-primary">
@@ -591,7 +591,7 @@ export default function CreateEditJob() {
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
                 {isEdit && existing && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -640,7 +640,7 @@ export default function CreateEditJob() {
                   onClick={() => handleSave("save", isEdit ? undefined : "draft")}
                   disabled={savingAction !== null}
                   aria-busy={savingAction === "save"}
-                  className={`flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${showPublishAction ? "border border-border bg-white px-3.5 text-foreground hover:border-primary/40 hover:bg-pink-50 disabled:hover:border-border disabled:hover:bg-white" : "bg-primary px-4 text-white shadow-sm hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md disabled:hover:translate-y-0 disabled:hover:bg-primary"}`}
+                  className={`flex h-10 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none ${showPublishAction ? "border border-border bg-white px-3.5 text-foreground hover:border-primary/40 hover:bg-pink-50 disabled:hover:border-border disabled:hover:bg-white" : "bg-primary px-4 text-white shadow-sm hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md disabled:hover:translate-y-0 disabled:hover:bg-primary"}`}
                 >
                   {savingAction === "save" ? <LoaderCircle size={14} className="animate-spin" /> : <FileText size={14} />}
                   {savingAction === "save" ? t("admin.saving") : isEdit ? t("admin.saveChanges") : t("admin.saveDraft")}
@@ -651,7 +651,7 @@ export default function CreateEditJob() {
                     onClick={() => handleSave("publish", "published")}
                     disabled={savingAction !== null}
                     aria-busy={savingAction === "publish"}
-                    className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-3.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-primary"
+                    className="flex h-10 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-3.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-primary sm:flex-none"
                   >
                     {savingAction === "publish" ? <LoaderCircle size={14} className="animate-spin" /> : <Globe size={14} />}
                     {savingAction === "publish" ? t("admin.publishing") : t("admin.publishNow")}
@@ -672,7 +672,7 @@ export default function CreateEditJob() {
               <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 font-semibold">{error}</div>
             )}
 
-            <div className="bg-white rounded-2xl border border-border p-6 space-y-5">
+            <div className="space-y-5 rounded-2xl border border-border bg-white p-4 sm:p-6">
           {/* Logo picker */}
           <div>
             <label className="text-xs font-bold text-foreground mb-2 block uppercase tracking-wide">{t("admin.jobIcon")}</label>
@@ -831,7 +831,7 @@ export default function CreateEditJob() {
               <div className={`space-y-3 rounded-2xl border bg-background/60 p-3 ${fieldErrors.questions ? "border-red-300" : "border-border/80"}`}>
                 {form.questions.length > 0 ? (
                   form.questions.map((question, index) => (
-                    <div key={question.id} className="grid gap-2 rounded-xl border border-border bg-white p-3 lg:grid-cols-[auto_minmax(0,1fr)_auto_auto] lg:items-start">
+                    <div key={question.id} className="grid gap-2 rounded-xl border border-border bg-white p-3 sm:grid-cols-[auto_minmax(0,1fr)] lg:grid-cols-[auto_minmax(0,1fr)_auto_auto] lg:items-start">
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-xs font-black text-primary">
                         {String(index + 1).padStart(2, "0")}
                       </div>
@@ -842,9 +842,9 @@ export default function CreateEditJob() {
                         rows={2}
                         maxLength={MAX.questionLabel}
                         aria-invalid={Boolean(fieldErrors.questions)}
-                        className="min-h-[76px] w-full resize-y rounded-xl border border-border bg-input-background px-3 py-2.5 text-sm leading-5 outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
+                        className="min-h-[76px] w-full resize-y rounded-xl border border-border bg-input-background px-3 py-2.5 text-sm leading-5 outline-none transition-colors placeholder:text-muted-foreground focus:border-primary sm:col-start-2"
                       />
-                      <label className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-border bg-background/60 px-3 text-xs font-bold text-foreground">
+                      <label className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-border bg-background/60 px-3 text-xs font-bold text-foreground sm:col-start-2 lg:col-start-auto">
                         <input
                           type="checkbox"
                           checked={question.required}
@@ -853,7 +853,7 @@ export default function CreateEditJob() {
                         />
                         Bắt buộc
                       </label>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 sm:col-start-2 lg:col-start-auto">
                         <button
                           type="button"
                           onClick={() => moveQuestion(question.id, -1)}

@@ -73,7 +73,7 @@ export function CvPreviewPanel({ candidate, t }: { candidate: Candidate; t: (key
       )}
 
       {canPreview ? (
-        <div className="h-[520px] bg-[#f5eee9] xl:min-h-0 xl:flex-1">
+        <div className="h-[420px] bg-[#f5eee9] sm:h-[520px] xl:min-h-0 xl:flex-1">
           <iframe title={`${candidate.name} CV`} src={previewUrl} className="h-full w-full bg-white" />
         </div>
       ) : (

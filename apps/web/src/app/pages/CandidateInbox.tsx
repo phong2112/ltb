@@ -51,7 +51,7 @@ export default function CandidateInbox() {
           <input value={search} onChange={e => {
             setSearch(e.target.value);
             setCurrentPage(1);
-          }} placeholder={t("admin.searchCandidates")} className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground" />
+          }} placeholder={t("admin.searchCandidates")} className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
         </div>
         <div className="flex flex-wrap gap-2">
           {STATUS_OPTS.map(status => (
@@ -62,15 +62,15 @@ export default function CandidateInbox() {
               className={`px-3 py-1 rounded-full text-xs font-bold border transition-all ${statusFilter === status ? "bg-primary text-white border-primary" : "bg-white border-border text-muted-foreground hover:border-primary hover:text-primary"}`}
             >{translateCandidateStatus(status, language)}</button>
           ))}
-          <div className="w-px h-4 bg-border self-center" />
+          <div className="hidden h-4 w-px self-center bg-border sm:block" />
           <select value={jobFilter} onChange={e => {
             setJobFilter(e.target.value);
             setCurrentPage(1);
-          }} className="px-3 py-1 rounded-full text-xs font-bold border border-border bg-white text-muted-foreground outline-none focus:border-primary transition-colors">
+          }} className="max-w-full rounded-full border border-border bg-white px-3 py-1 text-xs font-bold text-muted-foreground outline-none transition-colors focus:border-primary">
             <option value="all">{t("admin.allPositions")}</option>
             {jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}
           </select>
-          <span className="ml-auto text-xs text-muted-foreground self-center">{filtered.length} {t("jobs.resultCount")}</span>
+          <span className="w-full self-center text-xs text-muted-foreground sm:ml-auto sm:w-auto">{filtered.length} {t("jobs.resultCount")}</span>
         </div>
       </div>
 

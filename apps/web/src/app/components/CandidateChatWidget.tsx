@@ -16,7 +16,7 @@ export default function CandidateChatWidget() {
   }, [open]);
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end">
+    <div className="fixed bottom-5 right-5 z-50 hidden flex-col items-end md:flex">
       {open && (
         <div className="mb-3 h-[min(620px,calc(100vh-6rem))] w-[min(820px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-border bg-white shadow-2xl">
           <div className="flex h-12 items-center justify-between border-b border-border bg-primary px-4 text-white">

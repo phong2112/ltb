@@ -30,14 +30,14 @@ export default function Apply() {
 
   return (
     <PublicLayout>
-      <div className="mx-auto max-w-2xl px-6 py-8">
+      <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8">
         <Link to={`/jobs/${job.id}`} className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-primary">
           <ChevronLeft size={15} /> {t("apply.backToJd")}
         </Link>
 
         <ApplicationJobSummary job={job} />
 
-        <div className="mt-6 rounded-2xl border border-border bg-white p-6">
+        <div className="mt-6 rounded-2xl border border-border bg-white p-4 sm:p-6">
           <h1 className="mb-5 text-xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{t("apply.formTitle")}</h1>
           <ApplicationForm job={job} onSuccess={() => navigate("/apply/success")} />
         </div>

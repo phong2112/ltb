@@ -107,8 +107,8 @@ export default function CandidateDetail() {
     <AdminLayout>
       <div className="w-full max-w-[1560px] space-y-4">
         <header className="sticky top-16 z-20 overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_10px_30px_rgba(120,70,86,0.06)]">
-          <div className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex min-w-0 items-start gap-4">
+          <div className="flex flex-col gap-4 px-4 py-4 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex min-w-0 items-start gap-3 sm:gap-4">
               <div className="flex size-12 flex-none items-center justify-center rounded-xl bg-primary/10 text-sm font-black text-primary">
                 {getInitials(candidate.name)}
               </div>
@@ -131,17 +131,17 @@ export default function CandidateDetail() {
                 </div>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center lg:justify-end">
               {application.email && (
-                <a href={`mailto:${application.email}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-white px-3.5 text-xs font-bold text-muted-foreground hover:border-primary/40 hover:text-primary">
+                <a href={`mailto:${application.email}`} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border bg-white px-3.5 text-xs font-bold text-muted-foreground hover:border-primary/40 hover:text-primary">
                   <Mail size={15} /> Email
                 </a>
               )}
-              <Link to={`/admin/chats?candidate=${application.id}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-white px-3.5 text-xs font-bold text-muted-foreground hover:border-primary/40 hover:text-primary">
+              <Link to={`/admin/chats?candidate=${application.id}`} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border bg-white px-3.5 text-xs font-bold text-muted-foreground hover:border-primary/40 hover:text-primary">
                 <MessageSquare size={15} /> Mở chat
               </Link>
               {hasCv && (
-                <a href={application.cvUrl} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-xs font-bold text-white shadow-sm hover:bg-primary/90">
+                <a href={application.cvUrl} target="_blank" rel="noopener noreferrer" className="col-span-2 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-bold text-white shadow-sm hover:bg-primary/90 sm:col-span-1">
                   <FileText size={15} /> {t("common.openCv")} <ExternalLink size={13} />
                 </a>
               )}
@@ -161,7 +161,7 @@ export default function CandidateDetail() {
 
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(500px,560px)] 2xl:grid-cols-[minmax(0,1fr)_620px]">
           <main className="min-w-0 space-y-5">
-            <section className="rounded-2xl border border-border/80 bg-white p-5 shadow-[0_10px_30px_rgba(120,70,86,0.04)]">
+            <section className="rounded-2xl border border-border/80 bg-white p-4 shadow-[0_10px_30px_rgba(120,70,86,0.04)] sm:p-5">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <SectionHeading icon={<UserRound size={16} />} title={t("admin.personalInfo")} />
                 <div className="flex flex-wrap items-center gap-2">
@@ -185,7 +185,7 @@ export default function CandidateDetail() {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-border/80 bg-white p-5 shadow-[0_10px_30px_rgba(120,70,86,0.04)]">
+            <section className="rounded-2xl border border-border/80 bg-white p-4 shadow-[0_10px_30px_rgba(120,70,86,0.04)] sm:p-5">
               <div className="flex items-center justify-between gap-3">
                 <SectionHeading icon={<Calendar size={16} />} title={`${t("admin.status")} & ${t("common.followUp")}`} />
                 <StatusBadge status={application.status} language={language} />
@@ -259,7 +259,7 @@ function ApplicationHistory({ applications, selectedId, onSelect, title, languag
       </div>
       <div className="scrollbar-horizontal flex gap-2 overflow-x-auto">
         {applications.map(application => (
-          <button key={application.id} type="button" onClick={() => onSelect(application.id)} aria-pressed={application.id === selectedId} className={`grid min-w-56 flex-shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border px-3 py-2 text-left transition-all ${application.id === selectedId ? "border-primary/30 bg-primary/5 text-foreground shadow-sm" : "border-border/70 bg-white text-muted-foreground hover:border-primary/30 hover:text-foreground"}`}>
+          <button key={application.id} type="button" onClick={() => onSelect(application.id)} aria-pressed={application.id === selectedId} className={`grid min-w-52 flex-shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border px-3 py-2 text-left transition-all sm:min-w-56 ${application.id === selectedId ? "border-primary/30 bg-primary/5 text-foreground shadow-sm" : "border-border/70 bg-white text-muted-foreground hover:border-primary/30 hover:text-foreground"}`}>
             <span className="min-w-0">
               <span className="block truncate text-xs font-black">{application.jobTitle}</span>
               <span className="mt-0.5 block text-[10px] font-semibold">{application.appliedAt || "—"}</span>

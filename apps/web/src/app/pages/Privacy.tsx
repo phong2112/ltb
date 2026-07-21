@@ -349,7 +349,7 @@ export default function Privacy() {
   return (
     <PublicLayout>
       <div className="border-b border-border bg-gradient-to-br from-pink-50 to-background py-7">
-        <div className="max-w-3xl mx-auto px-6">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6">
           <Link to="/" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-primary">
             <ChevronLeft size={15} /> {t("common.home")}
           </Link>
@@ -370,7 +370,7 @@ export default function Privacy() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-6 py-10">
+      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
         <div className="grid sm:grid-cols-2 gap-3 mb-10">
           {content.highlights.map((highlight) => (
             <div key={highlight.key} className="flex items-start gap-3 p-4 bg-white border border-border rounded-2xl hover:border-primary/30 transition-all">
@@ -408,7 +408,7 @@ export default function Privacy() {
           ))}
         </div>
 
-        <div className="mt-12 p-6 bg-white border border-border rounded-2xl flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div className="mt-12 flex flex-col items-start gap-4 rounded-2xl border border-border bg-white p-4 sm:flex-row sm:items-center sm:p-6">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
             <Mail size={20} />
           </div>

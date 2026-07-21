@@ -45,19 +45,19 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
         {stats.map(s => (
           <Link key={s.label} to={s.link} className="group rounded-xl border border-border bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md">
-            <div className="mb-4 flex items-start justify-between gap-3">
+            <div className="mb-3 flex items-start justify-between gap-3 sm:mb-4">
               <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${s.color}`}>{s.icon}</div>
               <ArrowRight size={14} className="mt-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
             </div>
-            <div className="flex items-end justify-between gap-2">
+            <div className="flex min-w-0 items-end justify-between gap-2">
               <div>
                 <div className="text-2xl font-black leading-none text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{s.val}</div>
                 <div className="mt-1 text-xs font-semibold text-muted-foreground">{s.label}</div>
               </div>
-              <span className="rounded-full bg-secondary px-2 py-1 text-[10px] font-bold text-muted-foreground">{s.meta}</span>
+              <span className="max-w-[55%] rounded-full bg-secondary px-2 py-1 text-right text-[10px] font-bold leading-tight text-muted-foreground">{s.meta}</span>
             </div>
           </Link>
         ))}
@@ -65,14 +65,14 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[0.9fr_1.1fr]">
         {/* Recent candidates */}
-        <div className="rounded-xl border border-border bg-white p-5">
+        <div className="rounded-xl border border-border bg-white p-4 sm:p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{t("admin.recentCandidates")}</h2>
             <Link to="/admin/candidates" className="text-xs text-primary font-semibold hover:underline flex items-center gap-1">{t("home.ctaJobs")} <ArrowRight size={11} /></Link>
           </div>
           <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
             {recentCandidates.length ? recentCandidates.map(c => (
-              <Link key={c.id} to={`/admin/candidates/${c.candidateId}?application=${c.applicationId}`} className="group grid grid-cols-[auto_1fr_auto] items-center gap-3 bg-white p-3 transition-colors hover:bg-pink-50">
+              <Link key={c.id} to={`/admin/candidates/${c.candidateId}?application=${c.applicationId}`} className="group grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 bg-white p-3 transition-colors hover:bg-pink-50 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
                 <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-muted-foreground font-bold text-sm flex-shrink-0">{c.name.charAt(0)}</div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-foreground truncate group-hover:text-primary transition-colors">{c.name}</p>
@@ -81,7 +81,7 @@ export default function AdminDashboard() {
                     <span className="inline-flex items-center gap-1"><Clock size={11} /> {c.appliedAt}</span>
                   </div>
                 </div>
-                <span className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold ${CANDIDATE_STATUS_CONFIG[c.status].badgeClass}`}>
+                <span className={`col-start-2 w-fit flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold sm:col-start-auto ${CANDIDATE_STATUS_CONFIG[c.status].badgeClass}`}>
                   {translateCandidateStatus(c.status, language)}
                 </span>
               </Link>
@@ -92,7 +92,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Priority tasks */}
-        <div className="rounded-xl border border-border bg-white p-5">
+        <div className="rounded-xl border border-border bg-white p-4 sm:p-5">
           <h2 className="font-black text-foreground mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>{t("admin.todayTasks")}</h2>
           <div className="grid sm:grid-cols-2 gap-3">
             {[

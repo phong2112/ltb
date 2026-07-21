@@ -140,9 +140,9 @@ export default function CandidateChatPanel({ initialCandidateId, mode = "full" }
   }
 
   return (
-    <div className={`bg-white overflow-hidden ${isWidget ? "h-full" : "h-[calc(100vh-9rem)] min-h-[620px] rounded-2xl border border-border"}`}>
-      <div className={isWidget ? "grid h-full min-h-0 grid-cols-[250px_minmax(0,1fr)]" : "grid h-full grid-cols-1 md:grid-cols-[300px_minmax(0,1fr)]"}>
-        <aside className="flex border-r border-border bg-white flex-col min-h-0">
+    <div className={`overflow-hidden bg-white ${isWidget ? "h-full" : "h-[calc(100dvh-10rem)] min-h-[620px] rounded-2xl border border-border"}`}>
+      <div className={isWidget ? "grid h-full min-h-0 grid-cols-[250px_minmax(0,1fr)]" : "grid h-full grid-cols-1 grid-rows-[220px_minmax(0,1fr)] md:grid-cols-[300px_minmax(0,1fr)] md:grid-rows-1"}>
+        <aside className="flex min-h-0 flex-col border-b border-border bg-white md:border-b-0 md:border-r">
           <div className={`${isWidget ? "p-3" : "p-4"} border-b border-border`}>
             <div className="flex items-center gap-2 bg-background rounded-xl px-3 py-2 border border-border">
               <Search size={14} className="text-muted-foreground" />
@@ -220,7 +220,7 @@ export default function CandidateChatPanel({ initialCandidateId, mode = "full" }
                   </div>
                   <Link
                     to={`/admin/candidates/${activeCandidate.candidateId}?application=${activeCandidate.applicationId}`}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border px-3 text-xs font-bold text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                    className="inline-flex h-9 flex-none items-center gap-1.5 rounded-xl border border-border px-3 text-xs font-bold text-muted-foreground transition-colors hover:border-primary hover:text-primary"
                   >
                     <UserRound size={13} /> Hồ sơ
                   </Link>
@@ -265,7 +265,7 @@ export default function CandidateChatPanel({ initialCandidateId, mode = "full" }
                       const outbound = message.direction === "outbound";
                       return (
                         <div key={message.id} className={`flex ${outbound ? "justify-end" : "justify-start"}`}>
-                          <div className={`${isWidget ? "max-w-[86%]" : "max-w-[78%]"} rounded-2xl px-3 py-2 text-sm shadow-sm ${outbound ? "bg-primary text-white rounded-br-md" : "bg-white border border-border text-foreground rounded-bl-md"}`}>
+                          <div className={`${isWidget ? "max-w-[86%]" : "max-w-[88%] sm:max-w-[78%]"} min-w-0 break-words rounded-2xl px-3 py-2 text-sm shadow-sm ${outbound ? "bg-primary text-white rounded-br-md" : "bg-white border border-border text-foreground rounded-bl-md"}`}>
                             <div className={`mb-1 flex items-center gap-1.5 text-[10px] font-bold ${outbound ? "text-white/80" : "text-muted-foreground"}`}>
                               {iconForChannel(message.channel)}
                               <span>{labelForChannel(message.channel)}</span>

@@ -172,14 +172,14 @@ export default function MessageTemplates() {
             <h1 className="text-2xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{t("admin.messageTemplatesTitle")}</h1>
             <p className="text-muted-foreground text-sm mt-0.5">{t("admin.templatesSubtitle")}</p>
           </div>
-          <button type="button" onClick={isCreating ? closeEditor : openCreateEditor} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-primary/90">
+          <button type="button" onClick={isCreating ? closeEditor : openCreateEditor} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-primary/90 sm:w-auto">
             {isCreating ? <X size={16} /> : <Plus size={16} />}
             {isCreating ? t("admin.cancel") : t("admin.createTemplate")}
           </button>
         </div>
 
         {isCreating && (
-          <form id="template-editor" onSubmit={submitTemplate} className="mb-5 scroll-mt-4 rounded-2xl border border-pink-100 bg-white p-5 shadow-sm">
+          <form id="template-editor" onSubmit={submitTemplate} className="mb-5 scroll-mt-4 rounded-2xl border border-pink-100 bg-white p-4 shadow-sm sm:p-5">
             <h2 className="mb-4 text-base font-black text-foreground">{t(editingId ? "admin.editTemplateTitle" : "admin.newTemplate")}</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="text-xs font-bold text-foreground">
@@ -217,8 +217,8 @@ export default function MessageTemplates() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {filtered.map((template) => (
-            <div key={template.id} className="bg-white rounded-2xl border border-border p-5 hover:shadow-sm transition-all">
-              <div className="flex items-start justify-between gap-3 mb-3">
+            <div key={template.id} className="rounded-2xl border border-border bg-white p-4 transition-all hover:shadow-sm sm:p-5">
+              <div className="mb-3 flex flex-col items-stretch gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex min-w-0 items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-pink-50 border border-pink-100 flex items-center justify-center text-primary flex-shrink-0">{template.icon}</div>
                   <div className="min-w-0">
