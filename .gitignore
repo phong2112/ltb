@@ -10,4 +10,5 @@ uploads
 *.tsbuildinfo
 .DS_Store
 .vercel
+.wrangler
 docker/nginx/.htpasswd

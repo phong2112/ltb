@@ -1,15 +1,12 @@
-name: Keep Render API alive
+name: Manual Render API health check
 
 on:
-  schedule:
-    # UTC: run every 12 minutes, offset from the top of the hour.
-    - cron: "7-59/12 * * * *"
   workflow_dispatch:
 
 permissions: {}
 
 concurrency:
-  group: render-keep-alive
+  group: manual-render-health-check
   cancel-in-progress: true
 
 jobs:

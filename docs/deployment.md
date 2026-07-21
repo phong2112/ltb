@@ -110,27 +110,38 @@ Then verify the browser flow:
 
 ### 5. Keep The Free Render API Warm
 
-The repository includes `.github/workflows/render-keep-alive.yml`. On the
-default branch, GitHub Actions calls the public API health endpoint every 12
-minutes. The schedule is offset from the top of the hour to reduce scheduler
-congestion.
+`apps/keep-alive-worker` is a Cloudflare Worker that calls the Render `/health`
+endpoint every 12 minutes. The health endpoint does not query PostgreSQL, so
+this keeps the Render API warm while still allowing Neon to scale to zero.
 
-Add the deployed health URL as a GitHub Actions repository variable:
+Authenticate Wrangler and deploy the development environment:
 
 ```bash
-gh variable set RENDER_HEALTH_URL \
-  --body "https://your-render-service.onrender.com/health"
+corepack pnpm install --frozen-lockfile
+corepack pnpm dlx wrangler login
+corepack pnpm --filter @hr-copilot/keep-alive-worker deploy:dev
 ```
 
-Push the workflow to the default branch, then run it once from GitHub Actions
-with **Run workflow** and confirm that the job succeeds. The health endpoint
-does not query PostgreSQL, so this keeps the Render API warm while still
-allowing Neon to scale to zero.
+The `dev` environment deploys `ltb-render-keep-alive-dev` with the schedule
+`*/12 * * * *` in UTC. Cron Trigger changes can take up to 15 minutes to
+propagate. Confirm executions in Cloudflare Dashboard > Workers & Pages >
+`ltb-render-keep-alive-dev` > Settings > Trigger Events.
 
-Scheduled GitHub Actions can run late and GitHub automatically disables
-scheduled workflows in public repositories after 60 days without repository
-activity. This keep-alive is appropriate for a free demo/MVP, not an uptime
-guarantee for production.
+Development Worker health URL:
+
+```text
+https://ltb-render-keep-alive-dev.ltb-phong2112.workers.dev/health
+```
+
+Stream live execution logs with:
+
+```bash
+corepack pnpm --filter @hr-copilot/keep-alive-worker exec wrangler tail --env dev
+```
+
+The GitHub workflow `.github/workflows/render-keep-alive.yml` remains available
+only as a manual health-check fallback. GitHub Actions is not used for the
+12-minute schedule because scheduled runs can be delayed or dropped.
 
 ## 1. Verify Local Build
 

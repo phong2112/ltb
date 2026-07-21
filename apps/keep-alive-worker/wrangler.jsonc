@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ltb-render-keep-alive",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-21",
+  "observability": {
+    "enabled": true
+  },
+  "env": {
+    "dev": {
+      "name": "ltb-render-keep-alive-dev",
+      "vars": {
+        "RENDER_HEALTH_URL": "https://ltb-7mi0.onrender.com/health"
+      },
+      "triggers": {
+        "crons": ["*/12 * * * *"]
+      }
+    }
+  }
+}
