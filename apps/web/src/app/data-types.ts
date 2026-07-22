@@ -6,6 +6,13 @@ export type { CandidateStatus, JobStatus } from "@/app/status-config";
 export type CandidateMessageChannel = "system" | "messenger" | "zalo" | "email" | "linkedin";
 type CandidateMessageDirection = "inbound" | "outbound";
 export type AiAnalysisStatus = "pending" | "completed" | "failed";
+export type ApiCvParseStatus =
+  | "PENDING"
+  | "EXTRACTING"
+  | "EXTRACTED"
+  | "ANALYZING"
+  | "COMPLETED"
+  | "FAILED";
 
 export type CandidateMessage = {
   id: string;
@@ -161,7 +168,7 @@ export type ApiApplication = {
     screeningQuestions?: unknown;
   } | null;
   cvParseResult?: {
-    status?: "PENDING" | "COMPLETED" | "FAILED";
+    status?: ApiCvParseStatus;
     summary?: string | null;
     errorMessage?: string | null;
     structuredData?: unknown;
@@ -181,6 +188,16 @@ export type ApiApplication = {
     phone?: string | null;
     portfolioUrl?: string | null;
   };
+};
+
+export type ApiApplicationAnalysis = {
+  applicationId: string;
+  status: ApiCvParseStatus;
+  summary?: string | null;
+  errorMessage?: string | null;
+  confidence?: number | null;
+  updatedAt?: string;
+  matchResult?: ApiApplication["matchResult"];
 };
 
 export type ApiCandidateProfile = {
@@ -221,6 +238,7 @@ export type DataCtx = {
   savedJobIds: string[];
   reloadPublicJobs: () => Promise<void>;
   reloadAdminData: () => Promise<void>;
+  refreshCandidateAnalysis: (applicationId: string) => Promise<AiAnalysisStatus>;
   addJob: (j: JobInput) => Promise<void>;
   updateJob: (id: string, patch: Partial<Job>) => Promise<void>;
   addCandidate: (c: NewCandidate) => Promise<void>;

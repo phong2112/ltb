@@ -75,10 +75,10 @@ Implemented for local demo:
 
 - PDF, DOC, and DOCX text extraction.
 - Ollama provider using the local `qwen3:4b` model.
-- BullMQ background jobs backed by Redis.
+- Separate BullMQ extraction and AI matching queues backed by Redis.
 - Evidence-based comparison for each JD requirement.
 - Deterministic score calculation in application code.
-- Parse pending, completed, and failed UI states.
+- Parse pending, extracting, extracted, analyzing, completed, and failed backend states.
 - AI summary, strengths, risks, missing requirements, screening questions, and evidence confidence.
 
 ### Phase 6: Outreach Helper
@@ -232,12 +232,14 @@ docker compose -f docker-compose.dev.yml --project-name hr-copilot-dev exec olla
 1. Start the dev stack with `CV_STORAGE_DRIVER=local ./run.sh`.
 2. Publish or select a job with explicit requirements.
 3. Submit a new application with a PDF, DOC, or DOCX CV upload.
-4. Open the candidate detail page. It refreshes while the BullMQ job is pending.
+4. Open the candidate detail page. It polls the lightweight application-analysis endpoint while processing is pending.
 5. Review the Qwen summary, match score, confidence, strengths, risks, and missing requirements.
 
 The model never supplies the final score. It classifies every JD criterion as `met`, `partial`, `not_met`, or `unknown` with CV evidence; the API calculates the weighted score. AI output is assistive and must not automatically reject a candidate.
 
 Scanned PDFs without an extractable text layer show a failed state for manual review. OCR is intentionally outside this local demo.
+
+The processing pipeline first persists extracted CV text, then enqueues a separate AI matching job. Extraction concurrency and Ollama concurrency are configured independently with `CV_EXTRACTION_CONCURRENCY` and `AI_MATCH_CONCURRENCY`.
 
 ## Architecture Notes
 

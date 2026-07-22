@@ -41,7 +41,7 @@ import {
 export default function CandidateDetail() {
   const { id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { candidateProfiles, isLoading, reloadAdminData, updateCandidate } = useData();
+  const { candidateProfiles, isLoading, refreshCandidateAnalysis, updateCandidate } = useData();
   const { language, t } = useLanguage();
   const candidate = candidateProfiles.find(profile => profile.id === id);
   const requestedApplicationId = searchParams.get("application");
@@ -62,9 +62,11 @@ export default function CandidateDetail() {
 
   useEffect(() => {
     if (selectedApplication?.aiStatus !== "pending") return;
-    const interval = window.setInterval(() => void reloadAdminData(), 5_000);
+    const interval = window.setInterval(() => {
+      void refreshCandidateAnalysis(selectedApplication.applicationId).catch(() => undefined);
+    }, 5_000);
     return () => window.clearInterval(interval);
-  }, [selectedApplication?.aiStatus, reloadAdminData]);
+  }, [selectedApplication?.aiStatus, selectedApplication?.applicationId, refreshCandidateAnalysis]);
 
   if (!candidate && isLoading) {
     return (

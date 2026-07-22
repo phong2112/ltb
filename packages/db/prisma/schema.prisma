@@ -38,6 +38,9 @@ enum FileStorageTier {
 
 enum CvParseStatus {
   PENDING
+  EXTRACTING
+  EXTRACTED
+  ANALYZING
   COMPLETED
   FAILED
 }

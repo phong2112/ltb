@@ -9,11 +9,20 @@ import {
   type CriterionEvaluation,
   type MatchCriterion,
 } from "./ai.types";
-import { CvTextExtractorService } from "./cv-text-extractor.service";
+import { CvTextExtractorService, type ExtractedCvText } from "./cv-text-extractor.service";
 import { calculateConfidence, calculateMatchScore, extractMatchCriteria } from "./match-scoring";
 
 const MAX_AI_CV_CHARACTERS = 45_000;
 const MAX_JOB_DESCRIPTION_CHARACTERS = 12_000;
+const CV_EXTRACTION_VERSION = "cv-text-extraction-v1";
+
+type ExtractedApplicationCv = {
+  candidateFileId: string;
+  text: string;
+  parser?: ExtractedCvText["parser"];
+};
+
+export type AiProcessingStage = "extraction" | "analysis" | "queue";
 
 @Injectable()
 export class AiService {
@@ -24,10 +33,15 @@ export class AiService {
   ) {}
 
   async processApplication(applicationId: string) {
+    const extracted = await this.extractApplicationCv(applicationId);
+    await this.analyzeApplication(applicationId, extracted);
+  }
+
+  async extractApplicationCv(applicationId: string): Promise<ExtractedApplicationCv> {
     const application = await this.prisma.application.findUnique({
       where: { id: applicationId },
       include: {
-        job: true,
+        cvParseResult: true,
         files: {
           where: { kind: FileKind.CV },
           orderBy: { createdAt: "desc" },
@@ -46,27 +60,128 @@ export class AiService {
       throw new Error("Uploaded CV file is required for AI matching");
     }
 
+    const existingText = application.cvParseResult?.candidateFileId === cvFile.id
+      ? application.cvParseResult.extractedText?.trim()
+      : undefined;
+    const existingMetadata = asInputJsonObject(application.cvParseResult?.structuredData);
+
+    if (existingText) {
+      if (
+        application.cvParseResult?.status !== CvParseStatus.ANALYZING &&
+        application.cvParseResult?.status !== CvParseStatus.COMPLETED
+      ) {
+        await this.prisma.cvParseResult.update({
+          where: { applicationId },
+          data: {
+            status: CvParseStatus.EXTRACTED,
+            summary: "Đã trích xuất nội dung CV và đang chờ phân tích mức độ phù hợp.",
+            errorMessage: null,
+          },
+        });
+      }
+
+      return {
+        candidateFileId: cvFile.id,
+        text: existingText,
+        parser: readParser(existingMetadata.parser),
+      };
+    }
+
     await this.prisma.cvParseResult.update({
       where: { applicationId },
       data: {
-        status: CvParseStatus.PENDING,
+        status: CvParseStatus.EXTRACTING,
+        summary: "Đang trích xuất nội dung từ CV.",
         errorMessage: null,
         candidateFileId: cvFile.id,
       },
     });
 
     const extracted = await this.textExtractor.extract(cvFile);
+
+    await this.prisma.$transaction([
+      this.prisma.cvParseResult.update({
+        where: { applicationId },
+        data: {
+          status: CvParseStatus.EXTRACTED,
+          summary: "Đã trích xuất nội dung CV và đang chờ phân tích mức độ phù hợp.",
+          extractedText: extracted.text,
+          errorMessage: null,
+          structuredData: {
+            ...existingMetadata,
+            source: "cv_extraction",
+            parser: extracted.parser,
+            extractionVersion: CV_EXTRACTION_VERSION,
+            extractedCharacters: extracted.text.length,
+            fileName: cvFile.originalName,
+          } satisfies Prisma.InputJsonObject,
+        },
+      }),
+      this.prisma.activityLog.create({
+        data: {
+          candidateId: application.candidateId,
+          applicationId: application.id,
+          jobId: application.jobId,
+          candidateFileId: cvFile.id,
+          actor: "system",
+          action: "cv_extraction_completed",
+          metadata: {
+            parser: extracted.parser,
+            extractionVersion: CV_EXTRACTION_VERSION,
+            extractedCharacters: extracted.text.length,
+          },
+        },
+      }),
+    ]);
+
+    return {
+      candidateFileId: cvFile.id,
+      text: extracted.text,
+      parser: extracted.parser,
+    };
+  }
+
+  async analyzeApplication(applicationId: string, extractedInput?: ExtractedApplicationCv) {
+    const application = await this.prisma.application.findUnique({
+      where: { id: applicationId },
+      include: {
+        job: true,
+        cvParseResult: true,
+      },
+    });
+
+    if (!application) {
+      throw new Error("Application not found");
+    }
+
+    const extractedText = extractedInput?.text ?? application.cvParseResult?.extractedText;
+    const candidateFileId = extractedInput?.candidateFileId ?? application.cvParseResult?.candidateFileId;
+
+    if (!extractedText || !candidateFileId) {
+      throw new Error("Extracted CV text is required for AI matching");
+    }
+
+    await this.prisma.cvParseResult.update({
+      where: { applicationId },
+      data: {
+        status: CvParseStatus.ANALYZING,
+        summary: "Đang phân tích CV và đối chiếu với yêu cầu công việc.",
+        errorMessage: null,
+      },
+    });
+
     const criteria = extractMatchCriteria(htmlToPlainText(application.job.requirements));
     const analysis = await this.provider.analyzeMatch({
       jobTitle: application.job.title,
       jobDescription: htmlToPlainText(application.job.description).slice(0, MAX_JOB_DESCRIPTION_CHARACTERS),
       criteria,
-      cvText: extracted.text.slice(0, MAX_AI_CV_CHARACTERS),
+      cvText: extractedText.slice(0, MAX_AI_CV_CHARACTERS),
     });
     const normalizedEvaluations = normalizeEvaluations(criteria, analysis.evaluations);
     const score = calculateMatchScore(criteria, normalizedEvaluations);
     const confidence = calculateConfidence(criteria, normalizedEvaluations);
     const missingRequirements = buildMissingRequirements(criteria, normalizedEvaluations);
+    const extractionMetadata = asInputJsonObject(application.cvParseResult?.structuredData);
 
     await this.prisma.$transaction([
       this.prisma.cvParseResult.update({
@@ -74,16 +189,17 @@ export class AiService {
         data: {
           status: CvParseStatus.COMPLETED,
           summary: analysis.summary,
-          extractedText: extracted.text,
+          extractedText,
           errorMessage: null,
           structuredData: {
+            ...extractionMetadata,
             source: "ai_match",
             provider: this.provider.name,
             model: this.provider.model,
             promptVersion: MATCH_PROMPT_VERSION,
-            parser: extracted.parser,
+            parser: extractedInput?.parser ?? extractionMetadata.parser ?? "unknown",
             confidence,
-            inputTruncated: extracted.text.length > MAX_AI_CV_CHARACTERS,
+            inputTruncated: extractedText.length > MAX_AI_CV_CHARACTERS,
             profile: analysis.profile,
             criteria: criteria.map((criterion) => ({
               ...criterion,
@@ -115,7 +231,7 @@ export class AiService {
           candidateId: application.candidateId,
           applicationId: application.id,
           jobId: application.jobId,
-          candidateFileId: cvFile.id,
+          candidateFileId,
           actor: "system",
           action: "ai_match_completed",
           metadata: {
@@ -130,7 +246,7 @@ export class AiService {
     ]);
   }
 
-  async markFailed(applicationId: string, error: unknown) {
+  async markFailed(applicationId: string, error: unknown, stage: AiProcessingStage = "analysis") {
     const application = await this.prisma.application.findUnique({
       where: { id: applicationId },
       select: { candidateId: true, jobId: true, cvParseResult: { select: { candidateFileId: true } } },
@@ -138,14 +254,19 @@ export class AiService {
 
     if (!application) return;
 
-    const errorMessage = toSafeErrorMessage(error);
+    const errorMessage = toSafeErrorMessage(error, stage);
+    const summary = stage === "extraction"
+      ? "Không thể trích xuất nội dung CV tự động. HR vẫn có thể xem CV và đánh giá thủ công."
+      : stage === "queue"
+        ? "Đã trích xuất CV nhưng không thể bắt đầu phân tích AI. HR vẫn có thể đánh giá thủ công."
+        : "Không thể phân tích CV tự động. HR vẫn có thể xem CV và đánh giá thủ công.";
 
     await this.prisma.$transaction([
       this.prisma.cvParseResult.update({
         where: { applicationId },
         data: {
           status: CvParseStatus.FAILED,
-          summary: "Không thể phân tích CV tự động. HR vẫn có thể xem CV và đánh giá thủ công.",
+          summary,
           errorMessage,
         },
       }),
@@ -156,8 +277,8 @@ export class AiService {
           jobId: application.jobId,
           candidateFileId: application.cvParseResult?.candidateFileId,
           actor: "system",
-          action: "ai_match_failed",
-          metadata: { error: errorMessage },
+          action: stage === "extraction" ? "cv_extraction_failed" : "ai_match_failed",
+          metadata: { error: errorMessage, stage },
         },
       }),
     ]);
@@ -203,15 +324,33 @@ function htmlToPlainText(value: string) {
     .trim();
 }
 
-function toSafeErrorMessage(error: unknown) {
+function asInputJsonObject(value: Prisma.JsonValue | null | undefined): Prisma.InputJsonObject {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Prisma.InputJsonObject;
+}
+
+function readParser(value: Prisma.InputJsonValue | null | undefined): ExtractedCvText["parser"] | undefined {
+  if (value === "pdf-parse" || value === "mammoth" || value === "word-extractor") return value;
+  return undefined;
+}
+
+function toSafeErrorMessage(error: unknown, stage: AiProcessingStage) {
   const message = error instanceof Error ? error.message : "Unknown AI processing error";
 
-  if (/fetch failed|ECONNREFUSED|connect/i.test(message)) {
+  if (stage === "analysis" && /fetch failed|ECONNREFUSED|connect/i.test(message)) {
     return "Không thể kết nối tới Ollama. Kiểm tra container và model Qwen.";
   }
 
   if (/extractable text|Unsupported CV|extraction size/i.test(message)) {
     return message;
+  }
+
+  if (stage === "extraction") {
+    return "Không thể đọc nội dung CV. Hãy kiểm tra định dạng tệp hoặc đánh giá CV thủ công.";
+  }
+
+  if (stage === "queue") {
+    return "Không thể đưa hồ sơ vào hàng đợi phân tích AI. Hãy thử lại sau.";
   }
 
   return "AI không trả về kết quả hợp lệ. Hãy thử lại hoặc đánh giá CV thủ công.";

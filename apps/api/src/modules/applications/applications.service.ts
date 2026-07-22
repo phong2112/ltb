@@ -136,10 +136,10 @@ export class ApplicationsService {
                 applicationId: application.id,
                 candidateFileId,
                 status: cv ? CvParseStatus.PENDING : CvParseStatus.FAILED,
-                summary: cv ? "Hồ sơ đang được Qwen phân tích và đối chiếu với yêu cầu công việc." : "AI matching cần CV được tải lên; liên kết bên ngoài không được tự động truy cập.",
+                summary: cv ? "Hồ sơ đã được tiếp nhận và đang chờ trích xuất nội dung." : "AI matching cần CV được tải lên; liên kết bên ngoài không được tự động truy cập.",
                 errorMessage: cv ? undefined : "Uploaded CV file is required for AI matching",
                 structuredData: {
-                  source: cv ? "ai_match_pending" : "external_link_not_processed",
+                  source: cv ? "cv_processing_queued" : "external_link_not_processed",
                   cvSource: cv ? "uploaded_file" : "external_link",
                   fileName: cv?.originalname ?? submittedPortfolioUrl ?? "candidate-provided-link",
                 },
