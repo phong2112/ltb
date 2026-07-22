@@ -78,5 +78,11 @@ describe("AiService", () => {
     expect(cvParseUpdate).toHaveBeenLastCalledWith(expect.objectContaining({
       data: expect.objectContaining({ status: "COMPLETED" }),
     }));
+    expect(cvParseUpdate.mock.calls.map(([input]) => input.data.status)).toEqual([
+      "EXTRACTING",
+      "EXTRACTED",
+      "ANALYZING",
+      "COMPLETED",
+    ]);
   });
 });

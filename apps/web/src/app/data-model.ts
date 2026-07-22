@@ -4,8 +4,10 @@ import type { CandidateStatus, JobStatus } from "@/app/status-config";
 import type {
   AiAnalysisStatus,
   ApiApplication,
+  ApiApplicationAnalysis,
   ApiCandidateMessage,
   ApiCandidateProfile,
+  ApiCvParseStatus,
   ApiJob,
   Candidate,
   CandidateMessage,
@@ -17,6 +19,7 @@ import type {
 
 export type {
   ApiAuthSession,
+  ApiApplicationAnalysis,
   ApiCandidateMessage,
   ApiCandidateProfile,
   ApiJob,
@@ -168,10 +171,26 @@ function mapCandidate(application: ApiApplication): Candidate | null {
   };
 }
 
-function mapAiAnalysisStatus(status?: ApiApplication["cvParseResult"] extends infer Result ? (Result extends { status?: infer Status } ? Status : never) : never): AiAnalysisStatus {
+function mapAiAnalysisStatus(status?: ApiCvParseStatus): AiAnalysisStatus {
   if (status === "COMPLETED") return "completed";
   if (status === "FAILED") return "failed";
   return "pending";
+}
+
+export function mapApplicationAnalysis(analysis: ApiApplicationAnalysis): Pick<
+  Candidate,
+  "aiScore" | "aiStatus" | "aiConfidence" | "aiError" | "aiSummary" | "strengths" | "risks" | "missingReqs"
+> {
+  return {
+    aiScore: analysis.matchResult?.score ?? 0,
+    aiStatus: mapAiAnalysisStatus(analysis.status),
+    aiConfidence: typeof analysis.confidence === "number" ? analysis.confidence : null,
+    aiError: analysis.errorMessage ?? "",
+    aiSummary: analysis.summary ?? "Hồ sơ đang được AI phân tích...",
+    strengths: toStringArray(analysis.matchResult?.strengths),
+    risks: toStringArray(analysis.matchResult?.risks),
+    missingReqs: toStringArray(analysis.matchResult?.missingRequirements),
+  };
 }
 
 export function mapCandidateProfile(candidate: ApiCandidateProfile): CandidateProfile {

@@ -184,7 +184,7 @@ Candidate identity rules for the MVP:
 - Store normalized email and phone on `Candidate` for lookup, but do not use name as an automatic duplicate key.
 - Store normalized email and phone snapshots on `Application` and enforce one application per job per normalized email/phone.
 - Do not let unauthenticated duplicate submissions overwrite an existing candidate, application, or CV.
-- Keep CV parse status controlled by enum values (`PENDING`, `COMPLETED`, `FAILED`) instead of free-form strings.
+- Keep CV processing status controlled by enum values (`PENDING`, `EXTRACTING`, `EXTRACTED`, `ANALYZING`, `COMPLETED`, `FAILED`) instead of free-form strings.
 - Store direct nullable audit links on `ActivityLog` (`applicationId`, `jobId`, `candidateFileId`) for sensitive actions; keep JSON metadata only as context.
 - Store active CV objects in private Cloudflare R2. When a job becomes `ARCHIVED`, move its CV objects to private Vercel Blob storage and mark `CandidateFile.storageTier=ARCHIVE`; restore them to R2 when the job is restored.
 

@@ -3,10 +3,12 @@ import { ConfigService } from "@nestjs/config";
 import { type ConnectionOptions, Job, Queue, Worker } from "bullmq";
 import { AiService } from "./ai.service";
 
+const CV_EXTRACTION_QUEUE = "cv-extraction";
+const CV_EXTRACTION_JOB = "extract-cv" as const;
 const AI_MATCH_QUEUE = "ai-cv-match";
 const AI_MATCH_JOB = "analyze-application" as const;
 
-type AiMatchJob = {
+type ApplicationProcessingJob = {
   applicationId: string;
 };
 
@@ -14,8 +16,10 @@ type AiMatchJob = {
 export class AiQueueService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AiQueueService.name);
   private readonly enabled: boolean;
-  private queue?: Queue<AiMatchJob, void, typeof AI_MATCH_JOB>;
-  private worker?: Worker<AiMatchJob, void, typeof AI_MATCH_JOB>;
+  private extractionQueue?: Queue<ApplicationProcessingJob, void, typeof CV_EXTRACTION_JOB>;
+  private matchQueue?: Queue<ApplicationProcessingJob, void, typeof AI_MATCH_JOB>;
+  private extractionWorker?: Worker<ApplicationProcessingJob, void, typeof CV_EXTRACTION_JOB>;
+  private matchWorker?: Worker<ApplicationProcessingJob, void, typeof AI_MATCH_JOB>;
 
   constructor(
     private readonly configService: ConfigService,
@@ -32,51 +36,116 @@ export class AiQueueService implements OnModuleInit, OnModuleDestroy {
 
     const redisUrl = this.configService.getOrThrow<string>("REDIS_URL");
     const connection = parseRedisConnection(redisUrl);
-    this.queue = new Queue<AiMatchJob, void, typeof AI_MATCH_JOB>(AI_MATCH_QUEUE, { connection });
-    this.worker = new Worker<AiMatchJob, void, typeof AI_MATCH_JOB>(AI_MATCH_QUEUE, (job) => this.processJob(job), {
-      connection,
-      concurrency: 1,
+    const extractionConcurrency = this.configService.get<number>("CV_EXTRACTION_CONCURRENCY") ?? 2;
+    const matchConcurrency = this.configService.get<number>("AI_MATCH_CONCURRENCY") ?? 1;
+
+    this.extractionQueue = new Queue(CV_EXTRACTION_QUEUE, { connection });
+    this.matchQueue = new Queue(AI_MATCH_QUEUE, { connection });
+    this.extractionWorker = new Worker(
+      CV_EXTRACTION_QUEUE,
+      job => this.processExtractionJob(job),
+      { connection, concurrency: extractionConcurrency },
+    );
+    this.matchWorker = new Worker(
+      AI_MATCH_QUEUE,
+      job => this.processMatchJob(job),
+      { connection, concurrency: matchConcurrency },
+    );
+
+    this.extractionWorker.on("completed", job => {
+      this.logger.log(`CV extraction completed for application ${job.data.applicationId}`);
     });
-    this.worker.on("completed", (job) => this.logger.log(`AI match completed for application ${job.data.applicationId}`));
-    this.worker.on("failed", (job) => this.logger.warn(`AI match failed for application ${job?.data.applicationId ?? "unknown"}`));
-    this.worker.on("error", () => this.logger.error("AI queue worker connection error"));
+    this.extractionWorker.on("failed", job => {
+      this.logger.warn(`CV extraction failed for application ${job?.data.applicationId ?? "unknown"}`);
+    });
+    this.extractionWorker.on("error", () => this.logger.error("CV extraction worker connection error"));
+    this.matchWorker.on("completed", job => {
+      this.logger.log(`AI match completed for application ${job.data.applicationId}`);
+    });
+    this.matchWorker.on("failed", job => {
+      this.logger.warn(`AI match failed for application ${job?.data.applicationId ?? "unknown"}`);
+    });
+    this.matchWorker.on("error", () => this.logger.error("AI match worker connection error"));
   }
 
   async enqueue(applicationId: string) {
     if (!this.enabled) return false;
-    if (!this.queue) throw new Error("AI queue is not ready");
+    if (!this.extractionQueue) throw new Error("CV extraction queue is not ready");
 
-    const attempts = this.configService.get<number>("AI_JOB_ATTEMPTS") ?? 2;
-
-    await this.queue.add(AI_MATCH_JOB, { applicationId }, {
-      jobId: `match-${applicationId}`,
-      attempts,
-      backoff: { type: "exponential", delay: 5_000 },
-      removeOnComplete: 100,
-      removeOnFail: 100,
+    await this.extractionQueue.add(CV_EXTRACTION_JOB, { applicationId }, {
+      ...this.defaultJobOptions(),
+      jobId: `extract-${applicationId}`,
     });
 
     return true;
   }
 
   async onModuleDestroy() {
-    await this.worker?.close();
-    await this.queue?.close();
+    await this.extractionWorker?.close();
+    await this.matchWorker?.close();
+    await this.extractionQueue?.close();
+    await this.matchQueue?.close();
   }
 
-  private async processJob(job: Job<AiMatchJob, void, typeof AI_MATCH_JOB>) {
+  private async processExtractionJob(
+    job: Job<ApplicationProcessingJob, void, typeof CV_EXTRACTION_JOB>,
+  ) {
     try {
-      await this.aiService.processApplication(job.data.applicationId);
+      await this.aiService.extractApplicationCv(job.data.applicationId);
     } catch (error) {
-      const attempts = job.opts.attempts ?? 1;
-
-      if (job.attemptsMade + 1 >= attempts) {
-        await this.aiService.markFailed(job.data.applicationId, error);
+      if (isFinalAttempt(job)) {
+        await this.aiService.markFailed(job.data.applicationId, error, "extraction");
       }
+      throw error;
+    }
 
+    try {
+      await this.enqueueMatch(job.data.applicationId);
+    } catch (error) {
+      if (isFinalAttempt(job)) {
+        await this.aiService.markFailed(job.data.applicationId, error, "queue");
+      }
       throw error;
     }
   }
+
+  private async processMatchJob(
+    job: Job<ApplicationProcessingJob, void, typeof AI_MATCH_JOB>,
+  ) {
+    try {
+      await this.aiService.analyzeApplication(job.data.applicationId);
+    } catch (error) {
+      if (isFinalAttempt(job)) {
+        await this.aiService.markFailed(job.data.applicationId, error, "analysis");
+      }
+      throw error;
+    }
+  }
+
+  private async enqueueMatch(applicationId: string) {
+    if (!this.matchQueue) throw new Error("AI match queue is not ready");
+
+    await this.matchQueue.add(AI_MATCH_JOB, { applicationId }, {
+      ...this.defaultJobOptions(),
+      jobId: `match-${applicationId}`,
+    });
+  }
+
+  private defaultJobOptions() {
+    const attempts = this.configService.get<number>("AI_JOB_ATTEMPTS") ?? 2;
+
+    return {
+      attempts,
+      backoff: { type: "exponential" as const, delay: 5_000 },
+      removeOnComplete: 100,
+      removeOnFail: 100,
+    };
+  }
+}
+
+function isFinalAttempt(job: Job<ApplicationProcessingJob>) {
+  const attempts = job.opts.attempts ?? 1;
+  return job.attemptsMade + 1 >= attempts;
 }
 
 function parseRedisConnection(value: string): ConnectionOptions {

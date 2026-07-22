@@ -3,6 +3,7 @@ import { ApiRequestError, apiRequest } from "@/app/services/api-client";
 import {
   DataContext,
   SAVED_JOBS_STORAGE_KEY,
+  mapApplicationAnalysis,
   mapCandidateMessage,
   mapCandidateProfile,
   mapJob,
@@ -10,6 +11,7 @@ import {
   toApiApplicationStatus,
   toJobPayload,
   type ApiAuthSession,
+  type ApiApplicationAnalysis,
   type ApiCandidateMessage,
   type ApiCandidateProfile,
   type ApiJob,
@@ -70,6 +72,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
+  }, []);
+
+  const refreshCandidateAnalysis = useCallback(async (applicationId: string) => {
+    const analysis = await apiRequest<ApiApplicationAnalysis>(
+      `/admin/candidates/applications/${applicationId}/analysis`,
+    );
+    const patch = mapApplicationAnalysis(analysis);
+
+    if (patch.aiStatus === "pending") return patch.aiStatus;
+
+    setCandidates(current => current.map(candidate =>
+      candidate.applicationId === applicationId ? { ...candidate, ...patch } : candidate,
+    ));
+    setCandidateProfiles(current => current.map(profile => ({
+      ...profile,
+      applications: profile.applications.map(application =>
+        application.applicationId === applicationId ? { ...application, ...patch } : application,
+      ),
+    })));
+
+    return patch.aiStatus;
   }, []);
 
   useEffect(() => {
@@ -293,6 +316,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         savedJobIds,
         reloadPublicJobs,
         reloadAdminData,
+        refreshCandidateAnalysis,
         addJob,
         updateJob,
         addCandidate,

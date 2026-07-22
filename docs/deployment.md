@@ -236,13 +236,15 @@ OLLAMA_MODEL=qwen3:4b
 OLLAMA_TIMEOUT_MS=180000
 OLLAMA_CONTEXT_LENGTH=16384
 AI_JOB_ATTEMPTS=2
+CV_EXTRACTION_CONCURRENCY=2
+AI_MATCH_CONCURRENCY=1
 ```
 
 `CV_STORAGE_DRIVER=r2` stores new uploaded CV files in a private Cloudflare R2 bucket and saves an `r2://<bucket>/cv/...` storage path in PostgreSQL `CandidateFile.path`. `CV_ARCHIVE_STORAGE_DRIVER=vercel-blob` moves CVs to private Vercel Blob storage when their job enters `ARCHIVED`; restoring the job moves those CVs back to R2. PostgreSQL records the current `CandidateFile.storageTier` and `archivedAt` values. The move is ordered as copy, database update, then source deletion so a failed intermediate step does not lose the only file copy. `BLOB_READ_WRITE_TOKEN` is therefore required by the API even while R2 remains the primary tier. `UPLOAD_DIR` remains a local development fallback only. In production, keep CV objects private and serve them through the API after TA authentication checks. `APPLICATION_RATE_LIMIT_MAX` limits public submissions per IP during each `APPLICATION_RATE_LIMIT_WINDOW_SECONDS` window. Set `TRUST_PROXY_HOPS` to the number of trusted reverse proxies in front of the API so client IP rate limiting remains accurate.
 
 Swagger API documentation is available at `/docs` when enabled. It is enabled by default outside production. Keep `SWAGGER_ENABLED=false` for production unless API documentation is intentionally exposed behind appropriate network or auth controls.
 
-The repository runs Ollama only in `docker-compose.dev.yml` for the local demo. Production defaults to `AI_PROVIDER=disabled` unless a long-running Ollama service with sufficient memory is deployed and reachable from the API. Do not point `OLLAMA_BASE_URL` at an unauthenticated public endpoint; CV text is sensitive personal data.
+The repository runs Ollama only in `docker-compose.dev.yml` for the local demo. Production defaults to `AI_PROVIDER=disabled` unless a long-running Ollama service with sufficient memory is deployed and reachable from the API. `CV_EXTRACTION_CONCURRENCY` controls the CPU/memory-bound document extraction worker, while `AI_MATCH_CONCURRENCY` independently limits requests sent to Ollama. Keep AI concurrency at `1` until the deployed model and hardware have been benchmarked. Do not point `OLLAMA_BASE_URL` at an unauthenticated public endpoint; CV text is sensitive personal data.
 
 Admin login uses a short-lived JWT access token stored in an `httpOnly` cookie named `access_token` and a longer-lived refresh token stored in an `httpOnly` cookie named `refresh_token`. The frontend calls `/auth/refresh` when an admin request returns `401`. If the Vercel frontend and API are on different HTTPS domains, use `AUTH_COOKIE_SECURE=true` and `AUTH_COOKIE_SAMESITE=none`; keep `JWT_ACCESS_TOKEN_SECRET` and `JWT_REFRESH_TOKEN_SECRET` private and never expose them as frontend variables.
 
