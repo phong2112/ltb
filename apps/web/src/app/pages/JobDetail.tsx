@@ -1,5 +1,5 @@
 import { Link, useParams, useSearchParams } from "react-router";
-import { MapPin, Clock, Users, Briefcase, ChevronLeft, Heart, Building2, DollarSign } from "lucide-react";
+import { MapPin, Clock, Briefcase, ChevronLeft, Heart, Building2, DollarSign } from "lucide-react";
 import { useData } from "@/app/data";
 import { translateJobLevel, translateJobType, useLanguage } from "@/app/i18n";
 import PublicLayout from "@/app/layouts/PublicLayout";
@@ -64,7 +64,6 @@ export default function JobDetail() {
                   <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1"><MapPin size={11} />{job.location}</span>
                     <span className="flex items-center gap-1"><Clock size={11} />{job.posted}</span>
-                    <span className="flex items-center gap-1"><Users size={11} />{job.applicants} {t("jobs.applicantsApplied")}</span>
                   </div>
                 </div>
               </div>

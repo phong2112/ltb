@@ -7,8 +7,10 @@ const ALLOWED_CV_MIME_TYPES = new Set([
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "image/jpeg",
+  "image/png",
 ]);
-const ALLOWED_CV_EXTENSIONS = new Set([".pdf", ".doc", ".docx"]);
+const ALLOWED_CV_EXTENSIONS = new Set([".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png"]);
 
 export function createCvUploadOptions(maxSizeMb: number): MulterModuleOptions {
   return {
@@ -22,7 +24,7 @@ export function createCvUploadOptions(maxSizeMb: number): MulterModuleOptions {
         !ALLOWED_CV_MIME_TYPES.has(file.mimetype)
       ) {
         callback(
-          new BadRequestException("CV phải là tệp PDF, DOC hoặc DOCX."),
+          new BadRequestException("CV phải là tệp PDF, DOC, DOCX, JPG hoặc PNG."),
           false,
         );
         return;

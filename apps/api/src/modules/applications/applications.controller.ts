@@ -52,7 +52,7 @@ export class ApplicationsController {
         cv: {
           type: "string",
           format: "binary",
-          description: "Optional when portfolioUrl is provided. Accepts PDF, DOC, or DOCX.",
+          description: "Optional when portfolioUrl is provided. Accepts PDF, DOC, DOCX, JPG, or PNG.",
         },
       },
     },
@@ -82,7 +82,7 @@ export class ApplicationsController {
     }
 
     if (cv && !hasAllowedFileSignature(cv)) {
-      throw new BadRequestException("Nội dung tệp CV không đúng định dạng PDF, DOC hoặc DOCX.");
+      throw new BadRequestException("Nội dung tệp CV không đúng định dạng PDF, DOC, DOCX, JPG hoặc PNG.");
     }
 
     return this.applicationsService.createApplication(dto, cv);
@@ -104,6 +104,14 @@ function hasAllowedFileSignature(file: Express.Multer.File) {
   if (extension === ".docx") {
     const zipSignature = bytes.subarray(0, 4);
     return zipSignature.equals(Buffer.from([0x50, 0x4b, 0x03, 0x04])) || zipSignature.equals(Buffer.from([0x50, 0x4b, 0x05, 0x06])) || zipSignature.equals(Buffer.from([0x50, 0x4b, 0x07, 0x08]));
+  }
+
+  if (extension === ".jpg" || extension === ".jpeg") {
+    return bytes.length >= 3 && bytes.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]));
+  }
+
+  if (extension === ".png") {
+    return bytes.length >= 8 && bytes.equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
   }
 
   return false;

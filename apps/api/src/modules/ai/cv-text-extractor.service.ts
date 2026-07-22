@@ -5,6 +5,7 @@ import { extname } from "node:path";
 import { PDFParse } from "pdf-parse";
 import WordExtractor = require("word-extractor");
 import { CvStorageService } from "../files/cv-storage.service";
+import { CvOcrService } from "./cv-ocr.service";
 
 export type CandidateFileForExtraction = {
   originalName: string;
@@ -14,7 +15,9 @@ export type CandidateFileForExtraction = {
 
 export type ExtractedCvText = {
   text: string;
-  parser: "pdf-parse" | "mammoth" | "word-extractor";
+  parser: "pdf-parse" | "mammoth" | "word-extractor" | "tesseract-ocr";
+  ocrPages?: number;
+  ocrConfidence?: number;
 };
 
 @Injectable()
@@ -22,6 +25,7 @@ export class CvTextExtractorService {
   constructor(
     private readonly configService: ConfigService,
     private readonly cvStorageService: CvStorageService,
+    private readonly cvOcrService: CvOcrService,
   ) {}
 
   async extract(file: CandidateFileForExtraction): Promise<ExtractedCvText> {
@@ -33,7 +37,19 @@ export class CvTextExtractorService {
     let result: ExtractedCvText;
 
     if (extension === ".pdf" || file.mimeType === "application/pdf") {
-      result = { text: await extractPdf(buffer), parser: "pdf-parse" };
+      const pdfText = normalizeExtractedText(await extractPdf(buffer));
+
+      if (hasEnoughText(pdfText)) {
+        return { text: pdfText, parser: "pdf-parse" };
+      }
+
+      const ocr = await this.cvOcrService.recognizePdf(buffer);
+      result = {
+        text: ocr.text,
+        parser: "tesseract-ocr",
+        ocrPages: ocr.pages,
+        ocrConfidence: ocr.confidence,
+      };
     } else if (extension === ".docx") {
       const extracted = await mammoth.extractRawText({ buffer });
       result = { text: extracted.value, parser: "mammoth" };
@@ -41,18 +57,34 @@ export class CvTextExtractorService {
       const extractor = new WordExtractor();
       const extracted = await extractor.extract(buffer);
       result = { text: extracted.getBody(), parser: "word-extractor" };
+    } else if (isSupportedImage(extension, file.mimeType)) {
+      const ocr = await this.cvOcrService.recognizeImage(buffer);
+      result = {
+        text: ocr.text,
+        parser: "tesseract-ocr",
+        ocrPages: ocr.pages,
+        ocrConfidence: ocr.confidence,
+      };
     } else {
       throw new Error("Unsupported CV format");
     }
 
     const normalizedText = normalizeExtractedText(result.text);
 
-    if (normalizedText.length < 40) {
-      throw new Error("CV does not contain enough extractable text; it may be a scanned document");
+    if (!hasEnoughText(normalizedText)) {
+      throw new Error("CV does not contain enough readable text after OCR");
     }
 
     return { ...result, text: normalizedText };
   }
+}
+
+function hasEnoughText(value: string) {
+  return value.length >= 40;
+}
+
+function isSupportedImage(extension: string, mimeType: string) {
+  return [".jpg", ".jpeg", ".png"].includes(extension) || ["image/jpeg", "image/png"].includes(mimeType);
 }
 
 async function extractPdf(buffer: Buffer) {

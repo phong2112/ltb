@@ -24,6 +24,17 @@ describe("CV upload options", () => {
     );
     expect(acceptCallback).toHaveBeenCalledWith(null, true);
 
+    const acceptImageCallback = jest.fn();
+    fileFilter(
+      {} as Request,
+      {
+        originalname: "scanned-cv.png",
+        mimetype: "image/png",
+      } as Express.Multer.File,
+      acceptImageCallback,
+    );
+    expect(acceptImageCallback).toHaveBeenCalledWith(null, true);
+
     const rejectCallback = jest.fn();
     fileFilter(
       {} as Request,

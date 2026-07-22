@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Briefcase, Building2, Clock, DollarSign, Heart, MapPin, Users } from "lucide-react";
+import { Briefcase, Building2, Clock, DollarSign, Heart, MapPin } from "lucide-react";
 import type { Job } from "@/app/data";
 import { useData } from "@/app/data";
 import { translateJobLevel, translateJobType, useLanguage } from "@/app/i18n";
@@ -34,7 +34,6 @@ export default function JobDetailPanel({ job }: { job: Job }) {
             <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
               <span className="flex items-center gap-1"><MapPin size={12} />{job.location}</span>
               <span className="flex items-center gap-1"><Clock size={12} />{job.posted}</span>
-              <span className="flex items-center gap-1"><Users size={12} />{job.applicants} {t("jobs.applicantsApplied")}</span>
             </div>
           </div>
         </div>

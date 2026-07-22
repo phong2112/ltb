@@ -1,6 +1,6 @@
 import type { MouseEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { ChevronRight, Clock, Heart, MapPin, Users } from "lucide-react";
+import { ChevronRight, Clock, Heart, MapPin } from "lucide-react";
 import type { Job } from "@/app/data";
 import { useLanguage } from "@/app/i18n";
 import { URGENT_BADGE_CLASS } from "@/app/status-config";
@@ -100,7 +100,6 @@ export default function PublicJobCard({
         </div>
 
         <div className="mt-3 flex min-h-7 items-center gap-2 border-t border-border pt-3 text-[11px] text-muted-foreground">
-          <span className="flex items-center gap-1"><Users size={11} />{job.applicants} {t("common.candidates")}</span>
           {job.posted && <span className="flex flex-none items-center gap-1"><Clock size={11} />{job.posted}</span>}
           {showRemoveSaved && onRemoveSaved && (
             <button

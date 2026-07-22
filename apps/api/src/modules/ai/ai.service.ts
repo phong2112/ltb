@@ -114,6 +114,9 @@ export class AiService {
             extractionVersion: CV_EXTRACTION_VERSION,
             extractedCharacters: extracted.text.length,
             fileName: cvFile.originalName,
+            ocrUsed: extracted.parser === "tesseract-ocr",
+            ...(extracted.ocrPages === undefined ? {} : { ocrPages: extracted.ocrPages }),
+            ...(extracted.ocrConfidence === undefined ? {} : { ocrConfidence: extracted.ocrConfidence }),
           } satisfies Prisma.InputJsonObject,
         },
       }),
@@ -330,7 +333,7 @@ function asInputJsonObject(value: Prisma.JsonValue | null | undefined): Prisma.I
 }
 
 function readParser(value: Prisma.InputJsonValue | null | undefined): ExtractedCvText["parser"] | undefined {
-  if (value === "pdf-parse" || value === "mammoth" || value === "word-extractor") return value;
+  if (value === "pdf-parse" || value === "mammoth" || value === "word-extractor" || value === "tesseract-ocr") return value;
   return undefined;
 }
 

@@ -3,6 +3,7 @@ import { FilesModule } from "../files/files.module";
 import { AiQueueService } from "./ai-queue.service";
 import { AiService } from "./ai.service";
 import { AI_PROVIDER } from "./ai.types";
+import { CvOcrService } from "./cv-ocr.service";
 import { CvTextExtractorService } from "./cv-text-extractor.service";
 import { OllamaAiProvider } from "./ollama-ai.provider";
 
@@ -11,6 +12,7 @@ import { OllamaAiProvider } from "./ollama-ai.provider";
   providers: [
     OllamaAiProvider,
     { provide: AI_PROVIDER, useExisting: OllamaAiProvider },
+    CvOcrService,
     CvTextExtractorService,
     AiService,
     AiQueueService,
