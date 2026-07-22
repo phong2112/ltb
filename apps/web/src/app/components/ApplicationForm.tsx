@@ -13,8 +13,10 @@ const ALLOWED_CV_MIME_TYPES = new Set([
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "image/jpeg",
+  "image/png",
 ]);
-const ALLOWED_CV_EXTENSIONS = new Set(["pdf", "doc", "docx"]);
+const ALLOWED_CV_EXTENSIONS = new Set(["pdf", "doc", "docx", "jpg", "jpeg", "png"]);
 
 function readMaxCvFileSizeMb() {
   const configured = Number(import.meta.env.VITE_MAX_CV_FILE_SIZE_MB ?? 10);
@@ -457,7 +459,7 @@ export default function ApplicationForm({
           ref={fileInputRef}
           id={fieldId("cv-file")}
           type="file"
-          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png"
           onClick={(event) => {
             event.currentTarget.value = "";
           }}

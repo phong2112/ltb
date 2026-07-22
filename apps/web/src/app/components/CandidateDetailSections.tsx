@@ -71,8 +71,9 @@ export function CvPreviewPanel({ candidate, t }: { candidate: Candidate; t: (key
   const hasCv = Boolean(candidate.cvUrl && candidate.cvUrl !== "#");
   const mimeType = candidate.cvFile?.mimeType ?? "";
   const isPdf = mimeType === "application/pdf" || /\.pdf($|[?#])/i.test(candidate.cvUrl);
-  const canPreview = hasCv && (isPdf || !candidate.cvFile);
-  const previewUrl = canPreview ? withPdfPreviewOptions(candidate.cvUrl) : candidate.cvUrl;
+  const isImage = mimeType === "image/jpeg" || mimeType === "image/png" || /\.(jpe?g|png)($|[?#])/i.test(candidate.cvUrl);
+  const canPreview = hasCv && (isPdf || isImage || !candidate.cvFile);
+  const previewUrl = isPdf ? withPdfPreviewOptions(candidate.cvUrl) : candidate.cvUrl;
 
   return (
     <section className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_12px_40px_rgba(83,45,58,0.04)] xl:flex xl:h-[calc(100vh-9.75rem)] xl:flex-col">
@@ -110,7 +111,11 @@ export function CvPreviewPanel({ candidate, t }: { candidate: Candidate; t: (key
 
       {canPreview ? (
         <div className="h-[520px] bg-[#f5eee9] xl:min-h-0 xl:flex-1">
-          <iframe title={`${candidate.name} CV`} src={previewUrl} className="h-full w-full bg-white" />
+          {isImage ? (
+            <img src={previewUrl} alt={`${candidate.name} CV`} className="h-full w-full object-contain" />
+          ) : (
+            <iframe title={`${candidate.name} CV`} src={previewUrl} className="h-full w-full bg-white" />
+          )}
         </div>
       ) : (
         <div className="flex min-h-56 flex-col items-center justify-center border-t border-border bg-background/70 px-8 py-10 text-center">

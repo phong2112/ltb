@@ -51,7 +51,7 @@ Implemented:
 
 - Candidate apply form.
 - CV upload endpoint.
-- PDF/DOC/DOCX MIME validation.
+- PDF/DOC/DOCX/JPG/PNG MIME and file-signature validation.
 - File size validation.
 - Consent checkbox.
 - Candidate/application/file metadata saved to PostgreSQL.
@@ -73,7 +73,7 @@ Implemented:
 
 Implemented for local demo:
 
-- PDF, DOC, and DOCX text extraction.
+- PDF, DOC, and DOCX text extraction, with local `vie+eng` OCR fallback for scanned PDFs and JPG/PNG CVs.
 - Ollama provider using the local `qwen3:4b` model.
 - Separate BullMQ extraction and AI matching queues backed by Redis.
 - Evidence-based comparison for each JD requirement.
@@ -231,13 +231,13 @@ docker compose -f docker-compose.dev.yml --project-name hr-copilot-dev exec olla
 
 1. Start the dev stack with `CV_STORAGE_DRIVER=local ./run.sh`.
 2. Publish or select a job with explicit requirements.
-3. Submit a new application with a PDF, DOC, or DOCX CV upload.
+3. Submit a new application with a PDF, DOC, DOCX, JPG, or PNG CV upload.
 4. Open the candidate detail page. It polls the lightweight application-analysis endpoint while processing is pending.
 5. Review the Qwen summary, match score, confidence, strengths, risks, and missing requirements.
 
 The model never supplies the final score. It classifies every JD criterion as `met`, `partial`, `not_met`, or `unknown` with CV evidence; the API calculates the weighted score. AI output is assistive and must not automatically reject a candidate.
 
-Scanned PDFs without an extractable text layer show a failed state for manual review. OCR is intentionally outside this local demo.
+Scanned PDFs without a usable text layer and uploaded JPG/PNG CVs are processed locally with Tesseract `vie+eng`. OCR is limited by `OCR_MAX_PAGES` and `OCR_TIMEOUT_MS`; unreadable documents still show a failed state for manual review.
 
 The processing pipeline first persists extracted CV text, then enqueues a separate AI matching job. Extraction concurrency and Ollama concurrency are configured independently with `CV_EXTRACTION_CONCURRENCY` and `AI_MATCH_CONCURRENCY`.
 
@@ -256,7 +256,6 @@ The API service is not exposed directly by Docker Compose. Public access should 
 
 1. Add real auth/session instead of Nginx Basic Auth for production.
 2. Add private object storage for CV files instead of local container volume.
-3. Add OCR fallback for scanned PDFs.
-4. Add an admin retry action for failed AI jobs.
-5. Add outreach templates and copy-to-send workflow.
-6. Add email notifications for new applications.
+3. Add an admin retry action for failed AI jobs.
+4. Add outreach templates and copy-to-send workflow.
+5. Add email notifications for new applications.
