@@ -1,5 +1,5 @@
 import { useId, useRef, useState } from "react";
-import { Briefcase, FileText, MapPin, Send, Upload, X } from "lucide-react";
+import { Briefcase, FileText, MapPin, Send, X } from "lucide-react";
 import { Link } from "react-router";
 import type { Job } from "@/app/data";
 import { useData } from "@/app/data";
@@ -29,7 +29,7 @@ type ApplicationFormProps = {
   variant?: "page" | "dialog";
 };
 
-type TextFieldName = "name" | "email" | "phone" | "applicationArea" | "cvUrl" | "note";
+type TextFieldName = "name" | "email" | "phone" | "applicationArea" | "note";
 type ScreeningQuestion = Job["questions"][number];
 
 const APPLICATION_AREAS = [
@@ -142,7 +142,6 @@ export default function ApplicationForm({
     email: "",
     phone: "",
     applicationArea: "",
-    cvUrl: "",
     note: "",
     agreed: false,
   });
@@ -170,15 +169,6 @@ export default function ApplicationForm({
     return "";
   }
 
-  function isValidPublicUrl(value: string) {
-    try {
-      const url = new URL(value);
-      return url.protocol === "http:" || url.protocol === "https:";
-    } catch {
-      return false;
-    }
-  }
-
   function validate() {
     const nextErrors: Record<string, string> = {};
     if (!form.name.trim()) nextErrors.name = t("apply.nameRequired");
@@ -191,9 +181,7 @@ export default function ApplicationForm({
     if (!form.applicationArea || !job.locations.includes(form.applicationArea)) {
       nextErrors.applicationArea = t("apply.areaRequired");
     }
-    if (!form.cvUrl.trim() && !cvFile) nextErrors.cv = t("apply.cvRequired");
-    if (form.cvUrl.trim() && !isValidPublicUrl(form.cvUrl.trim()))
-      nextErrors.cv = t("apply.cvUrlInvalid");
+    if (!cvFile) nextErrors.cv = t("apply.cvRequired");
     if (cvFile) {
       const fileError = validateCvFile(cvFile);
       if (fileError) nextErrors.cv = fileError;
@@ -217,7 +205,7 @@ export default function ApplicationForm({
 
   function updateTextField(name: TextFieldName, value: string) {
     setForm((current) => ({ ...current, [name]: value }));
-    clearErrors(name === "cvUrl" ? "cv" : name);
+    clearErrors(name);
   }
 
   function updateQuestionAnswer(question: ScreeningQuestion, value: string) {
@@ -270,7 +258,6 @@ export default function ApplicationForm({
         email: form.email,
         phone: form.phone,
         applicationArea: form.applicationArea,
-        cvUrl: form.cvUrl.trim(),
         cvFile,
         note: form.note,
         jobId: job.id,
@@ -425,36 +412,9 @@ export default function ApplicationForm({
 
       <Field
         label={t("apply.cvLabel")}
-        id={fieldId("cv-url")}
+        id={fieldId("cv-file")}
         error={errors.cv}
       >
-        <div className="relative">
-          <Upload
-            size={15}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-          />
-          <input
-            id={fieldId("cv-url")}
-            type="url"
-            value={form.cvUrl}
-            onChange={(event) => updateTextField("cvUrl", event.target.value)}
-            placeholder={t("apply.cvPlaceholder")}
-            autoComplete="url"
-            inputMode="url"
-            aria-invalid={Boolean(errors.cv)}
-            aria-describedby={`${fieldId("cv-url")}-help${errors.cv ? ` ${fieldId("cv-url")}-error` : ""}`}
-            className={`${fieldControlClassName} pl-9 pr-3 ${errors.cv ? "border-red-300 focus:border-red-500" : "border-border"}`}
-          />
-        </div>
-
-        <div className="my-2.5 flex items-center gap-3" aria-hidden="true">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground/75">
-            {t("apply.orUploadFile")}
-          </span>
-          <div className="h-px flex-1 bg-border" />
-        </div>
-
         <input
           ref={fileInputRef}
           id={fieldId("cv-file")}
@@ -496,7 +456,7 @@ export default function ApplicationForm({
           </div>
         )}
         <p
-          id={`${fieldId("cv-url")}-help`}
+          id={`${fieldId("cv-file")}-help`}
           className="mt-1.5 text-[11px] leading-4 text-muted-foreground"
         >
           {t("apply.cvHelp")}

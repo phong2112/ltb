@@ -17,6 +17,7 @@ RUN pnpm --filter @hr-copilot/api build
 
 FROM base AS runner
 ENV NODE_ENV=production
+ENV NODE_OPTIONS=--dns-result-order=ipv4first
 COPY --from=build /app /app
 RUN mkdir -p /app/uploads
 EXPOSE 4000

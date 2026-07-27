@@ -2,9 +2,9 @@ import {
   createBrowserRouter,
   Navigate,
   Outlet,
-  useLocation,
+  ScrollRestoration,
 } from "react-router";
-import { lazy, Suspense, useEffect, type ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { useData } from "@/app/data";
 
 const Home = lazy(() => import("@/app/pages/Home"));
@@ -42,14 +42,9 @@ function RequireAdmin({ children }: { children: ReactNode }) {
 }
 
 function RouteLayout() {
-  const { pathname } = useLocation();
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  }, [pathname]);
-
   return (
     <Suspense fallback={<RouteLoadingFallback />}>
+      <ScrollRestoration />
       <Outlet />
     </Suspense>
   );

@@ -161,10 +161,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     form.set("applicationArea", candidate.applicationArea);
     form.set("consentAccepted", "true");
 
-    if (candidate.cvUrl.trim()) {
-      form.set("portfolioUrl", candidate.cvUrl.trim());
-    }
-
     if (candidate.note.trim()) {
       form.set("screeningAnswers", candidate.note.trim());
     }

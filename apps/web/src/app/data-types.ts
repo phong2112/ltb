@@ -98,7 +98,6 @@ export type NewCandidate = {
   email: string;
   phone: string;
   applicationArea: string;
-  cvUrl: string;
   note: string;
   jobId: string;
   jobTitle: string;
