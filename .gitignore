@@ -11,3 +11,10 @@ uploads
 .DS_Store
 .vercel
 docker/nginx/.htpasswd
+
+# Test fixture binaries (keep only source code, not large fixtures)
+*.docx
+*.pdf
+*.jpg
+*.png
+
