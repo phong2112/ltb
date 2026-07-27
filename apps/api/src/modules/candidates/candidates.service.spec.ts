@@ -3,6 +3,51 @@ import type { CvStorageService } from "../files/cv-storage.service";
 import { CandidatesService } from "./candidates.service";
 
 describe("CandidatesService", () => {
+  it("returns a lightweight application analysis without extracted CV text", async () => {
+    const prisma = {
+      application: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: "application-1",
+          cvParseResult: {
+            status: "COMPLETED",
+            summary: "Ứng viên phù hợp.",
+            errorMessage: null,
+            structuredData: { confidence: 80 },
+            updatedAt: new Date("2026-07-22T09:00:00.000Z"),
+          },
+          matchResult: {
+            score: 75,
+            strengths: ["React"],
+            risks: [],
+            missingRequirements: [],
+            screeningQuestions: [],
+          },
+        }),
+      },
+    };
+    const service = new CandidatesService(
+      prisma as unknown as PrismaService,
+      {} as CvStorageService,
+    );
+
+    await expect(service.getApplicationAnalysis("application-1")).resolves.toEqual({
+      applicationId: "application-1",
+      status: "COMPLETED",
+      summary: "Ứng viên phù hợp.",
+      errorMessage: null,
+      confidence: 80,
+      updatedAt: new Date("2026-07-22T09:00:00.000Z"),
+      matchResult: expect.objectContaining({ score: 75 }),
+    });
+    expect(prisma.application.findUnique).toHaveBeenCalledWith(expect.objectContaining({
+      select: expect.objectContaining({
+        cvParseResult: expect.objectContaining({
+          select: expect.not.objectContaining({ extractedText: true }),
+        }),
+      }),
+    }));
+  });
+
   it("does not overwrite application status when only the TA note changes", async () => {
     const application = {
       id: "application-1",

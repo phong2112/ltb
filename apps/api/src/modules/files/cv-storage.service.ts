@@ -39,6 +39,21 @@ export type CvRelocationContext = {
 
 type StorageDriver = "local" | "vercel-blob" | "r2";
 
+/**
+ * Identifies which owner a stored CV belongs to. The middle path segment differs
+ * so application and talent-pool files never collide, while both keep the leading
+ * `cv/` prefix that the managed-storage path detectors rely on.
+ */
+type CvStorageScope =
+  | { kind: "application"; candidateId: string; applicationId: string }
+  | { kind: "pool"; candidateId: string; talentPoolEntryId: string };
+
+function buildScopeSegment(scope: CvStorageScope): string {
+  return scope.kind === "application"
+    ? `${scope.candidateId}/${scope.applicationId}`
+    : `${scope.candidateId}/pool/${scope.talentPoolEntryId}`;
+}
+
 type R2StorageConfig = {
   endpoint: string;
   bucket: string;
@@ -53,17 +68,27 @@ export class CvStorageService {
   constructor(private readonly configService: ConfigService) {}
 
   async storeCandidateCv(file: Express.Multer.File, candidateId: string, applicationId: string): Promise<StoredCvFile> {
+    return this.storeCv(file, { kind: "application", candidateId, applicationId });
+  }
+
+  /** Store a CV that belongs to a talent pool entry rather than an application. */
+  async storePoolCv(file: Express.Multer.File, candidateId: string, talentPoolEntryId: string): Promise<StoredCvFile> {
+    return this.storeCv(file, { kind: "pool", candidateId, talentPoolEntryId });
+  }
+
+  private async storeCv(file: Express.Multer.File, scope: CvStorageScope): Promise<StoredCvFile> {
     const driver = this.getStorageDriver();
+    const segment = buildScopeSegment(scope);
 
     if (driver === "r2") {
-      return this.storeInR2(file, candidateId, applicationId);
+      return this.storeInR2(file, segment);
     }
 
     if (driver === "local") {
-      return this.storeLocally(file, candidateId, applicationId);
+      return this.storeLocally(file, segment);
     }
 
-    return this.storeInVercelBlob(file, candidateId, applicationId);
+    return this.storeInVercelBlob(file, segment);
   }
 
   async openCandidateCv(path: string, fallbackMimeType: string): Promise<OpenedCvFile> {
@@ -168,8 +193,8 @@ export class CvStorageService {
     return "r2";
   }
 
-  private async storeInVercelBlob(file: Express.Multer.File, candidateId: string, applicationId: string): Promise<StoredCvFile> {
-    const pathname = `cv/${candidateId}/${applicationId}/${Date.now()}-${normalizeFilename(file.originalname)}`;
+  private async storeInVercelBlob(file: Express.Multer.File, segment: string): Promise<StoredCvFile> {
+    const pathname = `cv/${segment}/${Date.now()}-${normalizeFilename(file.originalname)}`;
     const blob = await put(pathname, file.buffer, {
       access: "private",
       contentType: file.mimetype,
@@ -186,14 +211,13 @@ export class CvStorageService {
     };
   }
 
-  private async storeLocally(file: Express.Multer.File, candidateId: string, applicationId: string): Promise<StoredCvFile> {
+  private async storeLocally(file: Express.Multer.File, segment: string): Promise<StoredCvFile> {
     const uploadDir = this.configService.get<string>("UPLOAD_DIR") ?? "uploads";
     const storedName = `${Date.now()}-${normalizeFilename(file.originalname)}`;
-    const path = join(uploadDir, "cv", candidateId, applicationId, storedName);
+    const directory = join(uploadDir, "cv", ...segment.split("/"));
+    const path = join(directory, storedName);
 
-    await mkdir(join(uploadDir, "cv", candidateId, applicationId), {
-      recursive: true,
-    });
+    await mkdir(directory, { recursive: true });
     await writeFile(path, file.buffer);
 
     return {
@@ -205,9 +229,9 @@ export class CvStorageService {
     };
   }
 
-  private async storeInR2(file: Express.Multer.File, candidateId: string, applicationId: string): Promise<StoredCvFile> {
+  private async storeInR2(file: Express.Multer.File, segment: string): Promise<StoredCvFile> {
     const { bucket } = this.getR2Config();
-    const key = `cv/${candidateId}/${applicationId}/${Date.now()}-${normalizeFilename(file.originalname)}`;
+    const key = `cv/${segment}/${Date.now()}-${normalizeFilename(file.originalname)}`;
 
     await this.getR2Client().send(new PutObjectCommand({
       Bucket: bucket,

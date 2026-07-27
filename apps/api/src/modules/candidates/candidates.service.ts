@@ -12,8 +12,33 @@ const candidateApplicationInclude = {
   followUpTask: true,
   files: {
     orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      originalName: true,
+      mimeType: true,
+      sizeBytes: true,
+      path: true,
+    },
   },
   job: true,
+  matchResult: {
+    select: {
+      score: true,
+      strengths: true,
+      risks: true,
+      missingRequirements: true,
+      screeningQuestions: true,
+    },
+  },
+  cvParseResult: {
+    select: {
+      status: true,
+      summary: true,
+      errorMessage: true,
+      structuredData: true,
+      updatedAt: true,
+    },
+  },
 } satisfies Prisma.ApplicationInclude;
 
 @Injectable()
@@ -61,11 +86,63 @@ export class CandidatesService {
     return candidate;
   }
 
+  async getApplicationAnalysis(applicationId: string) {
+    const application = await this.prisma.application.findUnique({
+      where: { id: applicationId },
+      select: {
+        id: true,
+        cvParseResult: {
+          select: {
+            status: true,
+            summary: true,
+            errorMessage: true,
+            structuredData: true,
+            updatedAt: true,
+          },
+        },
+        matchResult: {
+          select: {
+            score: true,
+            strengths: true,
+            risks: true,
+            missingRequirements: true,
+            screeningQuestions: true,
+          },
+        },
+      },
+    });
+
+    if (!application) {
+      throw new NotFoundException("Không tìm thấy hồ sơ ứng tuyển.");
+    }
+
+    if (!application.cvParseResult) {
+      throw new NotFoundException("Không tìm thấy trạng thái phân tích CV.");
+    }
+
+    const metadata = asRecord(application.cvParseResult.structuredData);
+
+    return {
+      applicationId: application.id,
+      status: application.cvParseResult.status,
+      summary: application.cvParseResult.summary,
+      errorMessage: application.cvParseResult.errorMessage,
+      confidence: typeof metadata?.confidence === "number" ? metadata.confidence : null,
+      updatedAt: application.cvParseResult.updatedAt,
+      matchResult: application.matchResult,
+    };
+  }
+
   async openCandidateFile(fileId: string) {
     const file = await this.prisma.candidateFile.findUnique({
       where: { id: fileId },
       include: {
         application: {
+          select: {
+            candidateId: true,
+          },
+        },
+        talentPoolEntry: {
           select: {
             candidateId: true,
           },
@@ -81,17 +158,21 @@ export class CandidatesService {
       throw new BadRequestException("Liên kết CV bên ngoài cần được mở trực tiếp.");
     }
 
+    // A CandidateFile is owned by exactly one of an application or a talent pool entry.
+    const candidateId = file.application?.candidateId ?? file.talentPoolEntry?.candidateId ?? null;
+
     const openedFile = await this.cvStorageService.openCandidateCv(file.path, file.mimeType);
 
     await this.prisma.activityLog.create({
       data: {
-        candidateId: file.application.candidateId,
+        candidateId,
         applicationId: file.applicationId,
         candidateFileId: file.id,
         actor: "hr",
         action: "candidate_file_viewed",
         metadata: {
           applicationId: file.applicationId,
+          talentPoolEntryId: file.talentPoolEntryId,
           fileId: file.id,
           originalName: file.originalName,
         },
@@ -227,4 +308,10 @@ export class CandidatesService {
 
     return updated;
   }
+}
+
+function asRecord(value: Prisma.JsonValue | null | undefined) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
 }

@@ -49,6 +49,15 @@ export class CandidatesController {
     return new StreamableFile(openedFile.stream);
   }
 
+  @ApiOperation({ summary: "Get lightweight CV analysis status and result" })
+  @ApiParam({ name: "applicationId", example: "cmapplication123" })
+  @ApiOkResponse({ description: "Current CV processing status and match result when available." })
+  @ApiNotFoundResponse({ description: "Application or CV analysis not found." })
+  @Get("applications/:applicationId/analysis")
+  getApplicationAnalysis(@Param("applicationId") applicationId: string) {
+    return this.candidatesService.getApplicationAnalysis(applicationId);
+  }
+
   @ApiOperation({ summary: "Get candidate detail" })
   @ApiParam({ name: "id", example: "cmcandidate123" })
   @ApiOkResponse({

@@ -1,3 +1,8 @@
+jest.mock("../ai/ai-queue.service", () => ({
+  AiQueueService: class AiQueueService {},
+}));
+
+import type { AiQueueService } from "../ai/ai-queue.service";
 import type { CvStorageService } from "../files/cv-storage.service";
 import type { JobsService } from "../jobs/jobs.service";
 import type { EmailService } from "../notifications/email.service";
@@ -22,6 +27,7 @@ describe("ApplicationsService", () => {
       candidateFile: {
         create: jest.fn().mockResolvedValue({ id: "file-1" }),
       },
+      cvParseResult: { create: jest.fn().mockResolvedValue({}) },
       activityLog: {
         create: jest.fn().mockRejectedValue(new Error("Database write failed")),
       },
@@ -55,6 +61,7 @@ describe("ApplicationsService", () => {
     const email = { sendApplicationConfirmation: jest.fn() };
     const service = new ApplicationsService(
       prisma as unknown as PrismaService,
+      {} as AiQueueService,
       storage as unknown as CvStorageService,
       jobs as unknown as JobsService,
       email as unknown as EmailService,
@@ -101,6 +108,7 @@ describe("ApplicationsService", () => {
     const email = { sendApplicationConfirmation: jest.fn() };
     const service = new ApplicationsService(
       prisma as unknown as PrismaService,
+      {} as AiQueueService,
       storage as unknown as CvStorageService,
       jobs as unknown as JobsService,
       email as unknown as EmailService,
@@ -142,6 +150,9 @@ describe("ApplicationsService", () => {
       activityLog: {
         create: jest.fn().mockResolvedValue({ id: "activity-1" }),
       },
+      cvParseResult: {
+        create: jest.fn().mockResolvedValue({ id: "parse-1" }),
+      },
     };
     const prisma = {
       $transaction: jest.fn(
@@ -167,6 +178,7 @@ describe("ApplicationsService", () => {
     const email = { sendApplicationConfirmation: jest.fn().mockResolvedValue(undefined) };
     const service = new ApplicationsService(
       prisma as unknown as PrismaService,
+      {} as AiQueueService,
       storage as unknown as CvStorageService,
       jobs as unknown as JobsService,
       email as unknown as EmailService,
@@ -197,6 +209,100 @@ describe("ApplicationsService", () => {
       jobSlug: "frontend-engineer",
       applicationArea: "Hà Nội",
     });
+  });
+
+  it("returns after accepting an uploaded CV without waiting for AI queue completion", async () => {
+    const transactionClient = {
+      $executeRaw: jest.fn(),
+      candidate: {
+        findMany: jest.fn().mockResolvedValue([]),
+        create: jest.fn().mockResolvedValue({ id: "candidate-1" }),
+      },
+      application: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({
+          id: "application-1",
+          status: "NEW",
+        }),
+      },
+      candidateFile: {
+        create: jest.fn().mockResolvedValue({ id: "file-1" }),
+      },
+      activityLog: {
+        create: jest.fn().mockResolvedValue({ id: "activity-1" }),
+      },
+      cvParseResult: {
+        create: jest.fn().mockResolvedValue({ id: "parse-1" }),
+      },
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        (callback: (tx: typeof transactionClient) => unknown) =>
+          callback(transactionClient),
+      ),
+      cvParseResult: {
+        update: jest.fn(),
+      },
+    };
+    const storage = {
+      storeCandidateCv: jest.fn().mockResolvedValue({
+        originalName: "candidate.pdf",
+        storedName: "candidate.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: 4,
+        path: "cv/candidate-1/application-1/candidate.pdf",
+      }),
+      deleteCandidateCv: jest.fn(),
+    };
+    const jobs = {
+      getAdminJob: jest.fn().mockResolvedValue({
+        id: "job-1",
+        slug: "frontend-engineer",
+        title: "Frontend Engineer",
+        company: "Acme Vietnam",
+        status: "PUBLISHED",
+        locations: ["Hà Nội"],
+        questions: [],
+      }),
+    };
+    const email = { sendApplicationConfirmation: jest.fn().mockResolvedValue(undefined) };
+    const aiQueue = {
+      enqueue: jest.fn().mockReturnValue(new Promise<boolean>(() => {})),
+    };
+    const service = new ApplicationsService(
+      prisma as unknown as PrismaService,
+      aiQueue as unknown as AiQueueService,
+      storage as unknown as CvStorageService,
+      jobs as unknown as JobsService,
+      email as unknown as EmailService,
+    );
+    const file = {
+      originalname: "candidate.pdf",
+      mimetype: "application/pdf",
+      size: 4,
+      buffer: Buffer.from("%PDF"),
+    } as Express.Multer.File;
+
+    await expect(
+      service.createApplication(
+        {
+          jobId: "job-1",
+          fullName: "Candidate",
+          email: "candidate@example.com",
+          phone: "0901234567",
+          applicationArea: "Hà Nội",
+          consentAccepted: true,
+        },
+        file,
+      ),
+    ).resolves.toEqual({
+      applicationId: "application-1",
+      candidateId: "candidate-1",
+      status: "NEW",
+    });
+
+    expect(aiQueue.enqueue).toHaveBeenCalledWith("application-1");
+    expect(prisma.cvParseResult.update).not.toHaveBeenCalled();
   });
 
   it("rejects duplicate applications before creating a new application", async () => {
@@ -241,6 +347,7 @@ describe("ApplicationsService", () => {
     const email = { sendApplicationConfirmation: jest.fn() };
     const service = new ApplicationsService(
       prisma as unknown as PrismaService,
+      {} as AiQueueService,
       storage as unknown as CvStorageService,
       jobs as unknown as JobsService,
       email as unknown as EmailService,
@@ -320,6 +427,7 @@ describe("ApplicationsService", () => {
     const email = { sendApplicationConfirmation: jest.fn() };
     const service = new ApplicationsService(
       prisma as unknown as PrismaService,
+      {} as AiQueueService,
       storage as unknown as CvStorageService,
       jobs as unknown as JobsService,
       email as unknown as EmailService,
