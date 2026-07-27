@@ -39,8 +39,22 @@ export type AnalyzeMatchInput = {
   cvText: string;
 };
 
+export type ExtractProfileInput = {
+  cvText: string;
+  fileName: string;
+};
+
+export type ExtractedProfile = {
+  fullName: string | null;
+  title: string | null;
+  yearsExperience: number | null;
+  skills: string[];
+  languages: string[];
+};
+
 export interface AiProvider {
   readonly name: string;
   readonly model: string;
   analyzeMatch(input: AnalyzeMatchInput): Promise<ProviderMatchAnalysis>;
+  extractProfile(input: ExtractProfileInput): Promise<ExtractedProfile>;
 }

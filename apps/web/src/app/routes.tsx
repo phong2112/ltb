@@ -21,6 +21,8 @@ const AdminJobDetail = lazy(() => import("@/app/pages/AdminJobDetail"));
 const CreateEditJob = lazy(() => import("@/app/pages/CreateEditJob"));
 const CandidateInbox = lazy(() => import("@/app/pages/CandidateInbox"));
 const CandidateDetail = lazy(() => import("@/app/pages/CandidateDetail"));
+const TalentPool = lazy(() => import("@/app/pages/TalentPool"));
+const TalentPoolDetail = lazy(() => import("@/app/pages/TalentPoolDetail"));
 const CandidateChats = lazy(() => import("@/app/pages/CandidateChats"));
 const FollowUp = lazy(() => import("@/app/pages/FollowUp"));
 const MessageTemplates = lazy(() => import("@/app/pages/MessageTemplates"));
@@ -132,6 +134,22 @@ export const router = createBrowserRouter([
         element: (
           <RequireAdmin>
             <CandidateDetail />
+          </RequireAdmin>
+        ),
+      },
+      {
+        path: "/admin/talent-pool",
+        element: (
+          <RequireAdmin>
+            <TalentPool />
+          </RequireAdmin>
+        ),
+      },
+      {
+        path: "/admin/talent-pool/:id",
+        element: (
+          <RequireAdmin>
+            <TalentPoolDetail />
           </RequireAdmin>
         ),
       },

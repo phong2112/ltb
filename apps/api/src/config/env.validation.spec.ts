@@ -17,6 +17,8 @@ describe("validateEnv", () => {
       MAX_CV_FILE_SIZE_MB: "10",
       APPLICATION_RATE_LIMIT_MAX: "5",
       APPLICATION_RATE_LIMIT_WINDOW_SECONDS: "60",
+      OCR_MIN_CONFIDENCE: "55",
+      POOL_EXTRACTION_CONCURRENCY: "2",
       TRUST_PROXY_HOPS: "0",
     });
 
@@ -24,6 +26,8 @@ describe("validateEnv", () => {
       MAX_CV_FILE_SIZE_MB: 10,
       APPLICATION_RATE_LIMIT_MAX: 5,
       APPLICATION_RATE_LIMIT_WINDOW_SECONDS: 60,
+      OCR_MIN_CONFIDENCE: 55,
+      POOL_EXTRACTION_CONCURRENCY: 2,
       TRUST_PROXY_HOPS: 0,
     });
   });
@@ -38,22 +42,23 @@ describe("validateEnv", () => {
       .toThrow("EMAIL_PROVIDER must be gmail");
   });
 
-  it("allows email sending to stay disabled when Gmail SMTP settings are blank", () => {
+  it("allows email sending to stay disabled when Gmail API settings are blank", () => {
     expect(() => validateEnv({ ...requiredConfig, EMAIL_PROVIDER: "gmail" })).not.toThrow();
   });
 
-  it("requires complete Gmail SMTP settings when email sending is configured", () => {
+  it("requires complete Gmail API settings when email sending is configured", () => {
     expect(() => validateEnv({ ...requiredConfig, EMAIL_PROVIDER: "gmail", EMAIL_FROM: "sender@gmail.com" }))
-      .toThrow("EMAIL_FROM, EMAIL_SMTP_USER, and EMAIL_SMTP_PASS are required when Gmail SMTP email is configured");
+      .toThrow("EMAIL_FROM, GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, and GMAIL_REFRESH_TOKEN are required when Gmail API email is configured");
   });
 
-  it("accepts complete Gmail SMTP settings", () => {
+  it("accepts complete Gmail API settings", () => {
     expect(() => validateEnv({
       ...requiredConfig,
       EMAIL_PROVIDER: "gmail",
       EMAIL_FROM: "Lường Bích <sender@gmail.com>",
-      EMAIL_SMTP_USER: "sender@gmail.com",
-      EMAIL_SMTP_PASS: "google-app-password",
+      GMAIL_CLIENT_ID: "client-id.apps.googleusercontent.com",
+      GMAIL_CLIENT_SECRET: "client-secret",
+      GMAIL_REFRESH_TOKEN: "refresh-token",
     })).not.toThrow();
   });
 

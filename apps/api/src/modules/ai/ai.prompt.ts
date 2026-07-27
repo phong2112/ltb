@@ -1,6 +1,28 @@
-import type { AnalyzeMatchInput } from "./ai.types";
+import type { AnalyzeMatchInput, ExtractProfileInput } from "./ai.types";
 
 export const MATCH_PROMPT_VERSION = "cv-jd-match-v1";
+export const EXTRACT_PROFILE_PROMPT_VERSION = "cv-profile-extract-v1";
+
+export function buildExtractProfilePrompt(input: ExtractProfileInput) {
+  return `
+Trích xuất thông tin hồ sơ ứng viên từ nội dung CV dưới đây để lưu vào kho ứng viên.
+
+Quy tắc bắt buộc:
+- Chỉ dùng thông tin xuất hiện rõ ràng trong CV. Không suy đoán, không bịa.
+- fullName: họ tên đầy đủ của ứng viên. Nếu không xác định được, trả về null.
+- title: chức danh/vị trí hiện tại hoặc gần nhất. Nếu không có, trả về null.
+- totalYearsExperience: tổng số năm kinh nghiệm (số). Nếu không suy ra được, trả về null.
+- skills: danh sách kỹ năng/công nghệ nêu trong CV (tối đa 30 mục, ngắn gọn).
+- languages: danh sách ngôn ngữ (tối đa 10).
+- KHÔNG đưa email, số điện thoại hay địa chỉ vào bất kỳ trường nào ở trên.
+- Chỉ trả về một JSON object hợp lệ, không markdown, không giải thích.
+
+Tên tệp: ${input.fileName}
+
+Nội dung CV:
+${input.cvText}
+`.trim();
+}
 
 export function buildMatchPrompt(input: AnalyzeMatchInput) {
   return `

@@ -28,6 +28,48 @@ describe("AI match scoring", () => {
     ]);
   });
 
+  it("splits long prose requirements into stable granular criteria", () => {
+    const criteria = extractMatchCriteria(
+      "Ứng viên yêu cầu có ít nhất 3 năm kinh nghiệm React. Thành thạo TypeScript và xây dựng REST API. Có kinh nghiệm kiểm thử tự động là một lợi thế.",
+    );
+
+    expect(criteria.map((criterion) => criterion.text)).toEqual([
+      "Ứng viên yêu cầu có ít nhất 3 năm kinh nghiệm React.",
+      "Thành thạo TypeScript và xây dựng REST API.",
+      "Có kinh nghiệm kiểm thử tự động là một lợi thế.",
+    ]);
+    expect(criteria.map((criterion) => criterion.required)).toEqual([true, true, false]);
+  });
+
+  it("ignores Vietnamese section headings and classifies Vietnamese preference terms", () => {
+    const criteria = extractMatchCriteria(`
+      Yêu cầu công việc:
+      - Tối thiểu 2 năm kinh nghiệm Node.js
+      Kỹ năng:
+      - Biết AWS là một điểm cộng
+      Quyền lợi:
+    `);
+
+    expect(criteria).toHaveLength(2);
+    expect(criteria[0]).toMatchObject({
+      text: "Tối thiểu 2 năm kinh nghiệm Node.js",
+      required: true,
+    });
+    expect(criteria[1]).toMatchObject({
+      text: "Biết AWS là một điểm cộng",
+      required: false,
+    });
+  });
+
+  it("caps criteria to keep prompts bounded", () => {
+    const requirements = Array.from(
+      { length: 20 },
+      (_, index) => `- Yêu cầu kỹ năng số ${index + 1}`,
+    ).join("\n");
+
+    expect(extractMatchCriteria(requirements)).toHaveLength(15);
+  });
+
   it("computes score in code instead of trusting a model-provided score", () => {
     const criteria = extractMatchCriteria("- React bắt buộc\n- TypeScript bắt buộc\n- TailwindCSS là lợi thế");
     const evaluations = evaluationMap([

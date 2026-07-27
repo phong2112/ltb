@@ -19,6 +19,9 @@ describe("AiService", () => {
         description: "Build accessible web products",
         requirements: "- React bắt buộc\n- TypeScript bắt buộc",
       },
+      cvParseResult: {
+        structuredData: { lowConfidenceOcr: true },
+      },
       files: [{
         id: "file-1",
         applicationId: "application-1",
@@ -44,7 +47,10 @@ describe("AiService", () => {
     const textExtractor = {
       extract: jest.fn().mockResolvedValue({
         text: "Frontend Engineer with five years of React experience.",
-        parser: "pdf-parse",
+        parser: "tesseract-ocr",
+        ocrPages: 2,
+        ocrConfidence: 42,
+        lowConfidenceOcr: true,
       }),
     };
     const provider: AiProvider = {
@@ -61,6 +67,7 @@ describe("AiService", () => {
         risks: ["Chưa đủ bằng chứng TypeScript"],
         screeningQuestions: ["Bạn đã dùng TypeScript trong dự án nào?"],
       }),
+      extractProfile: jest.fn(),
     };
     const service = new AiService(
       prisma as unknown as PrismaService,
@@ -72,11 +79,28 @@ describe("AiService", () => {
 
     expect(provider.analyzeMatch).toHaveBeenCalledTimes(1);
     expect(matchUpsert).toHaveBeenCalledWith(expect.objectContaining({
-      create: expect.objectContaining({ score: 50 }),
-      update: expect.objectContaining({ score: 50 }),
+      create: expect.objectContaining({
+        score: 50,
+        risks: expect.arrayContaining(["OCR chất lượng thấp — nên kiểm tra thủ công."]),
+      }),
+      update: expect.objectContaining({
+        score: 50,
+        risks: expect.arrayContaining(["OCR chất lượng thấp — nên kiểm tra thủ công."]),
+      }),
     }));
     expect(cvParseUpdate).toHaveBeenLastCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ status: "COMPLETED" }),
+      data: expect.objectContaining({
+        status: "COMPLETED",
+        summary: expect.stringContaining("OCR chất lượng thấp"),
+      }),
+    }));
+    expect(cvParseUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        structuredData: expect.objectContaining({
+          lowConfidenceOcr: true,
+          ocrConfidence: 42,
+        }),
+      }),
     }));
     expect(cvParseUpdate.mock.calls.map(([input]) => input.data.status)).toEqual([
       "EXTRACTING",

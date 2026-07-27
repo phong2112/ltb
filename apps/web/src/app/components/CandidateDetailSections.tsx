@@ -68,12 +68,33 @@ export function InfoItem({ icon, label, value }: { icon: React.ReactNode; label:
 }
 
 export function CvPreviewPanel({ candidate, t }: { candidate: Candidate; t: (key: TranslationKey) => string }) {
-  const hasCv = Boolean(candidate.cvUrl && candidate.cvUrl !== "#");
-  const mimeType = candidate.cvFile?.mimeType ?? "";
-  const isPdf = mimeType === "application/pdf" || /\.pdf($|[?#])/i.test(candidate.cvUrl);
-  const isImage = mimeType === "image/jpeg" || mimeType === "image/png" || /\.(jpe?g|png)($|[?#])/i.test(candidate.cvUrl);
-  const canPreview = hasCv && (isPdf || isImage || !candidate.cvFile);
-  const previewUrl = isPdf ? withPdfPreviewOptions(candidate.cvUrl) : candidate.cvUrl;
+  return (
+    <CvDocumentPreview
+      name={candidate.name}
+      cvUrl={candidate.cvUrl}
+      cvFile={candidate.cvFile}
+      t={t}
+    />
+  );
+}
+
+export function CvDocumentPreview({
+  name,
+  cvUrl,
+  cvFile,
+  t,
+}: {
+  name: string;
+  cvUrl: string;
+  cvFile?: { originalName: string; mimeType: string; sizeBytes: number } | null;
+  t: (key: TranslationKey) => string;
+}) {
+  const hasCv = Boolean(cvUrl && cvUrl !== "#");
+  const mimeType = cvFile?.mimeType ?? "";
+  const isPdf = mimeType === "application/pdf" || /\.pdf($|[?#])/i.test(cvUrl);
+  const isImage = mimeType === "image/jpeg" || mimeType === "image/png" || /\.(jpe?g|png)($|[?#])/i.test(cvUrl);
+  const canPreview = hasCv && (isPdf || isImage || !cvFile);
+  const previewUrl = isPdf ? withPdfPreviewOptions(cvUrl) : cvUrl;
 
   return (
     <section className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_12px_40px_rgba(83,45,58,0.04)] xl:flex xl:h-[calc(100vh-9.75rem)] xl:flex-col">
@@ -86,12 +107,12 @@ export function CvPreviewPanel({ candidate, t }: { candidate: Candidate; t: (key
             </h2>
           </div>
           <p className="mt-1 truncate text-xs font-semibold text-muted-foreground">
-            {candidate.cvFile?.originalName ?? "CV / Portfolio"}
+            {cvFile?.originalName ?? "CV / Portfolio"}
           </p>
         </div>
         {hasCv && (
           <a
-            href={candidate.cvUrl}
+            href={cvUrl}
             target="_blank"
             rel="noopener noreferrer"
             aria-label={t("common.openCv")}
@@ -102,19 +123,19 @@ export function CvPreviewPanel({ candidate, t }: { candidate: Candidate; t: (key
         )}
       </div>
 
-      {candidate.cvFile && (
+      {cvFile && (
         <div className="flex flex-wrap gap-x-5 gap-y-2 border-y border-border bg-background/70 px-5 py-3">
           <FileMeta label={t("admin.fileType")} value={formatFileType(mimeType)} />
-          <FileMeta label={t("admin.fileSize")} value={formatFileSize(candidate.cvFile.sizeBytes)} />
+          <FileMeta label={t("admin.fileSize")} value={formatFileSize(cvFile.sizeBytes)} />
         </div>
       )}
 
       {canPreview ? (
         <div className="h-[520px] bg-[#f5eee9] xl:min-h-0 xl:flex-1">
           {isImage ? (
-            <img src={previewUrl} alt={`${candidate.name} CV`} className="h-full w-full object-contain" />
+            <img src={previewUrl} alt={`${name} CV`} className="h-full w-full object-contain" />
           ) : (
-            <iframe title={`${candidate.name} CV`} src={previewUrl} className="h-full w-full bg-white" />
+            <iframe title={`${name} CV`} src={previewUrl} className="h-full w-full bg-white" />
           )}
         </div>
       ) : (
@@ -126,7 +147,7 @@ export function CvPreviewPanel({ candidate, t }: { candidate: Candidate; t: (key
           <p className="mt-2 max-w-sm text-xs leading-5 text-muted-foreground">{t("admin.cvPreviewHint")}</p>
           {hasCv && (
             <a
-              href={candidate.cvUrl}
+              href={cvUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-5 inline-flex h-9 items-center gap-2 rounded-xl bg-white px-4 text-xs font-bold text-primary shadow-sm ring-1 ring-border transition-all hover:ring-primary/30"

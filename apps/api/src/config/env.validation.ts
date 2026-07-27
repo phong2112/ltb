@@ -17,7 +17,9 @@ const integerVariables = [
   "AI_JOB_ATTEMPTS",
   "CV_EXTRACTION_CONCURRENCY",
   "AI_MATCH_CONCURRENCY",
+  "POOL_EXTRACTION_CONCURRENCY",
   "OCR_MAX_PAGES",
+  "OCR_MIN_CONFIDENCE",
   "OCR_TIMEOUT_MS",
   "APPLICATION_RATE_LIMIT_MAX",
   "APPLICATION_RATE_LIMIT_WINDOW_SECONDS",
@@ -131,15 +133,17 @@ export function validateEnv(config: Record<string, unknown>) {
   const hasEmailConfig =
     hasValue(config.EMAIL_FROM) ||
     hasValue(config.EMAIL_REPLY_TO) ||
-    hasValue(config.EMAIL_SMTP_USER) ||
-    hasValue(config.EMAIL_SMTP_PASS);
+    hasValue(config.GMAIL_CLIENT_ID) ||
+    hasValue(config.GMAIL_CLIENT_SECRET) ||
+    hasValue(config.GMAIL_REFRESH_TOKEN);
   if (
     hasEmailConfig &&
     (!hasValue(config.EMAIL_FROM) ||
-      !hasValue(config.EMAIL_SMTP_USER) ||
-      !hasValue(config.EMAIL_SMTP_PASS))
+      !hasValue(config.GMAIL_CLIENT_ID) ||
+      !hasValue(config.GMAIL_CLIENT_SECRET) ||
+      !hasValue(config.GMAIL_REFRESH_TOKEN))
   ) {
-    throw new Error("EMAIL_FROM, EMAIL_SMTP_USER, and EMAIL_SMTP_PASS are required when Gmail SMTP email is configured");
+    throw new Error("EMAIL_FROM, GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, and GMAIL_REFRESH_TOKEN are required when Gmail API email is configured");
   }
 
   const aiProvider = String(config.AI_PROVIDER || "disabled");

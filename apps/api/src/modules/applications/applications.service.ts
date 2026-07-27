@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Injectable, Logger, NotFoundExc
 import { ApplicationStatus, CvParseStatus, FileKind, JobStatus, Prisma } from "@prisma/client";
 import { AiQueueService } from "../ai/ai-queue.service";
 import { CvStorageService } from "../files/cv-storage.service";
+import { lockCandidateContacts, normalizeEmail, normalizePhone } from "../candidates/candidate-contact.util";
 import { JobsService } from "../jobs/jobs.service";
 import { EmailService } from "../notifications/email.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -385,33 +386,6 @@ async function ensureCandidateHasNotApplied(
   if (existingApplication) {
     throw new ConflictException(DUPLICATE_APPLICATION_MESSAGE);
   }
-}
-
-async function lockCandidateContacts(tx: Prisma.TransactionClient, normalizedEmail: string, normalizedPhone?: string) {
-  const lockKeys = [`candidate-email:${normalizedEmail}`];
-
-  if (normalizedPhone) {
-    lockKeys.push(`candidate-phone:${normalizedPhone}`);
-  }
-
-  for (const lockKey of lockKeys.sort()) {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey})::bigint)`;
-  }
-}
-
-function normalizeEmail(value: string) {
-  return value.trim().toLowerCase();
-}
-
-function normalizePhone(value?: string) {
-  const digits = value?.replace(/\D/g, "") ?? "";
-
-  if (!digits) return undefined;
-  if (digits.length === 11 && digits.startsWith("84")) {
-    return `0${digits.slice(2)}`;
-  }
-
-  return digits;
 }
 
 function isDuplicateApplicationError(error: unknown) {

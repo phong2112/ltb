@@ -18,7 +18,15 @@ export type ExtractedCvText = {
   parser: "pdf-parse" | "mammoth" | "word-extractor" | "tesseract-ocr";
   ocrPages?: number;
   ocrConfidence?: number;
+  ocrTruncated?: boolean;
+  totalPages?: number;
+  lowConfidenceOcr?: boolean;
 };
+
+const MIN_READABLE_TEXT_CHARACTERS = 40;
+const MIN_PDF_TEXT_CHARACTERS_PER_PAGE = 200;
+const MAX_GIBBERISH_CHARACTER_RATIO = 0.05;
+const DEFAULT_OCR_MIN_CONFIDENCE = 55;
 
 @Injectable()
 export class CvTextExtractorService {
@@ -37,19 +45,27 @@ export class CvTextExtractorService {
     let result: ExtractedCvText;
 
     if (extension === ".pdf" || file.mimeType === "application/pdf") {
-      const pdfText = normalizeExtractedText(await extractPdf(buffer));
+      const pdf = await extractPdf(buffer);
+      const pdfText = normalizeExtractedText(pdf.text);
+      const shouldTryOcr = shouldOcrPdf(pdfText, pdf.pageCount);
 
-      if (hasEnoughText(pdfText)) {
+      if (!shouldTryOcr) {
         return { text: pdfText, parser: "pdf-parse" };
       }
 
-      const ocr = await this.cvOcrService.recognizePdf(buffer);
-      result = {
-        text: ocr.text,
-        parser: "tesseract-ocr",
-        ocrPages: ocr.pages,
-        ocrConfidence: ocr.confidence,
-      };
+      try {
+        const ocr = await this.cvOcrService.recognizePdf(buffer);
+        const ocrText = normalizeExtractedText(ocr.text);
+
+        if (isLikelyGibberish(pdfText) || ocrText.length > pdfText.length) {
+          result = this.toOcrExtractedText(ocrText, ocr);
+        } else {
+          result = { text: pdfText, parser: "pdf-parse" };
+        }
+      } catch (error) {
+        if (!hasEnoughText(pdfText)) throw error;
+        result = { text: pdfText, parser: "pdf-parse" };
+      }
     } else if (extension === ".docx") {
       const extracted = await mammoth.extractRawText({ buffer });
       result = { text: extracted.value, parser: "mammoth" };
@@ -59,12 +75,7 @@ export class CvTextExtractorService {
       result = { text: extracted.getBody(), parser: "word-extractor" };
     } else if (isSupportedImage(extension, file.mimeType)) {
       const ocr = await this.cvOcrService.recognizeImage(buffer);
-      result = {
-        text: ocr.text,
-        parser: "tesseract-ocr",
-        ocrPages: ocr.pages,
-        ocrConfidence: ocr.confidence,
-      };
+      result = this.toOcrExtractedText(ocr.text, ocr);
     } else {
       throw new Error("Unsupported CV format");
     }
@@ -77,10 +88,39 @@ export class CvTextExtractorService {
 
     return { ...result, text: normalizedText };
   }
+
+  private toOcrExtractedText(
+    text: string,
+    ocr: Awaited<ReturnType<CvOcrService["recognizePdf"]>>,
+  ): ExtractedCvText {
+    const minConfidence = this.configService.get<number>("OCR_MIN_CONFIDENCE")
+      ?? DEFAULT_OCR_MIN_CONFIDENCE;
+
+    return {
+      text,
+      parser: "tesseract-ocr",
+      ocrPages: ocr.pages,
+      ocrConfidence: ocr.confidence,
+      ...(ocr.truncatedPages ? { ocrTruncated: true } : {}),
+      ...(ocr.totalPages === undefined ? {} : { totalPages: ocr.totalPages }),
+      ...(ocr.confidence < minConfidence ? { lowConfidenceOcr: true } : {}),
+    };
+  }
 }
 
 function hasEnoughText(value: string) {
-  return value.length >= 40;
+  return value.length >= MIN_READABLE_TEXT_CHARACTERS;
+}
+
+function shouldOcrPdf(text: string, pageCount: number) {
+  if (!hasEnoughText(text) || isLikelyGibberish(text)) return true;
+  return text.length / Math.max(pageCount, 1) < MIN_PDF_TEXT_CHARACTERS_PER_PAGE;
+}
+
+function isLikelyGibberish(value: string) {
+  if (!value) return false;
+  const suspicious = value.match(/[\uFFFD\u0001-\u0008\u000B\u000C\u000E-\u001F]/gu)?.length ?? 0;
+  return suspicious / value.length > MAX_GIBBERISH_CHARACTER_RATIO;
 }
 
 function isSupportedImage(extension: string, mimeType: string) {
@@ -91,8 +131,9 @@ async function extractPdf(buffer: Buffer) {
   const parser = new PDFParse({ data: buffer });
 
   try {
+    const info = await parser.getInfo();
     const result = await parser.getText();
-    return result.text;
+    return { text: result.text, pageCount: Math.max(info.total, 1) };
   } finally {
     await parser.destroy();
   }

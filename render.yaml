@@ -76,6 +76,8 @@ services:
         value: "1"
       - key: OCR_MAX_PAGES
         value: "10"
+      - key: OCR_MIN_CONFIDENCE
+        value: "55"
       - key: OCR_TIMEOUT_MS
         value: "120000"
       - key: APPLICATION_RATE_LIMIT_MAX
@@ -92,7 +94,9 @@ services:
         sync: false
       - key: EMAIL_REPLY_TO
         sync: false
-      - key: EMAIL_SMTP_USER
+      - key: GMAIL_CLIENT_ID
         sync: false
-      - key: EMAIL_SMTP_PASS
+      - key: GMAIL_CLIENT_SECRET
+        sync: false
+      - key: GMAIL_REFRESH_TOKEN
         sync: false

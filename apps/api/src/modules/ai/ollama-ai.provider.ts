@@ -2,8 +2,18 @@ import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Ollama } from "ollama";
 import { z } from "zod";
-import { buildMatchPrompt } from "./ai.prompt";
-import type { AiProvider, AnalyzeMatchInput, ProviderMatchAnalysis } from "./ai.types";
+import { buildExtractProfilePrompt, buildMatchPrompt } from "./ai.prompt";
+import type { AiProvider, AnalyzeMatchInput, ExtractProfileInput, ExtractedProfile, ProviderMatchAnalysis } from "./ai.types";
+
+const MAX_PROFILE_CV_CHARACTERS = 45_000;
+
+const extractedProfileSchema = z.object({
+  fullName: z.string().nullable(),
+  title: z.string().nullable(),
+  totalYearsExperience: z.number().min(0).max(60).nullable(),
+  skills: z.array(z.string()).max(30),
+  languages: z.array(z.string()).max(10),
+});
 
 const matchAnalysisSchema = z.object({
   profile: z.object({
@@ -46,6 +56,16 @@ export class OllamaAiProvider implements AiProvider {
   async analyzeMatch(input: AnalyzeMatchInput): Promise<ProviderMatchAnalysis> {
     const prompt = buildMatchPrompt(input);
     const startedAt = Date.now();
+    const baseMessages = [
+      {
+        role: "system" as const,
+        content: "Bạn là trợ lý tuyển dụng. Kết quả chỉ hỗ trợ HR ra quyết định và phải dựa trên bằng chứng trong CV.",
+      },
+      {
+        role: "user" as const,
+        content: prompt,
+      },
+    ];
 
     this.logger.log(
       [
@@ -61,7 +81,7 @@ export class OllamaAiProvider implements AiProvider {
     );
 
     try {
-      const response = await this.client.chat({
+      let response = await this.client.chat({
         model: this.model,
         stream: false,
         think: false,
@@ -71,19 +91,39 @@ export class OllamaAiProvider implements AiProvider {
           temperature: 0,
           num_ctx: this.contextLength,
         },
-        messages: [
-          {
-            role: "system",
-            content: "Bạn là trợ lý tuyển dụng. Kết quả chỉ hỗ trợ HR ra quyết định và phải dựa trên bằng chứng trong CV.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
+        messages: baseMessages,
       });
-      const rawContent = response.message.content;
-      const analysis = matchAnalysisSchema.parse(JSON.parse(rawContent) as unknown);
+      let rawContent = response.message.content;
+      let analysis: ProviderMatchAnalysis;
+
+      try {
+        analysis = parseStructuredResponse(rawContent, matchAnalysisSchema);
+      } catch (error) {
+        if (!(error instanceof StructuredResponseError)) throw error;
+
+        this.logger.warn(`Ollama structured response requires repair: ${error.message}`);
+        response = await this.client.chat({
+          model: this.model,
+          stream: false,
+          think: false,
+          keep_alive: "10m",
+          format: z.toJSONSchema(matchAnalysisSchema),
+          options: {
+            temperature: 0,
+            num_ctx: this.contextLength,
+          },
+          messages: [
+            ...baseMessages,
+            { role: "assistant", content: rawContent },
+            {
+              role: "user",
+              content: `JSON vừa trả về không đúng schema (${error.message}). Hãy sửa và chỉ trả về một JSON object hợp lệ, không có markdown hoặc giải thích.`,
+            },
+          ],
+        });
+        rawContent = response.message.content;
+        analysis = parseStructuredResponse(rawContent, matchAnalysisSchema);
+      }
 
       this.logger.log(
         [
@@ -113,6 +153,131 @@ export class OllamaAiProvider implements AiProvider {
       throw error;
     }
   }
+
+  async extractProfile(input: ExtractProfileInput): Promise<ExtractedProfile> {
+    const prompt = buildExtractProfilePrompt({
+      fileName: input.fileName,
+      cvText: input.cvText.slice(0, MAX_PROFILE_CV_CHARACTERS),
+    });
+    const startedAt = Date.now();
+
+    try {
+      const response = await this.client.chat({
+        model: this.model,
+        stream: false,
+        think: false,
+        keep_alive: "10m",
+        format: z.toJSONSchema(extractedProfileSchema),
+        options: { temperature: 0, num_ctx: this.contextLength },
+        messages: [
+          {
+            role: "system",
+            content: "Bạn là trợ lý tuyển dụng. Trích xuất thông tin hồ sơ chỉ dựa trên nội dung CV.",
+          },
+          { role: "user", content: prompt },
+        ],
+      });
+      const parsed = parseStructuredResponse(response.message.content, extractedProfileSchema);
+
+      this.logger.log(
+        `Ollama profile extract completed: model=${this.model} elapsedMs=${Date.now() - startedAt} skills=${parsed.skills.length}`,
+      );
+
+      return {
+        fullName: parsed.fullName,
+        title: parsed.title,
+        yearsExperience: parsed.totalYearsExperience,
+        skills: parsed.skills,
+        languages: parsed.languages,
+      };
+    } catch (error) {
+      this.logger.warn(
+        `Ollama profile extract failed: model=${this.model} elapsedMs=${Date.now() - startedAt} error=${toSafeLogMessage(error)}`,
+      );
+      throw error;
+    }
+  }
+}
+
+export function parseStructuredResponse<T>(raw: string, schema: z.ZodType<T>): T {
+  const stripped = stripJsonCodeFence(raw.trim());
+  const extracted = extractFirstJsonObject(stripped);
+  const candidates = extracted && extracted !== stripped
+    ? [stripped, extracted]
+    : [stripped];
+  const errors: string[] = [];
+
+  for (const candidate of candidates) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(candidate) as unknown;
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : "Invalid JSON");
+      continue;
+    }
+
+    const result = schema.safeParse(parsed);
+    if (result.success) return result.data;
+    errors.push(formatSchemaIssues(result.error));
+  }
+
+  throw new StructuredResponseError(errors.at(-1) ?? "No JSON object found");
+}
+
+class StructuredResponseError extends Error {
+  constructor(detail: string) {
+    super(`Invalid structured AI response: ${detail}`);
+    this.name = "StructuredResponseError";
+  }
+}
+
+function stripJsonCodeFence(value: string) {
+  if (!value.startsWith("```")) return value;
+  return value
+    .replace(/^```(?:json)?\s*/iu, "")
+    .replace(/\s*```$/u, "")
+    .trim();
+}
+
+function extractFirstJsonObject(value: string) {
+  const start = value.indexOf("{");
+  if (start < 0) return undefined;
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let index = start; index < value.length; index += 1) {
+    const character = value[index];
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (character === "\\") {
+        escaped = true;
+      } else if (character === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (character === '"') {
+      inString = true;
+    } else if (character === "{") {
+      depth += 1;
+    } else if (character === "}") {
+      depth -= 1;
+      if (depth === 0) return value.slice(start, index + 1);
+    }
+  }
+
+  return undefined;
+}
+
+function formatSchemaIssues(error: z.ZodError) {
+  return error.issues
+    .map((issue) => `${issue.path.join(".") || "root"}: ${issue.message}`)
+    .join("; ");
 }
 
 function getPositiveIntegerConfig(configService: ConfigService, key: string, fallback: number) {

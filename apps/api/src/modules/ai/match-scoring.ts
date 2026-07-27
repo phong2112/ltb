@@ -1,14 +1,23 @@
 import type { CriterionEvaluation, CriterionStatus, MatchCriterion } from "./ai.types";
 
+const MAX_MATCH_CRITERIA = 15;
+const PROSE_LINE_LENGTH = 140;
+const OPTIONAL_CRITERION_PATTERN = /(lợi thế|ưu tiên|khuyến khích|là một điểm cộng|điểm cộng|nice[ -]?to[ -]?have|preferred|plus\b)/i;
+const REQUIRED_CRITERION_PATTERN = /(bắt buộc|yêu cầu|tối thiểu|ít nhất|minimum|required|must\b)/i;
+
 export function extractMatchCriteria(requirements: string): MatchCriterion[] {
   const lines = requirements
     .split(/\n+/)
+    .flatMap(splitCriterionLine)
     .map(normalizeCriterionLine)
     .filter((line) => line.length >= 3 && !isSectionHeading(line));
-  const uniqueLines = Array.from(new Map(lines.map((line) => [line.toLocaleLowerCase("vi"), line])).values()).slice(0, 12);
+  const uniqueLines = Array.from(
+    new Map(lines.map((line) => [line.toLocaleLowerCase("vi"), line])).values(),
+  ).slice(0, MAX_MATCH_CRITERIA);
 
   return uniqueLines.map((text, index) => {
-    const required = !/(lợi thế|ưu tiên|khuyến khích|nice[ -]?to[ -]?have|preferred|plus\b)/i.test(text);
+    const required = REQUIRED_CRITERION_PATTERN.test(text)
+      || !OPTIONAL_CRITERION_PATTERN.test(text);
 
     return {
       id: `criterion-${index + 1}`,
@@ -17,6 +26,18 @@ export function extractMatchCriteria(requirements: string): MatchCriterion[] {
       weight: required ? 2 : 1,
     };
   });
+}
+
+function splitCriterionLine(rawLine: string) {
+  const line = rawLine.trim();
+  if (!line) return [];
+
+  const isProse = line.length >= PROSE_LINE_LENGTH;
+  const hasInlineSeparators = /[;•]/u.test(line);
+  if (!isProse && !hasInlineSeparators) return [line];
+
+  const separator = isProse ? /(?:[;•]+|(?<=[.!?])\s+)/u : /[;•]+/u;
+  return line.split(separator).map((part) => part.trim()).filter(Boolean);
 }
 
 export function calculateMatchScore(criteria: MatchCriterion[], evaluations: Map<string, CriterionEvaluation>) {
@@ -60,7 +81,7 @@ function isSectionHeading(line: string) {
     .replace(/:$/, "")
     .replace(/\s+/g, " ")
     .trim()
-    .toLocaleLowerCase("en");
+    .toLocaleLowerCase("vi");
 
   if (!normalized) return true;
 
@@ -85,4 +106,17 @@ const SECTION_HEADINGS = new Set([
   "technical skills",
   "tools & development practices",
   "tools and development practices",
+  "công việc",
+  "kỹ năng",
+  "kỹ năng chuyên môn",
+  "kỹ năng mềm",
+  "mô tả công việc",
+  "nhiệm vụ",
+  "phúc lợi",
+  "quyền lợi",
+  "trách nhiệm",
+  "trình độ",
+  "yêu cầu",
+  "yêu cầu công việc",
+  "yêu cầu ứng viên",
 ]);

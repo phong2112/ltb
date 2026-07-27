@@ -142,6 +142,11 @@ export class CandidatesService {
             candidateId: true,
           },
         },
+        talentPoolEntry: {
+          select: {
+            candidateId: true,
+          },
+        },
       },
     });
 
@@ -153,17 +158,21 @@ export class CandidatesService {
       throw new BadRequestException("Liên kết CV bên ngoài cần được mở trực tiếp.");
     }
 
+    // A CandidateFile is owned by exactly one of an application or a talent pool entry.
+    const candidateId = file.application?.candidateId ?? file.talentPoolEntry?.candidateId ?? null;
+
     const openedFile = await this.cvStorageService.openCandidateCv(file.path, file.mimeType);
 
     await this.prisma.activityLog.create({
       data: {
-        candidateId: file.application.candidateId,
+        candidateId,
         applicationId: file.applicationId,
         candidateFileId: file.id,
         actor: "hr",
         action: "candidate_file_viewed",
         metadata: {
           applicationId: file.applicationId,
+          talentPoolEntryId: file.talentPoolEntryId,
           fileId: file.id,
           originalName: file.originalName,
         },

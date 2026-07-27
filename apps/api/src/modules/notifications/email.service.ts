@@ -1,14 +1,19 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import nodemailer from "nodemailer";
+import { OAuth2Client } from "google-auth-library";
+import MailComposer from "nodemailer/lib/mail-composer";
+
+const GMAIL_SEND_ENDPOINT =
+  "https://gmail.googleapis.com/gmail/v1/users/me/messages/send";
 
 type EmailConfig = {
   from: string;
   replyTo?: string;
   brandName: string;
   publicBaseUrl?: string;
-  smtpUser: string;
-  smtpPass: string;
+  clientId: string;
+  clientSecret: string;
+  refreshToken: string;
 };
 
 export type ApplicationConfirmationEmail = {
@@ -37,7 +42,7 @@ export class EmailService {
       publicBaseUrl: config.publicBaseUrl,
     });
 
-    await this.sendWithGmail(config, input.candidateEmail, message);
+    await this.sendWithGmailApi(config, input.candidateEmail, message);
   }
 
   private getEmailConfig(): EmailConfig | null {
@@ -48,16 +53,17 @@ export class EmailService {
       this.configService.get<string>("WEB_ORIGIN"),
     );
     const brandName = this.configService.get<string>("ADMIN_NAME")?.trim() || "Lường Bích";
-    const smtpUser = this.configService.get<string>("EMAIL_SMTP_USER")?.trim();
-    const smtpPass = this.configService.get<string>("EMAIL_SMTP_PASS")?.trim();
+    const clientId = this.configService.get<string>("GMAIL_CLIENT_ID")?.trim();
+    const clientSecret = this.configService.get<string>("GMAIL_CLIENT_SECRET")?.trim();
+    const refreshToken = this.configService.get<string>("GMAIL_REFRESH_TOKEN")?.trim();
 
     if (provider !== "gmail") {
-      this.logDisabledOnce(`Email confirmation disabled: unsupported EMAIL_PROVIDER "${provider}". Use gmail SMTP.`);
+      this.logDisabledOnce(`Email confirmation disabled: unsupported EMAIL_PROVIDER "${provider}". Use gmail.`);
       return null;
     }
 
-    if (!smtpUser || !smtpPass || !from) {
-      this.logDisabledOnce("Email confirmation disabled: configure EMAIL_SMTP_USER, EMAIL_SMTP_PASS, and EMAIL_FROM to enable Gmail SMTP");
+    if (!clientId || !clientSecret || !refreshToken || !from) {
+      this.logDisabledOnce("Email confirmation disabled: configure GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, and EMAIL_FROM to enable the Gmail API");
       return null;
     }
 
@@ -66,21 +72,15 @@ export class EmailService {
       replyTo,
       brandName,
       publicBaseUrl,
-      smtpUser,
-      smtpPass,
+      clientId,
+      clientSecret,
+      refreshToken,
     };
   }
 
-  private async sendWithGmail(config: EmailConfig, to: string, message: ReturnType<typeof buildApplicationConfirmationEmail>) {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: config.smtpUser,
-        pass: config.smtpPass,
-      },
-    });
-
-    await transporter.sendMail({
+  private async sendWithGmailApi(config: EmailConfig, to: string, message: ReturnType<typeof buildApplicationConfirmationEmail>) {
+    const accessToken = await this.getAccessToken(config);
+    const raw = await buildRawMessage({
       from: config.from,
       to,
       ...(config.replyTo ? { replyTo: config.replyTo } : {}),
@@ -88,6 +88,32 @@ export class EmailService {
       html: message.html,
       text: message.text,
     });
+
+    const response = await fetch(GMAIL_SEND_ENDPOINT, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ raw }),
+    });
+
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      throw new Error(`Gmail API send failed (${response.status} ${response.statusText}): ${detail}`);
+    }
+  }
+
+  private async getAccessToken(config: EmailConfig): Promise<string> {
+    const oauth2Client = new OAuth2Client(config.clientId, config.clientSecret);
+    oauth2Client.setCredentials({ refresh_token: config.refreshToken });
+
+    const { token } = await oauth2Client.getAccessToken();
+    if (!token) {
+      throw new Error("Gmail API access token could not be obtained from the refresh token");
+    }
+
+    return token;
   }
 
   private logDisabledOnce(message: string) {
@@ -198,6 +224,19 @@ function buildApplicationConfirmationEmail(input: ApplicationConfirmationEmail, 
     text: textLines.join("\n"),
     html,
   };
+}
+
+async function buildRawMessage(mail: {
+  from: string;
+  to: string;
+  replyTo?: string;
+  subject: string;
+  html: string;
+  text: string;
+}): Promise<string> {
+  const composer = new MailComposer(mail);
+  const message = await composer.compile().build();
+  return message.toString("base64url");
 }
 
 function escapeHtml(value: string) {

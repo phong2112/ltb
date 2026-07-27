@@ -14,7 +14,8 @@ import { calculateConfidence, calculateMatchScore, extractMatchCriteria } from "
 
 const MAX_AI_CV_CHARACTERS = 45_000;
 const MAX_JOB_DESCRIPTION_CHARACTERS = 12_000;
-const CV_EXTRACTION_VERSION = "cv-text-extraction-v1";
+const CV_EXTRACTION_VERSION = "cv-text-extraction-v2";
+const LOW_CONFIDENCE_OCR_WARNING = "OCR chất lượng thấp — nên kiểm tra thủ công.";
 
 type ExtractedApplicationCv = {
   candidateFileId: string;
@@ -117,6 +118,9 @@ export class AiService {
             ocrUsed: extracted.parser === "tesseract-ocr",
             ...(extracted.ocrPages === undefined ? {} : { ocrPages: extracted.ocrPages }),
             ...(extracted.ocrConfidence === undefined ? {} : { ocrConfidence: extracted.ocrConfidence }),
+            ...(extracted.ocrTruncated ? { ocrTruncated: true } : {}),
+            ...(extracted.totalPages === undefined ? {} : { totalPages: extracted.totalPages }),
+            ...(extracted.lowConfidenceOcr ? { lowConfidenceOcr: true } : {}),
           } satisfies Prisma.InputJsonObject,
         },
       }),
@@ -185,13 +189,20 @@ export class AiService {
     const confidence = calculateConfidence(criteria, normalizedEvaluations);
     const missingRequirements = buildMissingRequirements(criteria, normalizedEvaluations);
     const extractionMetadata = asInputJsonObject(application.cvParseResult?.structuredData);
+    const lowConfidenceOcr = extractionMetadata.lowConfidenceOcr === true;
+    const summary = lowConfidenceOcr
+      ? appendWarning(analysis.summary, LOW_CONFIDENCE_OCR_WARNING)
+      : analysis.summary;
+    const risks = lowConfidenceOcr
+      ? appendUnique(analysis.risks, LOW_CONFIDENCE_OCR_WARNING)
+      : analysis.risks;
 
     await this.prisma.$transaction([
       this.prisma.cvParseResult.update({
         where: { applicationId },
         data: {
           status: CvParseStatus.COMPLETED,
-          summary: analysis.summary,
+          summary,
           extractedText,
           errorMessage: null,
           structuredData: {
@@ -217,14 +228,14 @@ export class AiService {
           applicationId,
           score,
           strengths: analysis.strengths,
-          risks: analysis.risks,
+          risks,
           missingRequirements,
           screeningQuestions: analysis.screeningQuestions,
         },
         update: {
           score,
           strengths: analysis.strengths,
-          risks: analysis.risks,
+          risks,
           missingRequirements,
           screeningQuestions: analysis.screeningQuestions,
         },
@@ -311,6 +322,14 @@ function buildMissingRequirements(criteria: MatchCriterion[], evaluations: Map<s
     const label = evaluation.status === "unknown" ? "Chưa đủ thông tin" : evaluation.status === "partial" ? "Đáp ứng một phần" : "Chưa đáp ứng";
     return [`${label}: ${criterion.text}`];
   });
+}
+
+function appendWarning(summary: string, warning: string) {
+  return summary.includes(warning) ? summary : `${summary}\n\n${warning}`;
+}
+
+function appendUnique(values: string[], value: string) {
+  return values.includes(value) ? values : [...values, value];
 }
 
 function htmlToPlainText(value: string) {

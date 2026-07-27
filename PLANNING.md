@@ -95,7 +95,7 @@ NestJS API
   - file upload orchestration
   - AI service orchestration
   - background job endpoints/workers
-  - deployed on container/server platform
+  - deployed on an Oracle Cloud Ampere A1 VM behind Caddy for the current free MVP
 
 PostgreSQL
   - source of truth for business data
@@ -150,12 +150,12 @@ If the project starts small, keep `packages/` minimal. Do not over-abstract unti
 - Database: PostgreSQL.
 - Queue: BullMQ + Redis.
 - Storage: S3-compatible private bucket or Vercel Blob private.
-- Email: Gmail SMTP for the current low-volume MVP confirmation emails.
+- Email: Gmail API (OAuth2 over HTTPS) for the current low-volume MVP confirmation emails.
 - Auth: Auth.js/NextAuth, Clerk, or a simple NestJS JWT/session setup.
 - AI: provider abstraction, initially OpenAI or compatible LLM API.
 - Deploy:
   - Web: Vercel Pro.
-  - API: Railway, Fly.io, Render, AWS ECS, or Google Cloud Run.
+  - API: Oracle Cloud Ampere A1 VM for the current free MVP; move to a paid managed container/server platform when uptime requirements increase.
   - DB: Supabase, Neon, or managed Postgres.
   - Redis: Upstash or Redis Cloud.
 
@@ -185,6 +185,7 @@ Candidate identity rules for the MVP:
 - Store normalized email and phone snapshots on `Application` and enforce one application per job per normalized email/phone.
 - Do not let unauthenticated duplicate submissions overwrite an existing candidate, application, or CV.
 - Keep CV processing status controlled by enum values (`PENDING`, `EXTRACTING`, `EXTRACTED`, `ANALYZING`, `COMPLETED`, `FAILED`) instead of free-form strings.
+- Keep extraction-quality metadata (`ocrConfidence`, `lowConfidenceOcr`, `ocrTruncated`, `totalPages`) optional in `CvParseResult.structuredData` so rolling deploys remain compatible.
 - Store direct nullable audit links on `ActivityLog` (`applicationId`, `jobId`, `candidateFileId`) for sensitive actions; keep JSON metadata only as context.
 - Store active CV objects in private Cloudflare R2. When a job becomes `ARCHIVED`, move its CV objects to private Vercel Blob storage and mark `CandidateFile.storageTier=ARCHIVE`; restore them to R2 when the job is restored.
 

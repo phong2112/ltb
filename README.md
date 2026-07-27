@@ -161,6 +161,15 @@ Stop the stack:
 pnpm docker:down
 ```
 
+## Deploying The API To Oracle A1
+
+The production frontend remains on Vercel. Deploy only the NestJS API to an OCI
+Ampere A1 VM behind Caddy, while keeping Neon, managed Redis, private Ollama,
+R2, and Vercel Blob external.
+
+See [docs/oracle-a1-deployment.md](docs/oracle-a1-deployment.md) for the VM,
+DNS, secrets, SMTP verification, deploy, cutover, and rollback procedure.
+
 ## Mock Data
 
 Seed demo data into the Docker PostgreSQL database:
@@ -240,6 +249,8 @@ The model never supplies the final score. It classifies every JD criterion as `m
 Scanned PDFs without a usable text layer and uploaded JPG/PNG CVs are processed locally with Tesseract `vie+eng`. OCR is limited by `OCR_MAX_PAGES` and `OCR_TIMEOUT_MS`; unreadable documents still show a failed state for manual review.
 
 The processing pipeline first persists extracted CV text, then enqueues a separate AI matching job. Extraction concurrency and Ollama concurrency are configured independently with `CV_EXTRACTION_CONCURRENCY` and `AI_MATCH_CONCURRENCY`.
+
+The OCR worker is reused and serialized across requests, hybrid PDFs are compared against OCR text, oversized PDFs process their first configured pages, and low-confidence OCR is flagged for manual review. Run the fictional-fixture evaluation harness using [docs/cv-pipeline-evaluation.md](docs/cv-pipeline-evaluation.md).
 
 ## Architecture Notes
 
