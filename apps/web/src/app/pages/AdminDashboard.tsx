@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { AlertCircle, ArrowRight, Bell, Briefcase, CheckCircle, Clock, Plus, TrendingUp, Users, Archive } from "lucide-react";
+import { AlertCircle, ArrowRight, Bell, Briefcase, CheckCircle, Clock, Plus, Sparkles, TrendingUp, Users, Archive } from "lucide-react";
 import { useData } from "@/app/data";
 import { translateCandidateStatus, useLanguage } from "@/app/i18n";
 import AdminLayout from "@/app/layouts/AdminLayout";
@@ -18,7 +18,6 @@ export default function AdminDashboard() {
   const recentCandidates = [...candidates].sort((a, b) => b.appliedAt.localeCompare(a.appliedAt)).slice(0, 5);
   const averageScore = completedMatches.length ? Math.round(completedMatches.reduce((sum, candidate) => sum + candidate.aiScore, 0) / completedMatches.length) : 0;
   const activePipeline = candidates.filter(candidate => candidate.status !== "rejected" && candidate.status !== "offer").length;
-  const reviewedCandidates = candidates.filter(candidate => candidate.status !== "new").length;
   const talentPoolCandidates = candidateProfiles.filter(candidate => candidate.applications.some(application => application.status === "talent_pool")).length;
 
   const stats = [

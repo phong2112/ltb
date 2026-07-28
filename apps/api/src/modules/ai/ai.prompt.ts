@@ -36,6 +36,29 @@ Quy tắc bắt buộc:
 - Không dùng tên, tuổi, giới tính, ảnh, tình trạng hôn nhân hoặc đặc điểm được bảo vệ để đánh giá.
 - Viết summary, reason, strengths, risks và screeningQuestions bằng tiếng Việt.
 - Trả đúng một evaluation cho mỗi criterionId được cung cấp.
+- Chỉ trả về JSON theo đúng cấu trúc dưới đây. Không đổi tên field, không bọc trong field khác.
+
+JSON bắt buộc:
+{
+  "profile": {
+    "currentRole": string | null,
+    "totalYearsExperience": number | null,
+    "skills": string[],
+    "languages": string[]
+  },
+  "summary": string,
+  "evaluations": [
+    {
+      "criterionId": string,
+      "status": "met" | "partial" | "not_met" | "unknown",
+      "evidence": string[],
+      "reason": string
+    }
+  ],
+  "strengths": string[],
+  "risks": string[],
+  "screeningQuestions": string[]
+}
 
 Vị trí: ${input.jobTitle}
 

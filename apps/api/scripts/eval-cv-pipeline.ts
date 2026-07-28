@@ -8,7 +8,7 @@ import type { CvStorageService } from "../src/modules/files/cv-storage.service";
 import { CvOcrService } from "../src/modules/ai/cv-ocr.service";
 import { CvTextExtractorService } from "../src/modules/ai/cv-text-extractor.service";
 import { calculateMatchScore, extractMatchCriteria } from "../src/modules/ai/match-scoring";
-import { OllamaAiProvider } from "../src/modules/ai/ollama-ai.provider";
+import { GroqAiProvider } from "../src/modules/ai/groq-ai.provider";
 
 type FixtureExpectation = {
   file: string;
@@ -53,8 +53,8 @@ async function main() {
   } as unknown as CvStorageService;
   const ocr = new CvOcrService(config);
   const extractor = new CvTextExtractorService(config, storage, ocr);
-  const aiEnabled = process.env.AI_PROVIDER === "ollama";
-  const provider = aiEnabled ? new OllamaAiProvider(config) : undefined;
+  const aiEnabled = process.env.AI_PROVIDER === "groq";
+  const provider = aiEnabled ? new GroqAiProvider(config) : undefined;
   const criteria = extractMatchCriteria([
     "Yêu cầu công việc:",
     "- Ít nhất 3 năm kinh nghiệm React và TypeScript.",
@@ -136,7 +136,7 @@ async function main() {
   }
 
   console.table(rows);
-  console.log(`Evaluation: ${rows.filter((row) => row.pass).length}/${rows.length} fixtures passed${aiEnabled ? " with Ollama" : " (extraction only; AI_PROVIDER is not ollama)"}.`);
+  console.log(`Evaluation: ${rows.filter((row) => row.pass).length}/${rows.length} fixtures passed${aiEnabled ? " with Groq" : " (extraction only; AI_PROVIDER is not groq)"}.`);
   if (failed) process.exitCode = 1;
 }
 

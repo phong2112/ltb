@@ -6,14 +6,14 @@ import { AiService } from "./ai.service";
 import { AI_PROVIDER } from "./ai.types";
 import { CvOcrService } from "./cv-ocr.service";
 import { CvTextExtractorService } from "./cv-text-extractor.service";
-import { OllamaAiProvider } from "./ollama-ai.provider";
+import { GroqAiProvider } from "./groq-ai.provider";
 import { TalentPoolProcessingService } from "./talent-pool-processing.service";
 
 @Module({
   imports: [FilesModule, JobsModule],
   providers: [
-    OllamaAiProvider,
-    { provide: AI_PROVIDER, useExisting: OllamaAiProvider },
+    GroqAiProvider,
+    { provide: AI_PROVIDER, useExisting: GroqAiProvider },
     CvOcrService,
     CvTextExtractorService,
     AiService,

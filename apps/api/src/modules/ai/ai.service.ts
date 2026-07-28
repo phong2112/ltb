@@ -360,7 +360,7 @@ function toSafeErrorMessage(error: unknown, stage: AiProcessingStage) {
   const message = error instanceof Error ? error.message : "Unknown AI processing error";
 
   if (stage === "analysis" && /fetch failed|ECONNREFUSED|connect/i.test(message)) {
-    return "Không thể kết nối tới Ollama. Kiểm tra container và model Qwen.";
+    return "Không thể kết nối tới Groq API. Kiểm tra GROQ_API_KEY, mạng và giới hạn dịch vụ.";
   }
 
   if (/extractable text|Unsupported CV|extraction size/i.test(message)) {

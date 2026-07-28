@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Search, ChevronRight, Users } from "lucide-react";
 import { useData, type CandidateStatus } from "@/app/data";

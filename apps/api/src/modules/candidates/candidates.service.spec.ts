@@ -1,3 +1,8 @@
+jest.mock("sanitize-html", () => ({
+  __esModule: true,
+  default: (value: string) => value.replace(/<[^>]+>/g, ""),
+}));
+
 import type { PrismaService } from "../prisma/prisma.service";
 import type { CvStorageService } from "../files/cv-storage.service";
 import { CandidatesService } from "./candidates.service";
@@ -28,6 +33,7 @@ describe("CandidatesService", () => {
     const service = new CandidatesService(
       prisma as unknown as PrismaService,
       {} as CvStorageService,
+      { enqueue: jest.fn() } as never,
     );
 
     await expect(service.getApplicationAnalysis("application-1")).resolves.toEqual({
@@ -75,6 +81,7 @@ describe("CandidatesService", () => {
     const service = new CandidatesService(
       prisma as unknown as PrismaService,
       {} as CvStorageService,
+      { enqueue: jest.fn() } as never,
     );
 
     await service.updateApplication("application-1", {
@@ -93,5 +100,47 @@ describe("CandidatesService", () => {
         }),
       }),
     );
+  });
+
+  it("resets analysis state and enqueues AI retry", async () => {
+    const prisma = {
+      application: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValueOnce({
+            id: "application-1",
+            files: [{ id: "file-1", originalName: "candidate.pdf" }],
+          })
+          .mockResolvedValueOnce({
+            id: "application-1",
+            cvParseResult: {
+              status: "PENDING",
+              summary: "Hồ sơ đang chờ trích xuất lại nội dung CV.",
+              errorMessage: null,
+              structuredData: {},
+              updatedAt: new Date("2026-07-22T09:00:00.000Z"),
+            },
+            matchResult: null,
+          }),
+      },
+      cvParseResult: {
+        upsert: jest.fn().mockResolvedValue(undefined),
+      },
+    };
+    const queue = { enqueue: jest.fn().mockResolvedValue(true) };
+    const service = new CandidatesService(
+      prisma as unknown as PrismaService,
+      {} as CvStorageService,
+      queue as never,
+    );
+
+    await expect(service.retryApplicationAnalysis("application-1")).resolves.toMatchObject({
+      applicationId: "application-1",
+      status: "PENDING",
+    });
+    expect(prisma.cvParseResult.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      update: expect.objectContaining({ candidateFileId: "file-1", status: "PENDING" }),
+    }));
+    expect(queue.enqueue).toHaveBeenCalledWith("application-1", { force: true });
   });
 });

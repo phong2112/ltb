@@ -101,8 +101,8 @@ ERROR
 
   local ai_provider
   ai_provider="$(read_env_value AI_PROVIDER)"
-  if [[ "$ai_provider" == "ollama" ]]; then
-    for key in REDIS_URL OLLAMA_BASE_URL OLLAMA_MODEL; do
+  if [[ "$ai_provider" == "groq" ]]; then
+    for key in REDIS_URL GROQ_API_KEY; do
       require_env_key "$key" || missing=1
     done
   fi
@@ -118,7 +118,7 @@ ERROR
     exit 1
   fi
 
-  if grep -Eq '<(user|password|pooled-host|database|direct-host|account-id|bucket-name|access-key-id|secret-access-key|vercel-blob-read-write-token|managed-redis-url|private-ollama-service|oauth2-client-id|oauth2-client-secret|oauth2-refresh-token)>|replace-with-|^API_DOMAIN=api\.example\.com$' "$ENV_FILE"; then
+  if grep -Eq '<(user|password|pooled-host|database|direct-host|account-id|bucket-name|access-key-id|secret-access-key|vercel-blob-read-write-token|managed-redis-url|groq-api-key|oauth2-client-id|oauth2-client-secret|oauth2-refresh-token)>|replace-with-|^API_DOMAIN=api\.example\.com$' "$ENV_FILE"; then
     echo "$ENV_FILE still contains placeholder values." >&2
     exit 1
   fi

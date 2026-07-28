@@ -12,8 +12,7 @@ const integerVariables = [
   "MAX_CV_FILE_SIZE_MB",
   "JWT_ACCESS_TOKEN_TTL_SECONDS",
   "JWT_REFRESH_TOKEN_TTL_SECONDS",
-  "OLLAMA_TIMEOUT_MS",
-  "OLLAMA_CONTEXT_LENGTH",
+  "GROQ_TIMEOUT_MS",
   "AI_JOB_ATTEMPTS",
   "CV_EXTRACTION_CONCURRENCY",
   "AI_MATCH_CONCURRENCY",
@@ -147,14 +146,14 @@ export function validateEnv(config: Record<string, unknown>) {
   }
 
   const aiProvider = String(config.AI_PROVIDER || "disabled");
-  if (!["disabled", "ollama"].includes(aiProvider)) {
-    throw new Error("AI_PROVIDER must be one of: disabled, ollama");
+  if (!["disabled", "groq"].includes(aiProvider)) {
+    throw new Error("AI_PROVIDER must be one of: disabled, groq");
   }
 
-  if (aiProvider === "ollama") {
-    for (const key of ["REDIS_URL", "OLLAMA_BASE_URL", "OLLAMA_MODEL"]) {
+  if (aiProvider === "groq") {
+    for (const key of ["REDIS_URL", "GROQ_API_KEY"]) {
       if (!hasValue(config[key])) {
-        throw new Error(`${key} is required when AI_PROVIDER=ollama`);
+        throw new Error(`${key} is required when AI_PROVIDER=groq`);
       }
     }
   }

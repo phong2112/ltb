@@ -21,7 +21,7 @@ export class TalentPoolProcessingService {
   ) {}
 
   private get aiEnabled() {
-    return (this.configService.get<string>("AI_PROVIDER") ?? "disabled") === "ollama";
+    return (this.configService.get<string>("AI_PROVIDER") ?? "disabled") === "groq";
   }
 
   async processPoolEntry(entryId: string): Promise<void> {

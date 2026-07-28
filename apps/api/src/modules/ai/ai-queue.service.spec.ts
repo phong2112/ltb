@@ -9,7 +9,7 @@ import { AiQueueService } from "./ai-queue.service";
 import type { AiService } from "./ai.service";
 import type { TalentPoolProcessingService } from "./talent-pool-processing.service";
 
-type ProcessingJob = Job<{ applicationId: string }>;
+type ProcessingJob = Job<{ applicationId: string; runId?: string }>;
 type PoolJob = Job<{ talentPoolEntryId: string; targetJobId?: string }>;
 
 type QueueServiceInternals = {
@@ -27,10 +27,10 @@ type QueueServiceInternals = {
 };
 
 describe("AiQueueService", () => {
-  it("extracts a CV before placing the application on the Ollama match queue", async () => {
+  it("extracts a CV before placing the application on the Groq match queue", async () => {
     const aiService = createAiService();
     const service = new AiQueueService(
-      createConfig({ AI_PROVIDER: "ollama", AI_JOB_ATTEMPTS: 2 }),
+      createConfig({ AI_PROVIDER: "groq", AI_JOB_ATTEMPTS: 2 }),
       aiService as unknown as AiService,
       createPoolProcessingService() as unknown as TalentPoolProcessingService,
     );
@@ -57,9 +57,32 @@ describe("AiQueueService", () => {
     );
   });
 
+  it("keeps forced retry run ids across extraction and match jobs", async () => {
+    const aiService = createAiService();
+    const service = new AiQueueService(
+      createConfig({ AI_PROVIDER: "groq", AI_JOB_ATTEMPTS: 2 }),
+      aiService as unknown as AiService,
+      createPoolProcessingService() as unknown as TalentPoolProcessingService,
+    );
+    const matchQueue = { add: jest.fn().mockResolvedValue(undefined) };
+    const internals = service as unknown as QueueServiceInternals;
+    internals.matchQueue = matchQueue;
+
+    await internals.processExtractionJob({
+      ...createJob("application-1"),
+      data: { applicationId: "application-1", runId: "retry-1" },
+    });
+
+    expect(matchQueue.add).toHaveBeenCalledWith(
+      "analyze-application",
+      { applicationId: "application-1", runId: "retry-1" },
+      expect.objectContaining({ jobId: "match-application-1-retry-1" }),
+    );
+  });
+
   it("exposes in-process completion and final-failure counters", () => {
     const service = new AiQueueService(
-      createConfig({ AI_PROVIDER: "ollama" }),
+      createConfig({ AI_PROVIDER: "groq" }),
       createAiService() as unknown as AiService,
       createPoolProcessingService() as unknown as TalentPoolProcessingService,
     );
@@ -85,7 +108,7 @@ describe("AiQueueService", () => {
 
   it("logs exhausted jobs with the stable AI_JOB_FAILED prefix", () => {
     const service = new AiQueueService(
-      createConfig({ AI_PROVIDER: "ollama" }),
+      createConfig({ AI_PROVIDER: "groq" }),
       createAiService() as unknown as AiService,
       createPoolProcessingService() as unknown as TalentPoolProcessingService,
     );
@@ -106,10 +129,10 @@ describe("AiQueueService", () => {
     ));
   });
 
-  it("runs the Ollama match stage from the second queue", async () => {
+  it("runs the Groq match stage from the second queue", async () => {
     const aiService = createAiService();
     const service = new AiQueueService(
-      createConfig({ AI_PROVIDER: "ollama" }),
+      createConfig({ AI_PROVIDER: "groq" }),
       aiService as unknown as AiService,
       createPoolProcessingService() as unknown as TalentPoolProcessingService,
     );
@@ -126,7 +149,7 @@ describe("AiQueueService", () => {
     const aiService = createAiService();
     aiService.extractApplicationCv.mockRejectedValue(failure);
     const service = new AiQueueService(
-      createConfig({ AI_PROVIDER: "ollama" }),
+      createConfig({ AI_PROVIDER: "groq" }),
       aiService as unknown as AiService,
       createPoolProcessingService() as unknown as TalentPoolProcessingService,
     );
@@ -160,7 +183,7 @@ describe("AiQueueService", () => {
   it("processes a pool entry and promotes it before enqueueing application matching", async () => {
     const poolProcessing = createPoolProcessingService();
     const service = new AiQueueService(
-      createConfig({ AI_PROVIDER: "ollama" }),
+      createConfig({ AI_PROVIDER: "groq" }),
       createAiService() as unknown as AiService,
       poolProcessing as unknown as TalentPoolProcessingService,
     );

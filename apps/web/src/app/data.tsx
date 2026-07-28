@@ -78,14 +78,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const refreshCandidateAnalysis = useCallback(async (applicationId: string) => {
-    const analysis = await apiRequest<ApiApplicationAnalysis>(
-      `/admin/candidates/applications/${applicationId}/analysis`,
-    );
-    const patch = mapApplicationAnalysis(analysis);
-
-    if (patch.aiStatus === "pending") return patch.aiStatus;
-
+  const patchCandidateAnalysis = useCallback((
+    applicationId: string,
+    patch: ReturnType<typeof mapApplicationAnalysis>,
+  ) => {
     setCandidates(current => current.map(candidate =>
       candidate.applicationId === applicationId ? { ...candidate, ...patch } : candidate,
     ));
@@ -95,9 +91,38 @@ export function DataProvider({ children }: { children: ReactNode }) {
         application.applicationId === applicationId ? { ...application, ...patch } : application,
       ),
     })));
+  }, []);
+
+  const refreshCandidateAnalysis = useCallback(async (applicationId: string) => {
+    const analysis = await apiRequest<ApiApplicationAnalysis>(
+      `/admin/candidates/applications/${applicationId}/analysis`,
+    );
+    const patch = mapApplicationAnalysis(analysis);
+
+    if (patch.aiStatus === "pending") return patch.aiStatus;
+
+    patchCandidateAnalysis(applicationId, patch);
 
     return patch.aiStatus;
-  }, []);
+  }, [patchCandidateAnalysis]);
+
+  const retryCandidateAnalysis = useCallback(async (applicationId: string) => {
+    const analysis = await apiRequest<ApiApplicationAnalysis>(
+      `/admin/candidates/applications/${applicationId}/ai/retry`,
+      {
+        method: "POST",
+        notification: {
+          loading: "Đang chạy lại phân tích AI...",
+          success: "Đã đưa hồ sơ vào hàng đợi AI",
+          error: "Không thể chạy lại phân tích AI",
+        },
+      },
+    );
+    const patch = mapApplicationAnalysis(analysis);
+
+    patchCandidateAnalysis(applicationId, patch);
+    return patch.aiStatus;
+  }, [patchCandidateAnalysis]);
 
   useEffect(() => {
     void reloadPublicJobs();
@@ -317,6 +342,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         reloadPublicJobs,
         reloadAdminData,
         refreshCandidateAnalysis,
+        retryCandidateAnalysis,
         addJob,
         updateJob,
         addCandidate,

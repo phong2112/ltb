@@ -1,5 +1,6 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import type { Prisma } from "@prisma/client";
+import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { ApplicationStatus, CvParseStatus, FileKind, type Prisma } from "@prisma/client";
+import { AiQueueService } from "../ai/ai-queue.service";
 import { CvStorageService } from "../files/cv-storage.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateCandidateMessageDto } from "./dto/create-candidate-message.dto";
@@ -43,12 +44,15 @@ const candidateApplicationInclude = {
 
 @Injectable()
 export class CandidatesService {
+  private readonly logger = new Logger(CandidatesService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly cvStorageService: CvStorageService,
+    private readonly aiQueueService: AiQueueService,
   ) {}
 
-  async listCandidates(status?: Prisma.ApplicationStatus) {
+  async listCandidates(status?: ApplicationStatus) {
     const where: Prisma.CandidateWhereInput | undefined = status
       ? {
           applications: {
@@ -140,6 +144,68 @@ export class CandidatesService {
       updatedAt: application.cvParseResult.updatedAt,
       matchResult: application.matchResult,
     };
+  }
+
+  async retryApplicationAnalysis(applicationId: string) {
+    const application = await this.prisma.application.findUnique({
+      where: { id: applicationId },
+      select: {
+        id: true,
+        files: {
+          where: { kind: FileKind.CV },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { id: true, originalName: true },
+        },
+      },
+    });
+
+    if (!application) {
+      throw new NotFoundException("Không tìm thấy hồ sơ ứng tuyển.");
+    }
+
+    const cvFile = application.files[0];
+    if (!cvFile) {
+      throw new BadRequestException("Không thể phân tích AI vì hồ sơ ứng tuyển không có tệp CV.");
+    }
+
+    await this.prisma.cvParseResult.upsert({
+      where: { applicationId },
+      create: {
+        applicationId,
+        candidateFileId: cvFile.id,
+        status: CvParseStatus.PENDING,
+        summary: "Hồ sơ đang chờ trích xuất lại nội dung CV.",
+        errorMessage: null,
+        structuredData: {
+          source: "admin_retry_queued",
+          cvSource: "uploaded_file",
+          fileName: cvFile.originalName,
+        },
+      },
+      update: {
+        candidateFileId: cvFile.id,
+        status: CvParseStatus.PENDING,
+        summary: "Hồ sơ đang chờ trích xuất lại nội dung CV.",
+        errorMessage: null,
+      },
+    });
+
+    try {
+      const queued = await this.aiQueueService.enqueue(applicationId, { force: true });
+      if (!queued) {
+        await this.markAiRetryUnavailable(applicationId, "AI matching is disabled in this environment");
+      }
+    } catch (error) {
+      this.logger.error(
+        error instanceof Error
+          ? `Failed to enqueue AI retry: ${error.message}`
+          : "Failed to enqueue AI retry",
+      );
+      await this.markAiRetryUnavailable(applicationId, "AI matching queue is unavailable");
+    }
+
+    return this.getApplicationAnalysis(applicationId);
   }
 
   async openCandidateFile(fileId: string) {
@@ -316,6 +382,17 @@ export class CandidatesService {
     });
 
     return updated;
+  }
+
+  private async markAiRetryUnavailable(applicationId: string, errorMessage: string) {
+    await this.prisma.cvParseResult.update({
+      where: { applicationId },
+      data: {
+        status: CvParseStatus.FAILED,
+        summary: "Không thể bắt đầu phân tích AI. HR vẫn có thể xem CV và đánh giá thủ công.",
+        errorMessage,
+      },
+    });
   }
 }
 

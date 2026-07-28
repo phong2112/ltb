@@ -68,6 +68,9 @@ importers:
       google-auth-library:
         specifier: ^10.9.0
         version: 10.9.0
+      groq-sdk:
+        specifier: ^1.4.0
+        version: 1.4.0
       helmet:
         specifier: ^8.1.0
         version: 8.2.0
@@ -80,9 +83,6 @@ importers:
       nodemailer:
         specifier: ^9.0.3
         version: 9.0.3
-      ollama:
-        specifier: ^0.6.3
-        version: 0.6.3
       pdf-parse:
         specifier: ^2.4.5
         version: 2.4.5
@@ -4021,6 +4021,10 @@ packages:
   graphmatch@1.1.1:
     resolution: {integrity: sha512-5ykVn/EXM1hF0XCaWh05VbYvEiOL2lY1kBxZtaYsyvjp7cmWOU1XsAdfQBwClraEofXDT197lFbXOEVMHpvQOg==}
 
+  groq-sdk@1.4.0:
+    resolution: {integrity: sha512-4EAmBWlt5SNVyhKWqVPns9marmWYbtYO4kkE0u34NW3+GlVQ5d/JJ0sJRg/rOsqmVispCD3bK/EykH3zC1AeUQ==}
+    hasBin: true
+
   handlebars@4.7.9:
     resolution: {integrity: sha512-4E71E0rpOaQuJR2A3xDZ+GM1HyWYv1clR58tC8emQNeQe3RH7MAzSbat+V0wG78LQBo6m6bzSG/L4pBuCsgnUQ==}
     engines: {node: '>=0.4.7'}
@@ -4793,9 +4797,6 @@ packages:
 
   ohash@2.0.11:
     resolution: {integrity: sha512-RdR9FQrFwNBNXAr4GixM8YaRZRJ5PUWbKYbE5eOsrwAjJW0q2REGcf79oYPsLyskQCZG1PLN+S/K1V00joZAoQ==}
-
-  ollama@0.6.3:
-    resolution: {integrity: sha512-KEWEhIqE5wtfzEIZbDCLH51VFZ6Z3ZSa6sIOg/E/tBV8S51flyqBOXi+bRxlOYKDf8i327zG9eSTb8IJxvm3Zg==}
 
   on-finished@2.4.1:
     resolution: {integrity: sha512-oVlzkg3ENAhCk2zdv7IJwd/QUD4z2RxRwpkcGY8psCVcCYZNq4wYnVWALHM+brtuJjePWiYF/ClmuDr8Ch5+kg==}
@@ -5865,9 +5866,6 @@ packages:
     peerDependenciesMeta:
       webpack-cli:
         optional: true
-
-  whatwg-fetch@3.6.20:
-    resolution: {integrity: sha512-EqhiFU6daOA8kpjOWTL0olhVOF3i7OrFzSYiGsEMB8GcXS+RrzauAERX65xMeNWVqxA6HXH2m69Z9LaKKdisfg==}
 
   whatwg-url@5.0.0:
     resolution: {integrity: sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==}
@@ -9844,6 +9842,8 @@ snapshots:
 
   graphmatch@1.1.1: {}
 
+  groq-sdk@1.4.0: {}
+
   handlebars@4.7.9:
     dependencies:
       minimist: 1.2.8
@@ -10740,10 +10740,6 @@ snapshots:
   object-inspect@1.13.4: {}
 
   ohash@2.0.11: {}
-
-  ollama@0.6.3:
-    dependencies:
-      whatwg-fetch: 3.6.20
 
   on-finished@2.4.1:
     dependencies:
@@ -11847,8 +11843,6 @@ snapshots:
       - lightningcss
       - postcss
       - uglify-js
-
-  whatwg-fetch@3.6.20: {}
 
   whatwg-url@5.0.0:
     dependencies:

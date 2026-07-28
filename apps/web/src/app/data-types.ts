@@ -237,6 +237,8 @@ export type DataCtx = {
   savedJobIds: string[];
   reloadPublicJobs: () => Promise<void>;
   reloadAdminData: (status?: string) => Promise<void>;
+  refreshCandidateAnalysis: (applicationId: string) => Promise<AiAnalysisStatus>;
+  retryCandidateAnalysis: (applicationId: string) => Promise<AiAnalysisStatus>;
   addJob: (j: JobInput) => Promise<void>;
   updateJob: (id: string, patch: Partial<Job>) => Promise<void>;
   addCandidate: (c: NewCandidate) => Promise<void>;

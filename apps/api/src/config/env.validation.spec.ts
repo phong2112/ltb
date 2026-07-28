@@ -108,4 +108,35 @@ describe("validateEnv", () => {
       BLOB_READ_WRITE_TOKEN: "vercel-blob-token",
     })).not.toThrow();
   });
+
+  it("accepts disabled AI without a Groq API key", () => {
+    expect(() => validateEnv({ ...requiredConfig, AI_PROVIDER: "disabled" })).not.toThrow();
+  });
+
+  it("rejects unsupported AI providers", () => {
+    expect(() => validateEnv({ ...requiredConfig, AI_PROVIDER: "ollama" }))
+      .toThrow("AI_PROVIDER must be one of: disabled, groq");
+  });
+
+  it("requires Groq credentials and Redis when AI is enabled", () => {
+    expect(() => validateEnv({ ...requiredConfig, AI_PROVIDER: "groq" }))
+      .toThrow("REDIS_URL is required when AI_PROVIDER=groq");
+
+    expect(() => validateEnv({
+      ...requiredConfig,
+      AI_PROVIDER: "groq",
+      REDIS_URL: "redis://localhost:6379",
+    })).toThrow("GROQ_API_KEY is required when AI_PROVIDER=groq");
+  });
+
+  it("accepts valid Groq AI settings", () => {
+    expect(() => validateEnv({
+      ...requiredConfig,
+      AI_PROVIDER: "groq",
+      REDIS_URL: "redis://localhost:6379",
+      GROQ_API_KEY: "gsk_test_key",
+      GROQ_MODEL: "llama-3.3-70b-versatile",
+      GROQ_TIMEOUT_MS: "120000",
+    })).not.toThrow();
+  });
 });

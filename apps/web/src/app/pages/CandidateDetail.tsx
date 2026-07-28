@@ -16,6 +16,7 @@ import {
   MessageSquare,
   NotebookPen,
   Phone,
+  RefreshCw,
   Save,
   Sparkles,
   Target,
@@ -41,7 +42,7 @@ import {
 export default function CandidateDetail() {
   const { id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { candidateProfiles, isLoading, refreshCandidateAnalysis, updateCandidate } = useData();
+  const { candidateProfiles, isLoading, refreshCandidateAnalysis, retryCandidateAnalysis, updateCandidate } = useData();
   const { language, t } = useLanguage();
   const candidate = candidateProfiles.find(profile => profile.id === id);
   const requestedApplicationId = searchParams.get("application");
@@ -51,6 +52,7 @@ export default function CandidateDetail() {
   const [followUp, setFollowUp] = useState("");
   const [saved, setSaved] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [retryingAnalysis, setRetryingAnalysis] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -110,6 +112,18 @@ export default function CandidateDetail() {
       setError(statusError instanceof Error ? statusError.message : "Không cập nhật được trạng thái");
     } finally {
       setStatusUpdating(false);
+    }
+  }
+
+  async function handleRetryAnalysis() {
+    setError("");
+    setRetryingAnalysis(true);
+    try {
+      await retryCandidateAnalysis(application.applicationId);
+    } catch (retryError) {
+      setError(retryError instanceof Error ? retryError.message : "Không chạy lại được phân tích AI");
+    } finally {
+      setRetryingAnalysis(false);
     }
   }
 
@@ -229,6 +243,17 @@ export default function CandidateDetail() {
                   )}
                   {application.aiStatus === "failed" && application.aiError && (
                     <p className="mt-2 text-xs font-semibold text-red-600">{application.aiError}</p>
+                  )}
+                  {application.aiStatus === "failed" && (
+                    <button
+                      type="button"
+                      disabled={retryingAnalysis}
+                      onClick={() => void handleRetryAnalysis()}
+                      className="mt-3 inline-flex h-8 items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-black text-red-700 transition-colors hover:border-red-300 hover:bg-red-100 disabled:cursor-wait disabled:opacity-60"
+                    >
+                      <RefreshCw size={13} className={retryingAnalysis ? "animate-spin" : undefined} />
+                      Chạy lại AI
+                    </button>
                   )}
                 </div>
                 <div className={`rounded-2xl border p-4 ${scoreTone.soft} ${scoreTone.border}`}>

@@ -239,11 +239,10 @@ GMAIL_CLIENT_ID=<oauth2-client-id>.apps.googleusercontent.com
 GMAIL_CLIENT_SECRET=<oauth2-client-secret>
 GMAIL_REFRESH_TOKEN=<oauth2-refresh-token>
 REDIS_URL=rediss://<managed-redis-url>
-AI_PROVIDER=ollama
-OLLAMA_BASE_URL=https://<private-ollama-service>
-OLLAMA_MODEL=qwen3:4b
-OLLAMA_TIMEOUT_MS=300000
-OLLAMA_CONTEXT_LENGTH=16384
+AI_PROVIDER=groq
+GROQ_API_KEY=<groq-api-key>
+GROQ_MODEL=llama-3.3-70b-versatile
+GROQ_TIMEOUT_MS=120000
 AI_JOB_ATTEMPTS=2
 CV_EXTRACTION_CONCURRENCY=1
 AI_MATCH_CONCURRENCY=1
@@ -256,7 +255,7 @@ OCR_TIMEOUT_MS=120000
 
 Swagger API documentation is available at `/docs` when enabled. It is enabled by default outside production. Keep `SWAGGER_ENABLED=false` for production unless API documentation is intentionally exposed behind appropriate network or auth controls.
 
-Both Docker Compose files run Redis and Ollama locally and pull `OLLAMA_MODEL` before starting the API. Render requires a managed Redis URL and a separately deployed, private Ollama endpoint because the API service should not host the model itself. `CV_EXTRACTION_CONCURRENCY` controls text extraction and local Tesseract OCR, while `AI_MATCH_CONCURRENCY` independently limits requests sent to Ollama. Keep both at `1` until the deployed CPU, memory, and model service have been benchmarked. `OCR_MIN_CONFIDENCE` only flags low-quality OCR for manual review; it does not block processing. Do not point `OLLAMA_BASE_URL` at an unauthenticated public endpoint; CV text is sensitive personal data.
+Render requires `GROQ_API_KEY` only on the backend service; never expose it through frontend variables. `CV_EXTRACTION_CONCURRENCY` controls text extraction and local Tesseract OCR, while `AI_MATCH_CONCURRENCY` independently limits requests sent to Groq. Keep both at `1` until deployed CPU, memory, account limits, and CV sizes have been benchmarked. `OCR_MIN_CONFIDENCE` only flags low-quality OCR for manual review; it does not block processing. CV text is sensitive personal data, so keep provider keys private and avoid logging prompts or extracted text.
 
 The `/health` response includes process-lifetime completion and final-failure counters for both AI queues. Durable failed analyses remain queryable from `CvParseResult.status=FAILED`; see [CV pipeline evaluation](cv-pipeline-evaluation.md) for the evaluation command and investigation query.
 

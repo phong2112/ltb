@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, Res, StreamableFile, UseGuards } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { ApiCookieAuth, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiProduces, ApiQuery, ApiTags, ApiUnauthorizedResponse } from "@nestjs/swagger";
+import { ApplicationStatus } from "@prisma/client";
 import type { Response } from "express";
 import { ACCESS_TOKEN_SECURITY_NAME } from "../../config/swagger";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
@@ -31,7 +32,7 @@ export class CandidatesController {
   })
   @Get()
   listCandidates(@Query("status") status?: string) {
-    return this.candidatesService.listCandidates(status as Prisma.ApplicationStatus | undefined);
+    return this.candidatesService.listCandidates(status as ApplicationStatus | undefined);
   }
 
   @ApiOperation({ summary: "Stream an uploaded candidate CV file" })
@@ -93,6 +94,15 @@ export class CandidatesController {
   @Post("applications/:applicationId/messages")
   createApplicationMessage(@Param("applicationId") applicationId: string, @Body() dto: CreateCandidateMessageDto) {
     return this.candidatesService.createMessageForApplication(applicationId, dto);
+  }
+
+  @ApiOperation({ summary: "Retry AI CV analysis for an application" })
+  @ApiParam({ name: "applicationId", example: "cmapplication123" })
+  @ApiOkResponse({ description: "AI analysis status after retry was requested." })
+  @ApiNotFoundResponse({ description: "Application not found." })
+  @Post("applications/:applicationId/ai/retry")
+  retryApplicationAnalysis(@Param("applicationId") applicationId: string) {
+    return this.candidatesService.retryApplicationAnalysis(applicationId);
   }
 
   @ApiOperation({

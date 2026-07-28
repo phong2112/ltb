@@ -55,7 +55,7 @@ function createService(options: { aiEnabled?: boolean; existingCandidate?: Recor
     }),
   };
   const jobs = { getAdminJob: jest.fn().mockResolvedValue({ id: "job-1", title: "Developer" }) };
-  const config = { get: jest.fn().mockReturnValue(options.aiEnabled ? "ollama" : "disabled") };
+  const config = { get: jest.fn().mockReturnValue(options.aiEnabled ? "groq" : "disabled") };
   const provider = {
     extractProfile: jest.fn().mockResolvedValue({
       fullName: "Nguyen Van A",

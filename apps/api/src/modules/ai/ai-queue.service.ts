@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { type ConnectionOptions, Job, Queue, Worker } from "bullmq";
+import { QuotaExceededError } from "./groq-ai.provider";
 import { AiService } from "./ai.service";
 import { TalentPoolProcessingService } from "./talent-pool-processing.service";
 
@@ -13,6 +14,7 @@ const TALENT_POOL_EXTRACTION_JOB = "extract-pool" as const;
 
 type ApplicationProcessingJob = {
   applicationId: string;
+  runId?: string;
 };
 
 type TalentPoolProcessingJob = {
@@ -46,7 +48,7 @@ export class AiQueueService implements OnModuleInit, OnModuleDestroy {
     private readonly aiService: AiService,
     private readonly poolProcessingService: TalentPoolProcessingService,
   ) {
-    this.enabled = (configService.get<string>("AI_PROVIDER") ?? "disabled") === "ollama";
+    this.enabled = (configService.get<string>("AI_PROVIDER") ?? "disabled") === "groq";
     this.metrics = {
       enabled: this.enabled,
       queues: {
@@ -124,13 +126,15 @@ export class AiQueueService implements OnModuleInit, OnModuleDestroy {
     this.poolExtractionWorker.on("error", () => this.logger.error("Talent pool extraction worker connection error"));
   }
 
-  async enqueue(applicationId: string) {
+  async enqueue(applicationId: string, options: { force?: boolean } = {}) {
     if (!this.enabled) return false;
     if (!this.extractionQueue) throw new Error("CV extraction queue is not ready");
 
-    await this.extractionQueue.add(CV_EXTRACTION_JOB, { applicationId }, {
+    const runId = options.force ? createRunId() : undefined;
+
+    await this.extractionQueue.add(CV_EXTRACTION_JOB, { applicationId, runId }, {
       ...this.defaultJobOptions(),
-      jobId: `extract-${applicationId}`,
+      jobId: formatJobId("extract", applicationId, runId),
     });
 
     return true;
@@ -173,6 +177,11 @@ export class AiQueueService implements OnModuleInit, OnModuleDestroy {
     try {
       await this.aiService.extractApplicationCv(job.data.applicationId);
     } catch (error) {
+      if (this.isQuotaError(error)) {
+        this.logger.warn(`Quota exceeded, re-enqueue extraction for application ${job.data.applicationId}`);
+        await this.reEnqueueWithDelay(this.extractionQueue!, job, error);
+        return;
+      }
       if (isFinalAttempt(job)) {
         await this.aiService.markFailed(job.data.applicationId, error, "extraction");
       }
@@ -180,7 +189,7 @@ export class AiQueueService implements OnModuleInit, OnModuleDestroy {
     }
 
     try {
-      await this.enqueueMatch(job.data.applicationId);
+      await this.enqueueMatch(job.data.applicationId, job.data.runId);
     } catch (error) {
       if (isFinalAttempt(job)) {
         await this.aiService.markFailed(job.data.applicationId, error, "queue");
@@ -195,6 +204,11 @@ export class AiQueueService implements OnModuleInit, OnModuleDestroy {
     try {
       await this.aiService.analyzeApplication(job.data.applicationId);
     } catch (error) {
+      if (this.isQuotaError(error)) {
+        this.logger.warn(`Quota exceeded, re-enqueue match for application ${job.data.applicationId}`);
+        await this.reEnqueueWithDelay(this.matchQueue!, job, error);
+        return;
+      }
       if (isFinalAttempt(job)) {
         await this.aiService.markFailed(job.data.applicationId, error, "analysis");
       }
@@ -224,17 +238,52 @@ export class AiQueueService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async enqueueMatch(applicationId: string) {
+  private async reEnqueueWithDelay(
+    queue: Queue,
+    job: Job,
+    error: unknown,
+  ) {
+    const quotaError = this.asQuotaError(error);
+    const delayMs = quotaError ? Math.min(quotaError.retryAfterMs, 300_000) : 30_000;
+
+    await queue.add(
+      job.name,
+      job.data,
+      {
+        ...this.defaultJobOptions(),
+        delay: delayMs + jitterMs(),
+        jobId: job.id,
+      },
+    );
+  }
+
+  private isQuotaError(error: unknown): boolean {
+    return this.asQuotaError(error) !== null;
+  }
+
+  private asQuotaError(error: unknown): QuotaExceededError | null {
+    if (error instanceof QuotaExceededError) return error;
+
+    if (error && typeof error === "object") {
+      const record = error as Record<string, unknown>;
+      const cause = record.cause;
+      if (cause instanceof QuotaExceededError) return cause;
+    }
+
+    return null;
+  }
+
+  private async enqueueMatch(applicationId: string, runId?: string) {
     if (!this.matchQueue) throw new Error("AI match queue is not ready");
 
-    await this.matchQueue.add(AI_MATCH_JOB, { applicationId }, {
+    await this.matchQueue.add(AI_MATCH_JOB, { applicationId, runId }, {
       ...this.defaultJobOptions(),
-      jobId: `match-${applicationId}`,
+      jobId: formatJobId("match", applicationId, runId),
     });
   }
 
   private defaultJobOptions() {
-    const attempts = this.configService.get<number>("AI_JOB_ATTEMPTS") ?? 2;
+    const attempts = this.configService.get<number>("AI_JOB_ATTEMPTS") ?? 6;
 
     return {
       attempts,
@@ -278,7 +327,7 @@ class AiQueueStageError extends Error {
   readonly stage: FailureStage;
 
   constructor(stage: FailureStage, cause: unknown) {
-    super(cause instanceof Error ? cause.message : String(cause), { cause });
+    super(cause instanceof Error ? cause.message : String(cause));
     this.name = "AiQueueStageError";
     this.stage = stage;
   }
@@ -308,8 +357,20 @@ function getJobSubject(data: ApplicationProcessingJob | TalentPoolProcessingJob)
     : { talentPoolEntryId: data.talentPoolEntryId };
 }
 
+function createRunId() {
+  return Date.now().toString(36);
+}
+
+function formatJobId(stage: "extract" | "match", applicationId: string, runId?: string) {
+  return runId ? `${stage}-${applicationId}-${runId}` : `${stage}-${applicationId}`;
+}
+
 function getFailureStage(error: Error, fallback: FailureStage) {
   return error instanceof AiQueueStageError ? error.stage : fallback;
+}
+
+function jitterMs(): number {
+  return Math.floor(Math.random() * 10_000);
 }
 
 function parseRedisConnection(value: string): ConnectionOptions {
