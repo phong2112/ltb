@@ -192,6 +192,7 @@ export class ApplicationsService {
       candidateEmail,
       candidateName: submittedFullName,
       jobTitle: job.title,
+      jobId: job.id,
       companyName: job.company,
       jobSlug: job.slug,
       applicationArea: dto.applicationArea,
@@ -218,6 +219,7 @@ export class ApplicationsService {
           candidateEmail: input.candidateEmail,
           candidateName: input.candidateName,
           jobTitle: input.jobTitle,
+          jobId: input.jobId,
           companyName: input.companyName,
           jobSlug: input.jobSlug,
           applicationArea: input.applicationArea,
@@ -276,6 +278,7 @@ type AcceptedApplicationSideEffects = {
   candidateEmail: string;
   candidateName: string;
   jobTitle: string;
+  jobId: string;
   companyName?: string | null;
   jobSlug?: string | null;
   applicationArea: string;

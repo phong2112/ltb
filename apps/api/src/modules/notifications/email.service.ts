@@ -21,6 +21,7 @@ export type ApplicationConfirmationEmail = {
   candidateEmail: string;
   candidateName: string;
   jobTitle: string;
+  jobId: string;
   companyName?: string | null;
   jobSlug?: string | null;
   applicationArea?: string;
@@ -132,7 +133,7 @@ function buildApplicationConfirmationEmail(input: ApplicationConfirmationEmail, 
   const textLines = [
     `Chào ${input.candidateName},`,
     "",
-    `Cảm ơn bạn đã ứng tuyển vị trí ${input.jobTitle} tại ${companyName}. Hệ thống đã ghi nhận hồ sơ của bạn thành công.`,
+    `Cảm ơn bạn đã ứng tuyển vị trí ${input.jobTitle} (ID: ${input.jobId}) tại ${companyName}. Hệ thống đã ghi nhận hồ sơ của bạn thành công.`,
     input.applicationArea ? `Khu vực ứng tuyển: ${input.applicationArea}` : "",
     jobUrl ? `Xem lại thông tin công việc: ${jobUrl}` : "",
     "",
@@ -174,13 +175,14 @@ function buildApplicationConfirmationEmail(input: ApplicationConfirmationEmail, 
                   <div style="padding:30px 28px 26px">
                     <div style="display:inline-block;margin-bottom:14px;padding:7px 12px;border-radius:999px;background:#FDF0F4;color:#C85B7A;font-size:12px;font-weight:800">Hồ sơ đã được ghi nhận</div>
                     <h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;color:#2D1B22;font-size:28px;line-height:1.22">Cảm ơn bạn đã ứng tuyển</h1>
-                    <p style="margin:0 0 18px;color:#5E3B49;font-size:15px">Chào <strong>${escapeHtml(input.candidateName)}</strong>, hệ thống đã nhận hồ sơ của bạn cho vị trí <strong>${escapeHtml(input.jobTitle)}</strong> tại <strong>${escapeHtml(companyName)}</strong>.</p>
+                    <p style="margin:0 0 18px;color:#5E3B49;font-size:15px">Chào <strong>${escapeHtml(input.candidateName)}</strong>, hệ thống đã nhận hồ sơ của bạn cho vị trí <strong>${escapeHtml(input.jobTitle)}</strong> (ID: <strong>${escapeHtml(input.jobId)}</strong>) tại <strong>${escapeHtml(companyName)}</strong>.</p>
 
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;margin:20px 0;background:#FDF6F0;border:1px solid rgba(200,91,122,0.15);border-radius:14px">
                       <tr>
                         <td style="padding:16px 18px">
                           <div style="color:#8C5F70;font-size:11px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase">Vị trí ứng tuyển</div>
                           <div style="margin-top:4px;color:#2D1B22;font-size:16px;font-weight:800">${escapeHtml(input.jobTitle)}</div>
+                          <div style="margin-top:4px;color:#8C5F70;font-size:12px;font-weight:500">ID: ${escapeHtml(input.jobId)}</div>
                         </td>
                       </tr>
                       ${

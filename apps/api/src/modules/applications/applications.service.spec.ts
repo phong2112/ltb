@@ -205,6 +205,7 @@ describe("ApplicationsService", () => {
       candidateEmail: "candidate@example.com",
       candidateName: "Candidate",
       jobTitle: "Frontend Engineer",
+        jobId: "job-1",
       companyName: "Acme Vietnam",
       jobSlug: "frontend-engineer",
       applicationArea: "Hà Nội",
