@@ -43,6 +43,7 @@ describe("EmailService", () => {
       candidateEmail: "candidate@example.com",
       candidateName: "Candidate",
       jobTitle: "Frontend Engineer",
+      jobId: "job-1",
     });
 
     expect(OAuth2Client).not.toHaveBeenCalled();
@@ -68,6 +69,7 @@ describe("EmailService", () => {
       candidateEmail: "candidate@example.com",
       candidateName: "Candidate",
       jobTitle: "Frontend Engineer",
+      jobId: "job-1",
       companyName: "Acme Vietnam",
       jobSlug: "frontend-engineer",
       applicationArea: "Hà Nội",
@@ -109,6 +111,7 @@ describe("EmailService", () => {
       candidateEmail: "candidate@example.com",
       candidateName: "Candidate",
       jobTitle: "Frontend Engineer",
+      jobId: "job-1",
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -122,6 +125,7 @@ describe("EmailService", () => {
       candidateEmail: "candidate@example.com",
       candidateName: "Candidate",
       jobTitle: "Frontend Engineer",
+      jobId: "job-1",
     });
 
     expect(OAuth2Client).not.toHaveBeenCalled();
@@ -151,6 +155,7 @@ describe("EmailService", () => {
         candidateEmail: "candidate@example.com",
         candidateName: "Candidate",
         jobTitle: "Frontend Engineer",
+        jobId: "job-1",
       }),
     ).rejects.toThrow("Gmail API send failed (401 Unauthorized): invalid_grant");
   });
