@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { AlertCircle, ArrowRight, Bell, Briefcase, CheckCircle, Clock, Plus, TrendingUp, Users } from "lucide-react";
+import { AlertCircle, ArrowRight, Bell, Briefcase, CheckCircle, Clock, Plus, TrendingUp, Users, Archive } from "lucide-react";
 import { useData } from "@/app/data";
 import { translateCandidateStatus, useLanguage } from "@/app/i18n";
 import AdminLayout from "@/app/layouts/AdminLayout";
@@ -16,10 +16,12 @@ export default function AdminDashboard() {
   const recentCandidates = [...candidates].sort((a, b) => b.appliedAt.localeCompare(a.appliedAt)).slice(0, 5);
   const activePipeline = candidates.filter(candidate => candidate.status !== "rejected" && candidate.status !== "offer").length;
   const reviewedCandidates = candidates.filter(candidate => candidate.status !== "new").length;
+  const talentPoolCandidates = candidateProfiles.filter(candidate => candidate.applications.some(application => application.status === "talent_pool")).length;
 
   const stats = [
     { label: t("admin.openJobs"), val: publishedJobs, meta: `${draftJobs} ${t("admin.draftCount")}`, icon: <Briefcase size={19} />, color: "text-primary bg-pink-50", link: "/admin/jobs" },
     { label: t("admin.newCandidates"), val: newCandidates, meta: `${activePipeline} ${t("admin.activePipeline")}`, icon: <Users size={19} />, color: "text-blue-600 bg-blue-50", link: "/admin/candidates" },
+    { label: t("admin.talentPool"), val: talentPoolCandidates, meta: t("admin.talentPoolMeta"), icon: <Archive size={19} />, color: "text-slate-600 bg-slate-100", link: "/admin/candidates?status=talent_pool" },
     { label: t("admin.needFollowUp"), val: followUps, meta: t("common.followUp"), icon: <Bell size={19} />, color: "text-amber-600 bg-amber-50", link: "/admin/follow-up" },
     { label: t("admin.totalCandidates"), val: candidateProfiles.length, meta: `${reviewedCandidates} ${t("admin.reviewedCount")}`, icon: <TrendingUp size={19} />, color: "text-emerald-600 bg-emerald-50", link: "/admin/candidates" },
   ];

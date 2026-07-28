@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Param, Patch, Post, Res, StreamableFile, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Query, Res, StreamableFile, UseGuards } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { ApiCookieAuth, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiProduces, ApiTags, ApiUnauthorizedResponse } from "@nestjs/swagger";
+import { ApiCookieAuth, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiProduces, ApiQuery, ApiTags, ApiUnauthorizedResponse } from "@nestjs/swagger";
 import type { Response } from "express";
 import { ACCESS_TOKEN_SECURITY_NAME } from "../../config/swagger";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
@@ -23,9 +23,15 @@ export class CandidatesController {
   @ApiOkResponse({
     description: "Candidate profiles with their application history.",
   })
+  @ApiQuery({
+    name: "status",
+    required: false,
+    enum: ["NEW", "REVIEWING", "CONTACTED", "REPLIED", "SCREENING", "INTERVIEW", "OFFER", "REJECTED", "TALENT_POOL"],
+    description: "Filter by application status (e.g. TALENT_POOL for the talent pool).",
+  })
   @Get()
-  listCandidates() {
-    return this.candidatesService.listCandidates();
+  listCandidates(@Query("status") status?: string) {
+    return this.candidatesService.listCandidates(status as Prisma.ApplicationStatus | undefined);
   }
 
   @ApiOperation({ summary: "Stream an uploaded candidate CV file" })

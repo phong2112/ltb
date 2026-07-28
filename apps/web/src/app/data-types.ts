@@ -198,7 +198,7 @@ export type DataCtx = {
   error: string;
   savedJobIds: string[];
   reloadPublicJobs: () => Promise<void>;
-  reloadAdminData: () => Promise<void>;
+  reloadAdminData: (status?: string) => Promise<void>;
   addJob: (j: JobInput) => Promise<void>;
   updateJob: (id: string, patch: Partial<Job>) => Promise<void>;
   addCandidate: (c: NewCandidate) => Promise<void>;

@@ -55,12 +55,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const reloadAdminData = useCallback(async () => {
+  const reloadAdminData = useCallback(async (status?: string) => {
     setError("");
     setIsLoading(true);
 
     try {
-      const [adminJobs, adminCandidates] = await Promise.all([apiRequest<ApiJob[]>("/admin/jobs"), apiRequest<ApiCandidateProfile[]>("/admin/candidates")]);
+      const query = status ? `?status=${encodeURIComponent(status)}` : "";
+      const [adminJobs, adminCandidates] = await Promise.all([
+        apiRequest<ApiJob[]>("/admin/jobs"),
+        apiRequest<ApiCandidateProfile[]>(`/admin/candidates${query}`),
+      ]);
       const profiles = adminCandidates.map(mapCandidateProfile);
       setJobs(adminJobs.map(mapJob));
       setCandidateProfiles(profiles);

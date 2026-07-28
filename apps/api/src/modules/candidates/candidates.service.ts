@@ -23,8 +23,17 @@ export class CandidatesService {
     private readonly cvStorageService: CvStorageService,
   ) {}
 
-  async listCandidates() {
+  async listCandidates(status?: Prisma.ApplicationStatus) {
+    const where: Prisma.CandidateWhereInput | undefined = status
+      ? {
+          applications: {
+            some: { status },
+          },
+        }
+      : undefined;
+
     const candidates = await this.prisma.candidate.findMany({
+      where,
       include: {
         applications: {
           orderBy: { createdAt: "desc" },
