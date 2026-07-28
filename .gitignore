@@ -11,3 +11,14 @@ uploads
 .DS_Store
 .vercel
 docker/nginx/.htpasswd
+
+# Test fixture binaries (keep only source code, not large fixtures)
+*.docx
+*.pdf
+*.jpg
+*.png
+
+
+# Cloudflare Wrangler - local state and temp builds
+apps/keep-alive-worker/.wrangler/ 
+apps/keep-alive-worker/tmp/

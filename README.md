@@ -29,7 +29,7 @@ Implemented:
 - NestJS API in `apps/api`.
 - Prisma schema in `packages/db`.
 - Shared types in `packages/shared`.
-- Docker Compose with Nginx, web, API, and PostgreSQL for development.
+- Docker Compose with Nginx, web, API, PostgreSQL, Redis, and local Ollama for development.
 - Nginx reverse proxy for same-domain routing.
 - Basic Auth protection for `/admin` and `/api/admin`.
 - Swagger API documentation for local/API development.
@@ -51,7 +51,7 @@ Implemented:
 
 - Candidate apply form.
 - CV upload endpoint.
-- PDF/DOC/DOCX MIME validation.
+- PDF/DOC/DOCX/JPG/PNG MIME and file-signature validation.
 - File size validation.
 - Consent checkbox.
 - Candidate/application/file metadata saved to PostgreSQL.
@@ -71,14 +71,22 @@ Implemented:
 
 ### Phase 5: AI CV Parsing And Matching
 
-Not enabled on the stable branch. The active AI worker implementation is kept on
-the `feature/ai-agent` branch while it is being validated.
+Implemented for local demo:
+
+- PDF, DOC, and DOCX text extraction, with local `vie+eng` OCR fallback for scanned PDFs and JPG/PNG CVs.
+- Ollama provider using the local `qwen3:4b` model.
+- Separate BullMQ extraction and AI matching queues backed by Redis.
+- Evidence-based comparison for each JD requirement.
+- Deterministic score calculation in application code.
+- Parse pending, extracting, extracted, analyzing, completed, and failed backend states.
+- AI summary, strengths, risks, missing requirements, screening questions, and evidence confidence.
 
 ### Phase 6: Outreach Helper
 
 Not implemented yet:
 
 - Message templates.
+- AI outreach drafts.
 - Copy-to-send actions.
 - Email sending.
 
@@ -89,6 +97,8 @@ Start the full Docker development stack with hot reload:
 ```bash
 CV_STORAGE_DRIVER=local ./run.sh
 ```
+
+The first start downloads `qwen3:4b` into the persistent `ollama_data` Docker volume. Later starts reuse the model. Set `OLLAMA_MODEL` before running the command to try another locally available model.
 
 Open:
 
@@ -151,6 +161,15 @@ Stop the stack:
 pnpm docker:down
 ```
 
+## Deploying The API To Oracle A1
+
+The production frontend remains on Vercel. Deploy only the NestJS API to an OCI
+Ampere A1 VM behind Caddy, while keeping Neon, managed Redis, private Ollama,
+R2, and Vercel Blob external.
+
+See [docs/oracle-a1-deployment.md](docs/oracle-a1-deployment.md) for the VM,
+DNS, secrets, SMTP verification, deploy, cutover, and rollback procedure.
+
 ## Mock Data
 
 Seed demo data into the Docker PostgreSQL database:
@@ -165,6 +184,7 @@ The seed is idempotent for frontend mock records. It recreates:
 - 11 mock candidates from the current frontend mock data.
 - Applications across multiple statuses.
 - CV file metadata.
+- AI parse/match results.
 - Follow-up tasks.
 - Message templates.
 
@@ -208,6 +228,30 @@ If using Docker Postgres locally, the host port is `55432` to avoid common confl
 postgresql://postgres:postgres@localhost:55432/hr_copilot?schema=public
 ```
 
+Redis host port is `56379`.
+
+Ollama host port is `11434`. Check the downloaded model with:
+
+```bash
+docker compose -f docker-compose.dev.yml --project-name hr-copilot-dev exec ollama ollama list
+```
+
+## Demo AI CV Matching
+
+1. Start the dev stack with `CV_STORAGE_DRIVER=local ./run.sh`.
+2. Publish or select a job with explicit requirements.
+3. Submit a new application with a PDF, DOC, DOCX, JPG, or PNG CV upload.
+4. Open the candidate detail page. It polls the lightweight application-analysis endpoint while processing is pending.
+5. Review the Qwen summary, match score, confidence, strengths, risks, and missing requirements.
+
+The model never supplies the final score. It classifies every JD criterion as `met`, `partial`, `not_met`, or `unknown` with CV evidence; the API calculates the weighted score. AI output is assistive and must not automatically reject a candidate.
+
+Scanned PDFs without a usable text layer and uploaded JPG/PNG CVs are processed locally with Tesseract `vie+eng`. OCR is limited by `OCR_MAX_PAGES` and `OCR_TIMEOUT_MS`; unreadable documents still show a failed state for manual review.
+
+The processing pipeline first persists extracted CV text, then enqueues a separate AI matching job. Extraction concurrency and Ollama concurrency are configured independently with `CV_EXTRACTION_CONCURRENCY` and `AI_MATCH_CONCURRENCY`.
+
+The OCR worker is reused and serialized across requests, hybrid PDFs are compared against OCR text, oversized PDFs process their first configured pages, and low-confidence OCR is flagged for manual review. Run the fictional-fixture evaluation harness using [docs/cv-pipeline-evaluation.md](docs/cv-pipeline-evaluation.md).
+
 ## Architecture Notes
 
 Nginx owns same-domain routing in Docker:
@@ -223,5 +267,6 @@ The API service is not exposed directly by Docker Compose. Public access should 
 
 1. Add real auth/session instead of Nginx Basic Auth for production.
 2. Add private object storage for CV files instead of local container volume.
-3. Add outreach templates and copy-to-send workflow.
-4. Add email notifications for new applications.
+3. Add an admin retry action for failed AI jobs.
+4. Add outreach templates and copy-to-send workflow.
+5. Add email notifications for new applications.

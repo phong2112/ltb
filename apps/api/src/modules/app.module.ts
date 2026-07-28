@@ -7,6 +7,7 @@ import { CandidatesModule } from "./candidates/candidates.module";
 import { HealthModule } from "./health/health.module";
 import { JobsModule } from "./jobs/jobs.module";
 import { PrismaModule } from "./prisma/prisma.module";
+import { TalentPoolModule } from "./talent-pool/talent-pool.module";
 import { TemplatesModule } from "./templates/templates.module";
 
 @Module({
@@ -29,6 +30,7 @@ import { TemplatesModule } from "./templates/templates.module";
     JobsModule,
     ApplicationsModule,
     CandidatesModule,
+    TalentPoolModule,
     TemplatesModule,
   ],
 })

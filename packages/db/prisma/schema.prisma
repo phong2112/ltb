@@ -38,16 +38,24 @@ enum FileStorageTier {
 
 enum CvParseStatus {
   PENDING
+  EXTRACTING
+  EXTRACTED
+  ANALYZING
   COMPLETED
   FAILED
 }
 
+enum TalentPoolSource {
+  TA_UPLOAD
+}
+
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String            @id @default(cuid())
+  email             String            @unique
+  name              String
+  talentPoolUploads TalentPoolEntry[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 }
 
 model Job {
@@ -101,6 +109,7 @@ model Candidate {
   portfolioUrl    String?
   source          String             @default("career_site")
   applications    Application[]
+  talentPoolEntries TalentPoolEntry[]
   activities      ActivityLog[]
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
@@ -140,6 +149,7 @@ model Application {
   matchResult           MatchResult?
   messages              CandidateMessage[]
   activities            ActivityLog[]
+  promotedFromPool      TalentPoolEntry?   @relation("PromotedFromPool")
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
 
@@ -153,24 +163,53 @@ model Application {
 }
 
 model CandidateFile {
-  id             String          @id @default(cuid())
-  applicationId  String
-  kind           FileKind        @default(CV)
-  storageTier    FileStorageTier @default(PRIMARY)
-  originalName   String
-  storedName     String
-  mimeType       String
-  sizeBytes      Int
-  path           String
-  archivedAt     DateTime?
-  application    Application     @relation(fields: [applicationId], references: [id], onDelete: Restrict)
-  cvParseResults CvParseResult[]
-  activities     ActivityLog[]
-  createdAt      DateTime        @default(now())
+  id                String           @id @default(cuid())
+  applicationId     String?
+  talentPoolEntryId String?          @unique
+  kind              FileKind         @default(CV)
+  storageTier       FileStorageTier  @default(PRIMARY)
+  originalName      String
+  storedName        String
+  mimeType          String
+  sizeBytes         Int
+  path              String
+  archivedAt        DateTime?
+  /// DB invariant: CandidateFile_owner_exactly_one enforces exactly one of applicationId/talentPoolEntryId.
+  /// Prisma Client does not model check constraints, so keep the SQL migration in sync.
+  application       Application?     @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  talentPoolEntry   TalentPoolEntry? @relation(fields: [talentPoolEntryId], references: [id], onDelete: Restrict)
+  cvParseResults    CvParseResult[]
+  activities        ActivityLog[]
+  createdAt         DateTime         @default(now())
 
   @@index([applicationId])
   @@index([applicationId, kind])
   @@index([storageTier])
+}
+
+model TalentPoolEntry {
+  id                    String           @id @default(cuid())
+  candidateId           String
+  status                CvParseStatus    @default(PENDING)
+  source                TalentPoolSource @default(TA_UPLOAD)
+  uploadedByUserId      String?
+  summary               String?
+  structuredData        Json?
+  extractedText         String?
+  errorMessage          String?
+  tags                  String[]         @default([])
+  notes                 String?
+  promotedApplicationId String?          @unique
+  candidate             Candidate        @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+  uploadedBy            User?            @relation(fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+  promotedApplication   Application?     @relation("PromotedFromPool", fields: [promotedApplicationId], references: [id], onDelete: SetNull)
+  file                  CandidateFile?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  @@index([candidateId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model CvParseResult {

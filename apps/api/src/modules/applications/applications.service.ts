@@ -1,6 +1,8 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { ApplicationStatus, FileKind, JobStatus, Prisma } from "@prisma/client";
+import { ApplicationStatus, CvParseStatus, FileKind, JobStatus, Prisma } from "@prisma/client";
+import { AiQueueService } from "../ai/ai-queue.service";
 import { CvStorageService } from "../files/cv-storage.service";
+import { lockCandidateContacts, normalizeEmail, normalizePhone } from "../candidates/candidate-contact.util";
 import { JobsService } from "../jobs/jobs.service";
 import { EmailService } from "../notifications/email.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -12,6 +14,7 @@ export class ApplicationsService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly aiQueueService: AiQueueService,
     private readonly cvStorageService: CvStorageService,
     private readonly jobsService: JobsService,
     private readonly emailService: EmailService,
@@ -129,6 +132,21 @@ export class ApplicationsService {
               candidateFileId = candidateFile.id;
             }
 
+            await tx.cvParseResult.create({
+              data: {
+                applicationId: application.id,
+                candidateFileId,
+                status: cv ? CvParseStatus.PENDING : CvParseStatus.FAILED,
+                summary: cv ? "Hồ sơ đã được tiếp nhận và đang chờ trích xuất nội dung." : "AI matching cần CV được tải lên; liên kết bên ngoài không được tự động truy cập.",
+                errorMessage: cv ? undefined : "Uploaded CV file is required for AI matching",
+                structuredData: {
+                  source: cv ? "cv_processing_queued" : "external_link_not_processed",
+                  cvSource: cv ? "uploaded_file" : "external_link",
+                  fileName: cv?.originalname ?? submittedPortfolioUrl ?? "candidate-provided-link",
+                },
+              },
+            });
+
             await tx.activityLog.create({
               data: {
                 candidateId: candidate.id,
@@ -149,6 +167,7 @@ export class ApplicationsService {
             return {
               applicationId: application.id,
               candidateId: candidate.id,
+              candidateFileId,
               status: application.status,
             };
           },
@@ -165,31 +184,107 @@ export class ApplicationsService {
       throw error;
     }
 
-    await this.emailService
-      .sendApplicationConfirmation({
-        applicationId: created.applicationId,
-        candidateEmail,
-        candidateName: submittedFullName,
-        jobTitle: job.title,
-        companyName: job.company,
-        jobSlug: job.slug,
-        applicationArea: dto.applicationArea,
-      })
-      .catch((error: unknown) => {
-        this.logger.error(
-          error instanceof Error
-            ? `Failed to send application confirmation email: ${error.message}`
-            : "Failed to send application confirmation email",
-        );
-      });
+    const { candidateFileId, ...response } = created;
 
-    return created;
+    this.scheduleAcceptedApplicationSideEffects({
+      applicationId: created.applicationId,
+      candidateFileId,
+      candidateEmail,
+      candidateName: submittedFullName,
+      jobTitle: job.title,
+      companyName: job.company,
+      jobSlug: job.slug,
+      applicationArea: dto.applicationArea,
+    });
+
+    return response;
+  }
+
+  private scheduleAcceptedApplicationSideEffects(input: AcceptedApplicationSideEffects) {
+    void this.runAcceptedApplicationSideEffects(input).catch((error: unknown) => {
+      this.logger.error(
+        error instanceof Error
+          ? `Failed to run accepted application side effects: ${error.message}`
+          : "Failed to run accepted application side effects",
+      );
+    });
+  }
+
+  private async runAcceptedApplicationSideEffects(input: AcceptedApplicationSideEffects) {
+    const sideEffects = [
+      this.emailService
+        .sendApplicationConfirmation({
+          applicationId: input.applicationId,
+          candidateEmail: input.candidateEmail,
+          candidateName: input.candidateName,
+          jobTitle: input.jobTitle,
+          companyName: input.companyName,
+          jobSlug: input.jobSlug,
+          applicationArea: input.applicationArea,
+        })
+        .catch((error: unknown) => {
+          this.logger.error(
+            error instanceof Error
+              ? `Failed to send application confirmation email: ${error.message}`
+              : "Failed to send application confirmation email",
+          );
+        }),
+    ];
+
+    if (input.candidateFileId) {
+      sideEffects.push(this.startAiMatching(input.applicationId));
+    }
+
+    await Promise.all(sideEffects);
+  }
+
+  private async startAiMatching(applicationId: string) {
+    let aiUnavailableReason: string | undefined;
+
+    try {
+      const queued = await this.aiQueueService.enqueue(applicationId);
+
+      if (!queued) {
+        aiUnavailableReason = "AI matching is disabled in this environment";
+      }
+    } catch {
+      aiUnavailableReason = "AI matching queue is unavailable";
+    }
+
+    if (aiUnavailableReason) {
+      await this.markAiUnavailable(applicationId, aiUnavailableReason).catch(() => {
+        this.logger.error("Failed to persist AI unavailability after accepting an application");
+      });
+    }
+  }
+
+  private async markAiUnavailable(applicationId: string, errorMessage: string) {
+    await this.prisma.cvParseResult.update({
+      where: { applicationId },
+      data: {
+        status: CvParseStatus.FAILED,
+        summary: "Không thể bắt đầu phân tích AI. HR vẫn có thể xem CV và đánh giá thủ công.",
+        errorMessage,
+      },
+    });
   }
 }
+
+type AcceptedApplicationSideEffects = {
+  applicationId: string;
+  candidateFileId?: string;
+  candidateEmail: string;
+  candidateName: string;
+  jobTitle: string;
+  companyName?: string | null;
+  jobSlug?: string | null;
+  applicationArea: string;
+};
 
 type CreatedApplication = {
   applicationId: string;
   candidateId: string;
+  candidateFileId?: string;
   status: ApplicationStatus;
 };
 
@@ -291,33 +386,6 @@ async function ensureCandidateHasNotApplied(
   if (existingApplication) {
     throw new ConflictException(DUPLICATE_APPLICATION_MESSAGE);
   }
-}
-
-async function lockCandidateContacts(tx: Prisma.TransactionClient, normalizedEmail: string, normalizedPhone?: string) {
-  const lockKeys = [`candidate-email:${normalizedEmail}`];
-
-  if (normalizedPhone) {
-    lockKeys.push(`candidate-phone:${normalizedPhone}`);
-  }
-
-  for (const lockKey of lockKeys.sort()) {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey})::bigint)`;
-  }
-}
-
-function normalizeEmail(value: string) {
-  return value.trim().toLowerCase();
-}
-
-function normalizePhone(value?: string) {
-  const digits = value?.replace(/\D/g, "") ?? "";
-
-  if (!digits) return undefined;
-  if (digits.length === 11 && digits.startsWith("84")) {
-    return `0${digits.slice(2)}`;
-  }
-
-  return digits;
 }
 
 function isDuplicateApplicationError(error: unknown) {

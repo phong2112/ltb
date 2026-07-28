@@ -16,6 +16,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/hr_copilot?schema=public
       PNPM_STORE_DIR: /pnpm/store
@@ -70,11 +72,28 @@ services:
         condition: service_completed_successfully
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
+      ollama-model:
+        condition: service_completed_successfully
     environment:
       NODE_ENV: development
       PORT: 4000
       WEB_ORIGIN: http://localhost:8080
       DATABASE_URL: postgresql://postgres:postgres@db:5432/hr_copilot?schema=public
+      REDIS_URL: redis://redis:6379
+      AI_PROVIDER: ollama
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b}
+      OLLAMA_TIMEOUT_MS: ${OLLAMA_TIMEOUT_MS:-300000}
+      OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-16384}
+      AI_JOB_ATTEMPTS: ${AI_JOB_ATTEMPTS:-2}
+      CV_EXTRACTION_CONCURRENCY: ${CV_EXTRACTION_CONCURRENCY:-1}
+      AI_MATCH_CONCURRENCY: ${AI_MATCH_CONCURRENCY:-1}
+      POOL_EXTRACTION_CONCURRENCY: ${POOL_EXTRACTION_CONCURRENCY:-2}
+      OCR_MAX_PAGES: ${OCR_MAX_PAGES:-10}
+      OCR_MIN_CONFIDENCE: ${OCR_MIN_CONFIDENCE:-55}
+      OCR_TIMEOUT_MS: ${OCR_TIMEOUT_MS:-120000}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-v.bichlt6@vinsmartfuture.tech}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-demo123}
       ADMIN_NAME: ${ADMIN_NAME:-Lường Bích}
@@ -118,8 +137,9 @@ services:
       EMAIL_PROVIDER: ${EMAIL_PROVIDER:-gmail}
       EMAIL_FROM: ${EMAIL_FROM:-}
       EMAIL_REPLY_TO: ${EMAIL_REPLY_TO:-}
-      EMAIL_SMTP_USER: ${EMAIL_SMTP_USER:-}
-      EMAIL_SMTP_PASS: ${EMAIL_SMTP_PASS:-}
+      GMAIL_CLIENT_ID: ${GMAIL_CLIENT_ID:-}
+      GMAIL_CLIENT_SECRET: ${GMAIL_CLIENT_SECRET:-}
+      GMAIL_REFRESH_TOKEN: ${GMAIL_REFRESH_TOKEN:-}
       PNPM_STORE_DIR: /pnpm/store
     volumes:
       - .:/workspace
@@ -152,8 +172,43 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "56379:6379"
+    volumes:
+      - redis_dev_data:/data
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    environment:
+      OLLAMA_KEEP_ALIVE: 10m
+      OLLAMA_NUM_PARALLEL: 1
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  ollama-model:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b}
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["ollama pull \"$${OLLAMA_MODEL}\""]
+
 volumes:
   postgres_dev_data:
+  redis_dev_data:
+  ollama_data:
   pnpm_store:
   workspace_node_modules:
   web_node_modules:

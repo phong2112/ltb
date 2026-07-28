@@ -2,9 +2,12 @@ import type { ApplicationStatus as ApiApplicationStatus } from "@hr-copilot/shar
 import { API_BASE } from "@/app/services/api-client";
 import type { CandidateStatus, JobStatus } from "@/app/status-config";
 import type {
+  AiAnalysisStatus,
   ApiApplication,
+  ApiApplicationAnalysis,
   ApiCandidateMessage,
   ApiCandidateProfile,
+  ApiCvParseStatus,
   ApiJob,
   Candidate,
   CandidateMessage,
@@ -16,6 +19,7 @@ import type {
 
 export type {
   ApiAuthSession,
+  ApiApplicationAnalysis,
   ApiCandidateMessage,
   ApiCandidateProfile,
   ApiJob,
@@ -127,6 +131,8 @@ function mapCandidate(application: ApiApplication): Candidate | null {
   const cvFile = application.files?.[0];
   const cvPath = cvFile?.path;
   const uploadedCvUrl = cvFile?.id && cvFile.mimeType !== "text/uri-list" ? `${API_BASE}/admin/candidates/files/${cvFile.id}` : undefined;
+  const aiMetadata = asRecord(application.cvParseResult?.structuredData);
+  const aiStatus = mapAiAnalysisStatus(application.cvParseResult?.status);
 
   return {
     id: application.id,
@@ -152,8 +158,38 @@ function mapCandidate(application: ApiApplication): Candidate | null {
     status: mapApplicationStatus(application.status),
     appliedAt: formatDate(application.createdAt),
     followUpDate: formatDate(application.followUpTask?.dueAt),
+    aiScore: application.matchResult?.score ?? 0,
+    aiStatus,
+    aiConfidence: typeof aiMetadata?.confidence === "number" ? aiMetadata.confidence : null,
+    aiError: application.cvParseResult?.errorMessage ?? "",
+    aiSummary: application.cvParseResult?.summary ?? "Hồ sơ đang được AI phân tích...",
+    strengths: toStringArray(application.matchResult?.strengths),
+    risks: toStringArray(application.matchResult?.risks),
+    missingReqs: toStringArray(application.matchResult?.missingRequirements),
     screeningAnswers,
     messages: (application.messages ?? []).map(mapCandidateMessage),
+  };
+}
+
+function mapAiAnalysisStatus(status?: ApiCvParseStatus): AiAnalysisStatus {
+  if (status === "COMPLETED") return "completed";
+  if (status === "FAILED") return "failed";
+  return "pending";
+}
+
+export function mapApplicationAnalysis(analysis: ApiApplicationAnalysis): Pick<
+  Candidate,
+  "aiScore" | "aiStatus" | "aiConfidence" | "aiError" | "aiSummary" | "strengths" | "risks" | "missingReqs"
+> {
+  return {
+    aiScore: analysis.matchResult?.score ?? 0,
+    aiStatus: mapAiAnalysisStatus(analysis.status),
+    aiConfidence: typeof analysis.confidence === "number" ? analysis.confidence : null,
+    aiError: analysis.errorMessage ?? "",
+    aiSummary: analysis.summary ?? "Hồ sơ đang được AI phân tích...",
+    strengths: toStringArray(analysis.matchResult?.strengths),
+    risks: toStringArray(analysis.matchResult?.risks),
+    missingReqs: toStringArray(analysis.matchResult?.missingRequirements),
   };
 }
 
@@ -236,6 +272,10 @@ function formatPostedDate(value?: string) {
   if (days === 1) return "1 ngày trước";
   if (days < 7) return `${days} ngày trước`;
   return `${Math.floor(days / 7)} tuần trước`;
+}
+
+function toStringArray(value: unknown) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
 
 function asRecord(value: unknown) {

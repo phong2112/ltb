@@ -69,11 +69,34 @@ describe("CvStorageService", () => {
     });
   });
 
+  it("stores talent pool CVs under the pool scope without changing managed-path routing", async () => {
+    const service = new CvStorageService(createConfigService({
+      CV_STORAGE_DRIVER: "r2",
+      R2_ENDPOINT: "https://account-id.r2.cloudflarestorage.com",
+      R2_BUCKET: "candidate-cvs",
+      R2_ACCESS_KEY_ID: "access-key-id",
+      R2_SECRET_ACCESS_KEY: "secret-access-key",
+    }));
+    const file = {
+      originalname: "candidate.pdf",
+      mimetype: "application/pdf",
+      size: 4,
+      buffer: Buffer.from("%PDF"),
+    } as Express.Multer.File;
+
+    const stored = await service.storePoolCv(file, "candidate-1", "entry-1");
+
+    expect(stored.storedName).toMatch(/^cv\/candidate-1\/pool\/entry-1\/\d+-candidate\.pdf$/);
+    expect(stored.path).toMatch(/^r2:\/\/candidate-cvs\/cv\/candidate-1\/pool\/entry-1\/\d+-candidate\.pdf$/);
+    expect(service.isManagedStoragePath(stored.path)).toBe(true);
+  });
+
   it("treats legacy Vercel Blob paths and new R2 paths as managed storage paths", () => {
     const service = new CvStorageService(createConfigService({ CV_STORAGE_DRIVER: "r2" }));
 
     expect(service.isManagedStoragePath("cv/candidate-1/application-1/candidate.pdf")).toBe(true);
     expect(service.isManagedStoragePath("r2://candidate-cvs/cv/candidate-1/application-1/candidate.pdf")).toBe(true);
+    expect(service.isManagedStoragePath("r2://candidate-cvs/cv/candidate-1/pool/entry-1/candidate.pdf")).toBe(true);
     expect(service.isManagedStoragePath("https://example.com/candidate.pdf")).toBe(false);
   });
 

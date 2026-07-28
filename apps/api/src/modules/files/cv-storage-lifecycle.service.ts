@@ -54,13 +54,21 @@ export class CvStorageLifecycleService {
   }
 
   private async relocateFile(file: CandidateFileForRelocation, targetTier: FileStorageTier) {
+    // findJobFiles only selects application-scoped files (filtered by application.jobId),
+    // so application is always present here; guard keeps the invariant explicit for the type system.
+    if (!file.application || !file.applicationId) {
+      throw new Error("Cannot relocate a CandidateFile that has no owning application");
+    }
+
+    const candidateId = file.application.candidateId;
+    const applicationId = file.applicationId;
     const context: CvRelocationContext = {
       path: file.path,
       storedName: file.storedName,
       originalName: file.originalName,
       mimeType: file.mimeType,
-      candidateId: file.application.candidateId,
-      applicationId: file.applicationId,
+      candidateId,
+      applicationId,
     };
     const relocated = targetTier === FileStorageTier.ARCHIVE
       ? await this.cvStorageService.archiveCandidateCv(context)
@@ -80,8 +88,8 @@ export class CvStorageLifecycleService {
 
         await tx.activityLog.create({
           data: {
-            candidateId: file.application.candidateId,
-            applicationId: file.applicationId,
+            candidateId,
+            applicationId,
             candidateFileId: file.id,
             actor: "system",
             action: targetTier === FileStorageTier.ARCHIVE

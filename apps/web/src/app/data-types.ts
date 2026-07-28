@@ -5,6 +5,14 @@ import type { CandidateStatus, JobStatus } from "@/app/status-config";
 export type { CandidateStatus, JobStatus } from "@/app/status-config";
 export type CandidateMessageChannel = "system" | "messenger" | "zalo" | "email" | "linkedin";
 type CandidateMessageDirection = "inbound" | "outbound";
+export type AiAnalysisStatus = "pending" | "completed" | "failed";
+export type ApiCvParseStatus =
+  | "PENDING"
+  | "EXTRACTING"
+  | "EXTRACTED"
+  | "ANALYZING"
+  | "COMPLETED"
+  | "FAILED";
 
 export type CandidateMessage = {
   id: string;
@@ -65,6 +73,14 @@ export type Candidate = {
   status: CandidateStatus;
   appliedAt: string;
   followUpDate: string;
+  aiScore: number;
+  aiStatus: AiAnalysisStatus;
+  aiConfidence: number | null;
+  aiError: string;
+  aiSummary: string;
+  strengths: string[];
+  risks: string[];
+  missingReqs: string[];
   screeningAnswers: { q: string; a: string; required?: boolean }[];
   messages: CandidateMessage[];
 };
@@ -82,7 +98,6 @@ export type NewCandidate = {
   email: string;
   phone: string;
   applicationArea: string;
-  cvUrl: string;
   note: string;
   jobId: string;
   jobTitle: string;
@@ -144,6 +159,19 @@ export type ApiApplication = {
   } | null;
   createdAt?: string;
   job?: ApiJob;
+  matchResult?: {
+    score?: number;
+    strengths?: unknown;
+    risks?: unknown;
+    missingRequirements?: unknown;
+    screeningQuestions?: unknown;
+  } | null;
+  cvParseResult?: {
+    status?: ApiCvParseStatus;
+    summary?: string | null;
+    errorMessage?: string | null;
+    structuredData?: unknown;
+  } | null;
   files?: {
     id: string;
     originalName?: string | null;
@@ -159,6 +187,16 @@ export type ApiApplication = {
     phone?: string | null;
     portfolioUrl?: string | null;
   };
+};
+
+export type ApiApplicationAnalysis = {
+  applicationId: string;
+  status: ApiCvParseStatus;
+  summary?: string | null;
+  errorMessage?: string | null;
+  confidence?: number | null;
+  updatedAt?: string;
+  matchResult?: ApiApplication["matchResult"];
 };
 
 export type ApiCandidateProfile = {

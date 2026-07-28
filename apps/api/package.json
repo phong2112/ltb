@@ -7,7 +7,9 @@
     "dev": "nest start --watch",
     "start": "node dist/main.js",
     "start:prod": "node dist/main.js",
-    "lint": "eslint \"src/**/*.ts\"",
+    "eval:cv": "tsx scripts/eval-cv-pipeline.ts",
+    "eval:cv:fixtures": "tsx scripts/generate-cv-eval-fixtures.ts",
+    "lint": "eslint \"src/**/*.ts\" \"scripts/**/*.ts\" && tsc --project tsconfig.scripts.json",
     "test": "jest --passWithNoTests"
   },
   "dependencies": {
@@ -21,16 +23,26 @@
     "@nestjs/throttler": "^6.5.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "@tesseract.js-data/eng": "^1.0.0",
+    "@tesseract.js-data/vie": "^1.0.0",
     "@vercel/blob": "^2.6.1",
+    "bullmq": "^5.80.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
+    "google-auth-library": "^10.9.0",
     "helmet": "^8.1.0",
+    "mammoth": "^1.12.0",
     "multer": "^2.2.0",
     "nodemailer": "^9.0.3",
+    "ollama": "^0.6.3",
+    "pdf-parse": "^2.4.5",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "sanitize-html": "^2.17.6",
-    "slugify": "^1.6.6"
+    "slugify": "^1.6.6",
+    "tesseract.js": "^7.0.0",
+    "word-extractor": "^1.0.4",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.10",
@@ -41,12 +53,17 @@
     "@types/node": "^22.16.0",
     "@types/nodemailer": "^8.0.1",
     "@types/sanitize-html": "^2.16.1",
+    "@types/word-extractor": "^1.0.6",
     "@typescript-eslint/eslint-plugin": "^8.36.0",
     "@typescript-eslint/parser": "^8.36.0",
+    "docx": "^9.7.1",
     "eslint": "^9.31.0",
     "jest": "^30.0.4",
+    "pdf-lib": "^1.17.1",
     "prisma": "^7.8.0",
+    "sharp": "^0.34.5",
     "ts-jest": "^29.4.0",
+    "tsx": "^4.23.0",
     "typescript": "^5.9.2"
   }
 }
