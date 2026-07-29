@@ -170,10 +170,10 @@ export default function TalentPoolDetail() {
   return (
     <AdminLayout>
       <div className="mx-auto w-full max-w-[1500px] space-y-4">
-        <header className="flex flex-col gap-4 rounded-xl border border-border bg-white p-5 lg:flex-row lg:items-center lg:justify-between">
+        <header className="flex flex-col gap-4 rounded-xl border border-border bg-white p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <Link to="/admin/talent-pool" className="mb-2 inline-flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-primary"><ArrowLeft size={13} /> {t("common.backToList")}</Link>
-            <div className="flex flex-wrap items-center gap-3"><h1 className="truncate text-2xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{entry.candidate.fullName}</h1><StatusBadge status={entry.status} language={language} /></div>
+            <div className="flex flex-wrap items-center gap-3"><h1 className="max-w-full truncate text-xl font-black text-foreground sm:text-2xl" style={{ fontFamily: "'Playfair Display', serif" }}>{entry.candidate.fullName}</h1><StatusBadge status={entry.status} language={language} /></div>
             <p className="mt-1 text-xs text-muted-foreground">{entry.file?.originalName ?? "CV"} · {formatDate(entry.createdAt, language)}</p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -186,7 +186,7 @@ export default function TalentPoolDetail() {
 
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(480px,580px)]">
           <main className="space-y-5">
-            <section className="rounded-xl border border-border bg-white p-5">
+            <section className="rounded-xl border border-border bg-white p-4 sm:p-5">
               <div className="mb-4 flex items-center gap-2"><UserRound size={16} className="text-primary" /><h2 className="text-base font-black text-foreground">{t("admin.personalInfo")}</h2></div>
               <div className="grid gap-4 md:grid-cols-2">
                 <Field label={t("admin.fullName")} icon={<UserRound size={14} />}><input value={form.fullName} onChange={event => updateField("fullName", event.target.value)} className={inputClass} /></Field>
@@ -205,7 +205,7 @@ export default function TalentPoolDetail() {
               )}
             </section>
 
-            <section className="rounded-xl border border-border bg-white p-5">
+            <section className="rounded-xl border border-border bg-white p-4 sm:p-5">
               <div className="mb-4 flex items-center gap-2"><BriefcaseBusiness size={16} className="text-primary" /><h2 className="text-base font-black text-foreground">{t("talentPool.assignJob")}</h2></div>
               {entry.promotedApplicationId ? (
                 <div className="flex flex-col gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm font-bold text-emerald-800">{t("talentPool.alreadyAssigned")}</p><Link to={`/admin/candidates/${entry.candidate.id}?application=${entry.promotedApplicationId}`} className="inline-flex items-center gap-2 text-xs font-bold text-emerald-800 underline">{t("talentPool.openApplication")} <ExternalLink size={13} /></Link></div>

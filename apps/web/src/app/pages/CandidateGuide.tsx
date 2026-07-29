@@ -22,12 +22,12 @@ export default function CandidateGuide() {
   return (
     <PublicLayout>
       <section className="border-b border-pink-100" style={{ background: "linear-gradient(135deg, #fff7fa 0%, #fdebf1 58%, #fff 100%)" }}>
-        <div className="mx-auto max-w-7xl px-6 py-9 md:py-10">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:py-10">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-pink-200 bg-white/70 px-3 py-1.5 text-xs font-bold text-primary">
               <Sparkles size={13} /> {t("guide.eyebrow")}
             </div>
-            <h1 className="mt-3 text-4xl font-black leading-tight text-foreground md:text-5xl" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <h1 className="mt-3 text-3xl font-black leading-tight text-foreground sm:text-4xl md:text-5xl" style={{ fontFamily: "'Playfair Display', serif" }}>
               {t("guide.title")}
             </h1>
             <p className="mt-2.5 max-w-2xl text-base leading-relaxed text-muted-foreground">
@@ -45,7 +45,7 @@ export default function CandidateGuide() {
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-6 py-12">
+      <section className="mx-auto max-w-7xl px-4 py-9 sm:px-6 sm:py-12">
         <div className="grid gap-4 md:grid-cols-3">
           {steps.map(step => (
             <article key={step.title} className="rounded-2xl border border-pink-100 bg-white p-5 shadow-sm">
@@ -59,7 +59,7 @@ export default function CandidateGuide() {
         </div>
 
         <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_0.9fr]">
-          <section className="rounded-2xl border border-border bg-white p-6">
+          <section className="rounded-2xl border border-border bg-white p-4 sm:p-6">
             <div className="mb-5 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pink-50 text-primary">
                 <ClipboardList size={18} />
@@ -79,7 +79,7 @@ export default function CandidateGuide() {
             </div>
           </section>
 
-          <aside className="rounded-2xl border border-primary/20 bg-primary p-6 text-white">
+          <aside className="rounded-2xl border border-primary/20 bg-primary p-4 text-white sm:p-6">
             <p className="text-xs font-bold uppercase tracking-widest text-white/70">{t("guide.noteEyebrow")}</p>
             <h2 className="mt-3 text-2xl font-black leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
               {t("guide.noteTitle")}

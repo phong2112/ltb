@@ -87,7 +87,7 @@ export default function AdminLogin() {
       </div>
 
       {/* Right — form */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12">
+      <div className="flex flex-1 items-center justify-center px-4 py-8 sm:px-6 sm:py-12">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
             <div className="mx-auto mb-3 h-14 w-14 overflow-hidden rounded-full border-2 border-primary/30 bg-pink-100">
@@ -97,7 +97,7 @@ export default function AdminLogin() {
             <p className="text-muted-foreground text-sm mt-1">{t("admin.privateArea")}</p>
           </div>
 
-          <div className="bg-white rounded-2xl border border-border shadow-sm p-6">
+          <div className="rounded-2xl border border-border bg-white p-4 shadow-sm sm:p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="text-xs font-bold text-foreground mb-1.5 block uppercase tracking-wide">{t("common.email")}</label>

@@ -179,7 +179,7 @@ export default function MessageTemplates() {
         </div>
 
         {isCreating && (
-          <form id="template-editor" onSubmit={submitTemplate} className="mb-5 scroll-mt-4 rounded-2xl border border-pink-100 bg-white p-5 shadow-sm">
+          <form id="template-editor" onSubmit={submitTemplate} className="mb-5 scroll-mt-4 rounded-2xl border border-pink-100 bg-white p-4 shadow-sm sm:p-5">
             <h2 className="mb-4 text-base font-black text-foreground">{t(editingId ? "admin.editTemplateTitle" : "admin.newTemplate")}</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="text-xs font-bold text-foreground">
@@ -217,8 +217,8 @@ export default function MessageTemplates() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {filtered.map((template) => (
-            <div key={template.id} className="bg-white rounded-2xl border border-border p-5 hover:shadow-sm transition-all">
-              <div className="flex items-start justify-between gap-3 mb-3">
+            <div key={template.id} className="rounded-2xl border border-border bg-white p-4 transition-all hover:shadow-sm sm:p-5">
+              <div className="mb-3 flex flex-col items-stretch gap-3 min-[460px]:flex-row min-[460px]:items-start min-[460px]:justify-between">
                 <div className="flex min-w-0 items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-pink-50 border border-pink-100 flex items-center justify-center text-primary flex-shrink-0">{template.icon}</div>
                   <div className="min-w-0">

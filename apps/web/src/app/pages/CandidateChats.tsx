@@ -7,7 +7,7 @@ export default function CandidateChats() {
 
   return (
     <AdminLayout>
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <h1 className="text-2xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>Chat ứng viên</h1>
         <p className="text-muted-foreground text-sm mt-0.5">Quản lý trao đổi theo từng ứng viên và kênh liên hệ.</p>
       </div>

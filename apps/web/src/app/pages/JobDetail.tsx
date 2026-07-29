@@ -43,7 +43,7 @@ export default function JobDetail() {
 
   return (
     <PublicLayout>
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
         <Link to={backToJobsPath} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors mb-6">
           <ChevronLeft size={15} /> {t("common.backToList")}
         </Link>
@@ -52,9 +52,9 @@ export default function JobDetail() {
           {/* Main */}
           <div className="lg:col-span-2 space-y-5">
             {/* Header card */}
-            <div className="bg-white rounded-2xl border border-border p-6">
-              <div className="flex items-start gap-4 mb-4">
-                <div className="w-16 h-16 rounded-2xl bg-pink-100 flex items-center justify-center text-4xl flex-shrink-0 border border-pink-100">{job.logo}</div>
+            <div className="rounded-2xl border border-border bg-white p-4 sm:p-6">
+              <div className="mb-4 flex items-start gap-3 sm:gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-pink-100 bg-pink-100 text-3xl sm:h-16 sm:w-16 sm:text-4xl">{job.logo}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start gap-2 flex-wrap mb-1">
                     <h1 className="text-2xl font-black text-foreground">{job.title}</h1>
@@ -94,19 +94,19 @@ export default function JobDetail() {
             </div>
 
             {/* Description */}
-            <div className="bg-white rounded-2xl border border-border p-6">
+            <div className="rounded-2xl border border-border bg-white p-4 sm:p-6">
               <h2 className="text-lg font-black text-foreground mb-3" style={{ fontFamily: "'Playfair Display', serif" }}>{t("jobDetail.description")}</h2>
               <RichTextContent value={job.description} className="text-sm text-foreground" />
             </div>
 
             {/* Requirements */}
-            <div className="bg-white rounded-2xl border border-border p-6">
+            <div className="rounded-2xl border border-border bg-white p-4 sm:p-6">
               <h2 className="text-lg font-black text-foreground mb-3" style={{ fontFamily: "'Playfair Display', serif" }}>{t("jobDetail.requirements")}</h2>
               <RichTextContent value={job.requirements} className="text-sm text-foreground" />
             </div>
 
             {/* Benefits */}
-            <div className="bg-white rounded-2xl border border-border p-6">
+            <div className="rounded-2xl border border-border bg-white p-4 sm:p-6">
               <h2 className="text-lg font-black text-foreground mb-3" style={{ fontFamily: "'Playfair Display', serif" }}>{t("jobDetail.benefits")}</h2>
               <RichTextContent value={job.benefits} className="text-sm text-foreground" />
             </div>

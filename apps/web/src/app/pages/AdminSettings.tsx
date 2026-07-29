@@ -71,7 +71,7 @@ export default function AdminSettings() {
         </div>
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <section className="rounded-2xl border border-border bg-white p-5">
+          <section className="rounded-2xl border border-border bg-white p-4 sm:p-5">
             <SectionHeader icon={<SlidersHorizontal size={17} />} title={t("settings.userInterface")} description={t("settings.userInterfaceDesc")} />
 
             <div className="space-y-4">
@@ -119,7 +119,7 @@ export default function AdminSettings() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-border bg-white p-5">
+          <section className="rounded-2xl border border-border bg-white p-4 sm:p-5">
             <SectionHeader icon={<UserCog size={17} />} title={t("settings.adminInterface")} description={t("settings.adminInterfaceDesc")} />
 
             <div className="space-y-3">
@@ -169,7 +169,7 @@ function SectionHeader({ icon, title, description }: { icon: ReactNode; title: s
 
 function SettingRow({ icon, title, description, control }: { icon: ReactNode; title: string; description: string; control: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-background p-4">
+    <div className="flex flex-col items-stretch gap-3 rounded-xl border border-border bg-background p-3.5 min-[430px]:flex-row min-[430px]:items-center min-[430px]:justify-between sm:p-4">
       <div className="flex min-w-0 items-start gap-3">
         <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-white text-primary">{icon}</div>
         <div className="min-w-0">
@@ -177,7 +177,7 @@ function SettingRow({ icon, title, description, control }: { icon: ReactNode; ti
           <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{description}</p>
         </div>
       </div>
-      <div className="flex-shrink-0">{control}</div>
+      <div className="flex flex-shrink-0 justify-end">{control}</div>
     </div>
   );
 }

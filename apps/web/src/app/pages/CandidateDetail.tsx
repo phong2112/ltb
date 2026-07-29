@@ -199,9 +199,9 @@ export default function CandidateDetail() {
     <AdminLayout>
       <div className="w-full max-w-[1560px] space-y-4">
         <header className="sticky top-16 z-20 overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_10px_30px_rgba(120,70,86,0.06)]">
-          <div className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex min-w-0 items-start gap-4">
-              <div className="flex size-12 flex-none items-center justify-center rounded-xl bg-primary/10 text-sm font-black text-primary">
+          <div className="flex flex-col gap-4 px-4 py-4 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex min-w-0 items-start gap-3 sm:gap-4">
+              <div className="flex size-10 flex-none items-center justify-center rounded-xl bg-primary/10 text-sm font-black text-primary sm:size-12">
                 {getInitials(candidate.name)}
               </div>
               <div className="min-w-0">
@@ -209,7 +209,7 @@ export default function CandidateDetail() {
                   <ChevronLeft size={14} /> {t("common.backToList")}
                 </Link>
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
-                  <h1 className="truncate text-2xl font-black leading-tight text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>
+                  <h1 className="max-w-full truncate text-xl font-black leading-tight text-foreground sm:text-2xl" style={{ fontFamily: "'Playfair Display', serif" }}>
                     {candidate.name}
                   </h1>
                   <StatusBadge status={application.status} language={language} />
@@ -260,7 +260,7 @@ export default function CandidateDetail() {
 
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(500px,560px)] 2xl:grid-cols-[minmax(0,1fr)_620px]">
           <main className="min-w-0 space-y-5">
-            <section className="rounded-2xl border border-border/80 bg-white p-5 shadow-[0_10px_30px_rgba(120,70,86,0.04)]">
+            <section className="rounded-2xl border border-border/80 bg-white p-4 shadow-[0_10px_30px_rgba(120,70,86,0.04)] sm:p-5">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <SectionHeading icon={<UserRound size={16} />} title={t("admin.personalInfo")} />
                 <div className="flex flex-wrap items-center gap-2">

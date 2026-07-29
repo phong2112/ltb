@@ -575,7 +575,7 @@ export default function CreateEditJob() {
     <AdminLayout>
       <div className="w-full max-w-[1560px]">
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <header className="sticky top-20 z-20 min-w-0 rounded-2xl border border-border/80 bg-white px-5 py-4 shadow-[0_10px_30px_rgba(120,70,86,0.06)]">
+          <header className="sticky top-16 z-20 min-w-0 rounded-2xl border border-border/80 bg-white px-4 py-3 shadow-[0_10px_30px_rgba(120,70,86,0.06)] sm:px-5 sm:py-4 lg:top-20">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="min-w-0">
                 <Link to={isEdit && existing ? `/admin/jobs/${existing.id}` : "/admin/jobs"} className="mb-2 inline-flex cursor-pointer items-center gap-1 text-xs font-bold text-muted-foreground transition-colors hover:text-primary">
@@ -672,7 +672,7 @@ export default function CreateEditJob() {
               <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 font-semibold">{error}</div>
             )}
 
-            <div className="bg-white rounded-2xl border border-border p-6 space-y-5">
+            <div className="space-y-5 rounded-2xl border border-border bg-white p-4 sm:p-6">
           {/* Logo picker */}
           <div>
             <label className="text-xs font-bold text-foreground mb-2 block uppercase tracking-wide">{t("admin.jobIcon")}</label>
@@ -803,7 +803,7 @@ export default function CreateEditJob() {
                   placeholder={tags.length ? "Thêm tag..." : "React, TypeScript, Figma..."}
                   maxLength={30}
                   aria-invalid={Boolean(fieldErrors.tags)}
-                  className="h-7 min-w-[150px] flex-1 bg-transparent px-1 text-sm outline-none placeholder:text-muted-foreground"
+                  className="h-7 min-w-[100px] flex-1 bg-transparent px-1 text-sm outline-none placeholder:text-muted-foreground sm:min-w-[150px]"
                 />
               </div>
             </FormField>

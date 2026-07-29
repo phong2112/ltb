@@ -86,30 +86,30 @@ export default function Jobs() {
   return (
     <PublicLayout>
       <div className="border-b border-border bg-gradient-to-br from-pink-50 to-background py-7">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <h1 className="text-3xl font-black text-foreground mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>{showSaved ? t("savedJobs.title") : t("jobs.allJobs")}</h1>
           <p className="mb-3.5 text-sm text-muted-foreground">{showSaved ? t("savedJobs.subtitle") : `${published.length} ${t("jobs.openPositions")}`}</p>
-          <div className="mb-3.5 inline-flex rounded-xl border border-pink-100 bg-white p-1 shadow-sm">
+          <div className="mb-3.5 flex max-w-full overflow-x-auto rounded-xl border border-pink-100 bg-white p-1 shadow-sm min-[500px]:inline-flex">
             <button
               type="button"
               onClick={() => setJobView("all")}
-              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-colors ${!showSaved ? "bg-primary text-white" : "text-muted-foreground hover:text-primary"}`}
+              className={`inline-flex min-w-max flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-bold transition-colors min-[500px]:flex-none min-[500px]:px-4 ${!showSaved ? "bg-primary text-white" : "text-muted-foreground hover:text-primary"}`}
             >
               <List size={15} /> {t("jobs.allJobs")}
             </button>
             <button
               type="button"
               onClick={() => setJobView("saved")}
-              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-colors ${showSaved ? "bg-primary text-white" : "text-muted-foreground hover:text-primary"}`}
+              className={`inline-flex min-w-max flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-bold transition-colors min-[500px]:flex-none min-[500px]:px-4 ${showSaved ? "bg-primary text-white" : "text-muted-foreground hover:text-primary"}`}
             >
               <Heart size={15} fill={showSaved ? "currentColor" : "none"} /> {t("common.savedJobs")}
               {savedJobs.length > 0 && <span className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] ${showSaved ? "bg-white/20 text-white" : "bg-pink-100 text-primary"}`}>{savedJobs.length}</span>}
             </button>
           </div>
-          <div className="flex gap-2 bg-white rounded-2xl shadow-sm border border-pink-100 p-2 max-w-2xl">
-            <div className="flex-1 flex items-center gap-3 px-3">
+          <div className="flex max-w-2xl flex-col gap-2 rounded-2xl border border-pink-100 bg-white p-2 shadow-sm min-[430px]:flex-row">
+            <div className="flex min-w-0 flex-1 items-center gap-2 px-2 sm:gap-3 sm:px-3">
               <Search size={16} className="text-muted-foreground" />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("home.searchPlaceholder")} className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground" />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("home.searchPlaceholder")} className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground" />
               {search && <button onClick={() => setSearch("")} className="text-muted-foreground hover:text-foreground text-xs">✕</button>}
             </div>
             <button className="px-5 py-2 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all">{t("common.search")}</button>
@@ -117,7 +117,7 @@ export default function Jobs() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
         <div className="flex flex-wrap gap-2 mb-6 items-center">
           <Filter size={13} className="text-muted-foreground" />
           {TYPE_FILTERS.map(item => (
@@ -131,7 +131,7 @@ export default function Jobs() {
               {item === ALL_FILTER ? t("common.all") : translateJobLevel(item, language)}
             </button>
           ))}
-          <span className="ml-auto text-xs text-muted-foreground">{filtered.length} {t("jobs.resultCount")}</span>
+          <span className="w-full text-xs text-muted-foreground sm:ml-auto sm:w-auto">{filtered.length} {t("jobs.resultCount")}</span>
         </div>
 
         {showSaved && savedJobs.length === 0 ? (

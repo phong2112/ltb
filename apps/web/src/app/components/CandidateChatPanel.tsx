@@ -1,6 +1,7 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import {
+  ArrowLeft,
   Briefcase,
   Clock,
   Linkedin,
@@ -39,6 +40,7 @@ export default function CandidateChatPanel({ initialCandidateId, mode = "full" }
   const isWidget = mode === "widget";
   const { candidates, sendCandidateMessage } = useData();
   const [activeCandidateId, setActiveCandidateId] = useState(() => initialCandidateId ?? (isWidget ? readStorage(WIDGET_ACTIVE_CANDIDATE_KEY) : ""));
+  const [mobileConversationOpen, setMobileConversationOpen] = useState(Boolean(initialCandidateId));
   const [search, setSearch] = useState(() => isWidget ? readStorage(WIDGET_SEARCH_KEY) : "");
   const [channel, setChannel] = useState<CandidateMessageChannel>(() => isWidget ? readStoredChannel() : "system");
   const [draft, setDraft] = useState(() => isWidget ? readStorage(WIDGET_DRAFT_KEY) : "");
@@ -140,9 +142,9 @@ export default function CandidateChatPanel({ initialCandidateId, mode = "full" }
   }
 
   return (
-    <div className={`bg-white overflow-hidden ${isWidget ? "h-full" : "h-[calc(100vh-9rem)] min-h-[620px] rounded-2xl border border-border"}`}>
+    <div className={`overflow-hidden bg-white ${isWidget ? "h-full" : "h-[calc(100dvh-8.5rem)] min-h-[480px] rounded-2xl border border-border sm:min-h-[560px] lg:h-[calc(100dvh-9rem)] lg:min-h-[620px]"}`}>
       <div className={isWidget ? "grid h-full min-h-0 grid-cols-[250px_minmax(0,1fr)]" : "grid h-full grid-cols-1 md:grid-cols-[300px_minmax(0,1fr)]"}>
-        <aside className="flex border-r border-border bg-white flex-col min-h-0">
+        <aside className={`${!isWidget && mobileConversationOpen ? "hidden md:flex" : "flex"} min-h-0 flex-col border-r border-border bg-white`}>
           <div className={`${isWidget ? "p-3" : "p-4"} border-b border-border`}>
             <div className="flex items-center gap-2 bg-background rounded-xl px-3 py-2 border border-border">
               <Search size={14} className="text-muted-foreground" />
@@ -165,7 +167,10 @@ export default function CandidateChatPanel({ initialCandidateId, mode = "full" }
                 <button
                   key={candidate.id}
                   type="button"
-                  onClick={() => setActiveCandidateId(candidate.id)}
+                  onClick={() => {
+                    setActiveCandidateId(candidate.id);
+                    if (!isWidget) setMobileConversationOpen(true);
+                  }}
                   className={`w-full text-left ${isWidget ? "p-3" : "p-4"} border-b border-border transition-colors ${active ? "bg-pink-50" : "hover:bg-pink-50/60"}`}
                 >
                   <div className="flex items-start gap-3">
@@ -202,12 +207,17 @@ export default function CandidateChatPanel({ initialCandidateId, mode = "full" }
           </div>
         </aside>
 
-        <section className="flex min-h-0 flex-col">
+        <section className={`${!isWidget && !mobileConversationOpen ? "hidden md:flex" : "flex"} min-h-0 flex-col`}>
           {activeCandidate ? (
             <>
               <header className={`border-b border-border ${isWidget ? "p-3" : "p-4"}`}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+                <div className="flex items-start justify-between gap-2 sm:gap-3">
+                  {!isWidget && (
+                    <button type="button" onClick={() => setMobileConversationOpen(false)} className="flex h-9 w-9 flex-none items-center justify-center rounded-xl border border-border text-muted-foreground md:hidden" aria-label="Quay lại danh sách ứng viên">
+                      <ArrowLeft size={16} />
+                    </button>
+                  )}
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-black flex-shrink-0">
                         {formatCandidateName(activeCandidate.name).charAt(0)}
@@ -220,9 +230,9 @@ export default function CandidateChatPanel({ initialCandidateId, mode = "full" }
                   </div>
                   <Link
                     to={`/admin/candidates/${activeCandidate.candidateId}?application=${activeCandidate.applicationId}`}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border px-3 text-xs font-bold text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                    className="inline-flex h-9 flex-none items-center gap-1.5 rounded-xl border border-border px-2.5 text-xs font-bold text-muted-foreground transition-colors hover:border-primary hover:text-primary sm:px-3"
                   >
-                    <UserRound size={13} /> Hồ sơ
+                    <UserRound size={13} /> <span className="hidden min-[390px]:inline">Hồ sơ</span>
                   </Link>
                 </div>
 

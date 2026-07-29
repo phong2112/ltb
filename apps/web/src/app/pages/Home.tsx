@@ -45,12 +45,12 @@ export default function Home() {
         <div className="absolute bottom-20 right-[44%] z-0 w-9 h-9 rounded-full bg-pink-300/40 pointer-events-none" />
         <div className="absolute top-1/2 right-[22%] z-0 w-5 h-5 rounded-full bg-rose-400/30 pointer-events-none" />
 
-        <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-center gap-6 px-6 py-9 pb-4 md:py-11 md:pb-4 lg:flex-row">
-          <div className="flex-1">
+        <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-center gap-6 px-4 py-8 pb-4 sm:px-6 md:py-11 md:pb-4 lg:flex-row">
+          <div className="min-w-0 flex-1">
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-pink-200 bg-white/60 px-3 py-1.5 text-xs font-semibold text-primary">
               <Sparkles size={12} /> {published.length} {t("home.tagline")}
             </div>
-            <h1 className="mb-3 text-4xl font-black leading-[1.08] text-foreground md:text-5xl lg:text-6xl" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <h1 className="mb-3 text-[2.15rem] font-black leading-[1.08] text-foreground min-[390px]:text-4xl md:text-5xl lg:text-6xl" style={{ fontFamily: "'Playfair Display', serif" }}>
               {t("home.titleBefore")}<br /><span className="text-primary italic">{t("home.heroDream")}</span> {t("home.titleAfter")}
             </h1>
             {(heroSubtitle || heroSupport) && (
@@ -61,10 +61,10 @@ export default function Home() {
               </p>
             )}
 
-            <form onSubmit={handleSearch} className="mb-4 flex max-w-lg gap-2 rounded-2xl border border-pink-100 bg-white p-2 shadow-md">
-              <div className="flex-1 flex items-center gap-3 px-3">
+            <form onSubmit={handleSearch} className="mb-4 flex max-w-lg flex-col gap-2 rounded-2xl border border-pink-100 bg-white p-2 shadow-md min-[430px]:flex-row">
+              <div className="flex min-w-0 flex-1 items-center gap-2 px-2 sm:gap-3 sm:px-3">
                 <Search size={17} className="text-muted-foreground flex-shrink-0" />
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("home.searchPlaceholder")} className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground" />
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("home.searchPlaceholder")} className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground" />
               </div>
               <button type="submit" className="px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all">{t("common.search")}</button>
             </form>
@@ -76,9 +76,9 @@ export default function Home() {
               ))}
             </div>
 
-            <div className="flex flex-wrap gap-4">
+            <div className="grid grid-cols-1 gap-2 min-[390px]:grid-cols-3 sm:flex sm:flex-wrap sm:gap-4">
               {[{ icon: <Briefcase size={15} />, label: t("home.jobStat"), val: `${published.length}+` }, { icon: <Building2 size={15} />, label: t("home.companyStat"), val: "200+" }, { icon: <Users size={15} />, label: t("home.statCandidates"), val: "1.2K+" }].map(s => (
-                <div key={s.label} className="bg-white rounded-xl px-4 py-3 flex items-center gap-2.5 border border-pink-100 shadow-sm">
+                <div key={s.label} className="flex items-center gap-2.5 rounded-xl border border-pink-100 bg-white px-3 py-3 shadow-sm sm:px-4">
                   <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">{s.icon}</div>
                   <div><div className="text-sm font-black text-foreground leading-none">{s.val}</div><div className="text-[10px] text-muted-foreground mt-0.5">{s.label}</div></div>
                 </div>
@@ -92,7 +92,7 @@ export default function Home() {
         </div>
 
         {/* Features strip */}
-        <div className="relative z-10 mx-auto max-w-7xl px-6 pb-7">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 pb-7 sm:px-6">
           <div className="grid w-full max-w-4xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[
               { icon: <Target size={17} />, title: t("home.matchingTitle"), desc: t("home.matchingDesc") },
@@ -102,7 +102,7 @@ export default function Home() {
               <div key={f.title} className="flex items-start gap-3 rounded-xl border border-pink-100 bg-white p-3.5 shadow-sm">
                 <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">{f.icon}</div>
                 <div className="min-w-0 flex-1">
-                  <p className="whitespace-nowrap text-xs font-black leading-tight text-foreground">{f.title}</p>
+                  <p className="text-xs font-black leading-tight text-foreground">{f.title}</p>
                   <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{f.desc}</p>
                 </div>
               </div>
@@ -112,8 +112,8 @@ export default function Home() {
       </section>
 
       {/* Latest jobs preview */}
-      <section className="mx-auto max-w-7xl px-6 py-9">
-        <div className="mb-4 flex items-center justify-between">
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-9">
+        <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="text-2xl font-black text-foreground">{t("home.latestJobs")}</h2>
           <Link to="/jobs" className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">{t("home.ctaJobs")} <ArrowRight size={14} /></Link>
         </div>

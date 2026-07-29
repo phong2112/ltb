@@ -91,14 +91,14 @@ export default function AdminJobDetail() {
     <AdminLayout>
       <div className="w-full max-w-[1560px]">
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <header className="sticky top-20 z-20 min-w-0 rounded-2xl border border-border/80 bg-white px-5 py-4 shadow-[0_10px_30px_rgba(120,70,86,0.06)]">
+          <header className="sticky top-16 z-20 min-w-0 rounded-2xl border border-border/80 bg-white px-4 py-3 shadow-[0_10px_30px_rgba(120,70,86,0.06)] sm:px-5 sm:py-4 lg:top-20">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="min-w-0">
                 <Link to="/admin/jobs" className="mb-2 inline-flex cursor-pointer items-center gap-1 text-xs font-bold text-muted-foreground transition-colors hover:text-primary">
                   <ChevronLeft size={14} /> {t("common.backToList")}
                 </Link>
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
-                  <h1 className="truncate text-2xl font-black leading-tight text-foreground">{job.title}</h1>
+                  <h1 className="max-w-full truncate text-xl font-black leading-tight text-foreground sm:text-2xl">{job.title}</h1>
                   {job.urgent && <span className={`flex-none rounded-full border px-2 py-0.5 text-[10px] font-bold ${URGENT_BADGE_CLASS}`}>🔥 {t("jobs.urgent")}</span>}
                 </div>
                 <p className="mt-1.5 flex items-center gap-2 text-sm font-semibold text-muted-foreground">

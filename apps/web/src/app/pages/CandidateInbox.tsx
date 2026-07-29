@@ -239,7 +239,7 @@ export default function CandidateInbox() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <select value={targetJobId} onChange={event => setTargetJobId(event.target.value)} className="h-9 min-w-52 rounded-lg border border-border bg-input-background px-3 text-xs font-semibold text-muted-foreground outline-none focus:border-primary">
+            <select value={targetJobId} onChange={event => setTargetJobId(event.target.value)} className="h-9 w-full min-w-0 rounded-lg border border-border bg-input-background px-3 text-xs font-semibold text-muted-foreground outline-none focus:border-primary sm:w-auto sm:min-w-52">
               <option value="">{t("talentPool.keepGeneral")}</option>
               {jobs.filter(job => job.status !== "archived").map(job => <option key={job.id} value={job.id}>{job.title}</option>)}
             </select>
@@ -284,7 +284,7 @@ export default function CandidateInbox() {
               setCurrentPage(1);
             }}
             placeholder={t("admin.searchCandidates")}
-            className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
+            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
         </div>
         <div className="flex flex-wrap gap-2">
@@ -318,7 +318,7 @@ export default function CandidateInbox() {
               <option key={j.id} value={j.id}>{j.title}</option>
             ))}
           </select>
-          <span className="ml-auto text-xs text-muted-foreground self-center">
+          <span className="w-full text-xs text-muted-foreground sm:ml-auto sm:w-auto self-center">
             {filtered.length} {t("jobs.resultCount")}
           </span>
         </div>
@@ -335,9 +335,9 @@ export default function CandidateInbox() {
             {paginatedRows.map(row => (
                 <div
                   key={row.key}
-                  className="flex items-center gap-4 p-4 hover:bg-pink-50/50 transition-colors group"
+                  className="group flex items-center gap-2 p-3 transition-colors hover:bg-pink-50/50 sm:gap-4 sm:p-4"
                 >
-                  <Link to={row.href} className="flex min-w-0 flex-1 items-center gap-4">
+                  <Link to={row.href} className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
                       {row.name.charAt(0)}
                     </div>
