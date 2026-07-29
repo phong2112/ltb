@@ -80,7 +80,7 @@ export default function Jobs() {
     const nextParams = new URLSearchParams(params);
     nextParams.set("job", jobId);
     skipNextCardScrollRef.current = jobId;
-    setParams(nextParams, { replace: true });
+    setParams(nextParams, { replace: true, preventScrollReset: true });
   };
 
   return (

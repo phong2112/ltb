@@ -71,7 +71,6 @@ describe("EmailService", () => {
       jobTitle: "Frontend Engineer",
       jobId: "job-1",
       companyName: "Acme Vietnam",
-      jobSlug: "frontend-engineer",
       applicationArea: "Hà Nội",
     });
 
@@ -91,8 +90,12 @@ describe("EmailService", () => {
     expect(rawMime).toContain("Reply-To: xuanphongpham2112@gmail.com");
     expect(rawMime).toContain("3-5 ngày làm việc");
     expect(rawMime).toContain("Khu vực ứng tuyển: Hà Nội");
-    expect(rawMime).toContain("lưu lại thông tin của bạn");
-    expect(rawMime).toContain("https://careers.example.com/jobs/frontend-engineer");
+    expect(rawMime).toContain("Mình đã nhận được thông tin ứng tuyển của bạn rồi nhé");
+    expect(rawMime).toContain("mong bạn thông cảm");
+    expect(rawMime).toContain("Thông tin của bạn vẫn sẽ được lưu lại");
+    expect(rawMime).toContain("https://careers.example.com/jobs/job-1");
+    expect(rawMime).not.toContain("(ID:");
+    expect(rawMime).not.toContain("ID: job-1");
     expect(rawMime).toContain("https://careers.example.com/images/bich-candy-logo.jpg");
   });
 

@@ -194,7 +194,6 @@ export class ApplicationsService {
       jobTitle: job.title,
       jobId: job.id,
       companyName: job.company,
-      jobSlug: job.slug,
       applicationArea: dto.applicationArea,
     });
 
@@ -221,7 +220,6 @@ export class ApplicationsService {
           jobTitle: input.jobTitle,
           jobId: input.jobId,
           companyName: input.companyName,
-          jobSlug: input.jobSlug,
           applicationArea: input.applicationArea,
         })
         .catch((error: unknown) => {
@@ -280,7 +278,6 @@ type AcceptedApplicationSideEffects = {
   jobTitle: string;
   jobId: string;
   companyName?: string | null;
-  jobSlug?: string | null;
   applicationArea: string;
 };
 

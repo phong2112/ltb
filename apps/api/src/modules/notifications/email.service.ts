@@ -23,7 +23,6 @@ export type ApplicationConfirmationEmail = {
   jobTitle: string;
   jobId: string;
   companyName?: string | null;
-  jobSlug?: string | null;
   applicationArea?: string;
 };
 
@@ -126,19 +125,19 @@ export class EmailService {
 
 function buildApplicationConfirmationEmail(input: ApplicationConfirmationEmail, options: { brandName: string; publicBaseUrl?: string }) {
   const companyName = input.companyName?.trim() || "nhà tuyển dụng";
-  const jobUrl = options.publicBaseUrl && input.jobSlug ? `${options.publicBaseUrl}/jobs/${encodeURIComponent(input.jobSlug)}` : undefined;
+  const jobUrl = options.publicBaseUrl ? `${options.publicBaseUrl}/jobs/${encodeURIComponent(input.jobId)}` : undefined;
   const logoUrl = options.publicBaseUrl ? `${options.publicBaseUrl}/images/bich-candy-logo.jpg` : undefined;
   const brandName = options.brandName;
   const subject = `Hồ sơ ứng tuyển ${input.jobTitle} đã được ghi nhận`;
   const textLines = [
     `Chào ${input.candidateName},`,
     "",
-    `Cảm ơn bạn đã ứng tuyển vị trí ${input.jobTitle} (ID: ${input.jobId}) tại ${companyName}. Hệ thống đã ghi nhận hồ sơ của bạn thành công.`,
+    `Cảm ơn bạn đã dành thời gian gửi hồ sơ cho vị trí ${input.jobTitle} tại ${companyName}. Mình đã nhận được thông tin ứng tuyển của bạn rồi nhé.`,
     input.applicationArea ? `Khu vực ứng tuyển: ${input.applicationArea}` : "",
     jobUrl ? `Xem lại thông tin công việc: ${jobUrl}` : "",
     "",
-    "TA sẽ xem xét hồ sơ và liên hệ trong khoảng 3-5 ngày làm việc nếu hồ sơ phù hợp với tiêu chí tuyển dụng.",
-    "Nếu sau thời gian này bạn chưa nhận được liên hệ, rất có thể hồ sơ hiện tại chưa phù hợp với vị trí này. Chúng tôi sẽ lưu lại thông tin của bạn để cân nhắc cho các cơ hội phù hợp hơn trong tương lai.",
+    "Mình sẽ xem kỹ hồ sơ và chủ động liên hệ qua email hoặc số điện thoại bạn đã cung cấp trong khoảng 3-5 ngày làm việc nếu có bước tiếp theo phù hợp.",
+    "Nếu lần này chưa có phản hồi ngay, mong bạn thông cảm vì mỗi vị trí có tiêu chí và số lượng hồ sơ khác nhau. Thông tin của bạn vẫn sẽ được lưu lại để cân nhắc cho những cơ hội phù hợp hơn trong tương lai.",
     "",
     "Trân trọng,",
     `${brandName} TA`,
@@ -175,14 +174,13 @@ function buildApplicationConfirmationEmail(input: ApplicationConfirmationEmail, 
                   <div style="padding:30px 28px 26px">
                     <div style="display:inline-block;margin-bottom:14px;padding:7px 12px;border-radius:999px;background:#FDF0F4;color:#C85B7A;font-size:12px;font-weight:800">Hồ sơ đã được ghi nhận</div>
                     <h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;color:#2D1B22;font-size:28px;line-height:1.22">Cảm ơn bạn đã ứng tuyển</h1>
-                    <p style="margin:0 0 18px;color:#5E3B49;font-size:15px">Chào <strong>${escapeHtml(input.candidateName)}</strong>, hệ thống đã nhận hồ sơ của bạn cho vị trí <strong>${escapeHtml(input.jobTitle)}</strong> (ID: <strong>${escapeHtml(input.jobId)}</strong>) tại <strong>${escapeHtml(companyName)}</strong>.</p>
+                    <p style="margin:0 0 18px;color:#5E3B49;font-size:15px">Chào <strong>${escapeHtml(input.candidateName)}</strong>, cảm ơn bạn đã dành thời gian gửi hồ sơ cho vị trí <strong>${escapeHtml(input.jobTitle)}</strong> tại <strong>${escapeHtml(companyName)}</strong>. Mình đã nhận được thông tin ứng tuyển của bạn rồi nhé.</p>
 
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;margin:20px 0;background:#FDF6F0;border:1px solid rgba(200,91,122,0.15);border-radius:14px">
                       <tr>
                         <td style="padding:16px 18px">
                           <div style="color:#8C5F70;font-size:11px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase">Vị trí ứng tuyển</div>
                           <div style="margin-top:4px;color:#2D1B22;font-size:16px;font-weight:800">${escapeHtml(input.jobTitle)}</div>
-                          <div style="margin-top:4px;color:#8C5F70;font-size:12px;font-weight:500">ID: ${escapeHtml(input.jobId)}</div>
                         </td>
                       </tr>
                       ${
@@ -194,10 +192,10 @@ function buildApplicationConfirmationEmail(input: ApplicationConfirmationEmail, 
 
                     <div style="margin:0 0 18px;padding:16px 18px;border-left:4px solid #C85B7A;background:#FDF0F4;border-radius:12px">
                       <p style="margin:0;color:#2D1B22;font-size:14px;font-weight:800">Bước tiếp theo</p>
-                      <p style="margin:6px 0 0;color:#5E3B49;font-size:14px">TA sẽ xem xét hồ sơ và liên hệ với bạn qua email hoặc số điện thoại đã cung cấp trong khoảng <strong>3-5 ngày làm việc</strong> nếu hồ sơ phù hợp với tiêu chí tuyển dụng.</p>
+                      <p style="margin:6px 0 0;color:#5E3B49;font-size:14px">Mình sẽ xem kỹ hồ sơ và chủ động liên hệ qua email hoặc số điện thoại bạn đã cung cấp trong khoảng <strong>3-5 ngày làm việc</strong> nếu có bước tiếp theo phù hợp.</p>
                     </div>
 
-                    <p style="margin:0 0 18px;color:#5E3B49;font-size:14px">Nếu sau thời gian này bạn chưa nhận được liên hệ, rất có thể hồ sơ hiện tại chưa phù hợp với vị trí này. Chúng tôi sẽ lưu lại thông tin của bạn để cân nhắc cho các cơ hội phù hợp hơn trong tương lai.</p>
+                    <p style="margin:0 0 18px;color:#5E3B49;font-size:14px">Nếu lần này chưa có phản hồi ngay, mong bạn thông cảm vì mỗi vị trí có tiêu chí và số lượng hồ sơ khác nhau. Thông tin của bạn vẫn sẽ được lưu lại để cân nhắc cho những cơ hội phù hợp hơn trong tương lai.</p>
 
                     ${
                       jobUrl
