@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
   AlertTriangle,
   Briefcase,
@@ -20,6 +20,7 @@ import {
   Save,
   Sparkles,
   Target,
+  Trash2,
   UserRound,
   XCircle,
 } from "lucide-react";
@@ -34,6 +35,16 @@ import { useData } from "@/app/data";
 import { translateCandidateStatus, useLanguage } from "@/app/i18n";
 import AdminLayout from "@/app/layouts/AdminLayout";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/app/components/ui/alert-dialog";
+import {
   CANDIDATE_STATUS_CONFIG,
   CANDIDATE_WORKFLOW_STATUSES,
   type CandidateStatus,
@@ -41,8 +52,9 @@ import {
 
 export default function CandidateDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { candidateProfiles, isLoading, refreshCandidateAnalysis, retryCandidateAnalysis, updateCandidate } = useData();
+  const { candidateProfiles, isLoading, refreshCandidateAnalysis, retryCandidateAnalysis, updateCandidate, deleteCandidate } = useData();
   const { language, t } = useLanguage();
   const candidate = candidateProfiles.find(profile => profile.id === id);
   const requestedApplicationId = searchParams.get("application");
@@ -54,6 +66,8 @@ export default function CandidateDetail() {
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [retryingAnalysis, setRetryingAnalysis] = useState(false);
   const [error, setError] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!selectedApplication) return;
@@ -127,6 +141,17 @@ export default function CandidateDetail() {
     }
   }
 
+  async function handleDeleteCandidate() {
+    if (!candidate || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      await deleteCandidate(candidate.id);
+      navigate("/admin/candidates", { replace: true });
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   const scoreTone = application.aiStatus !== "completed"
     ? { text: "text-slate-600", soft: "bg-slate-50", border: "border-slate-200", bar: "bg-slate-400" }
     : application.aiScore >= 90
@@ -143,6 +168,32 @@ export default function CandidateDetail() {
   const scoreLabel = application.aiStatus === "completed"
     ? `${application.aiScore}/100`
     : application.aiStatus === "pending" ? "Đang phân tích" : "Chưa có kết quả";
+  const aiReviewTone = application.aiReview.tone === "good"
+    ? {
+        border: "border-emerald-200",
+        bg: "bg-emerald-50",
+        text: "text-emerald-800",
+        icon: "text-emerald-600",
+        dot: "bg-emerald-500",
+        iconNode: <CheckCircle size={15} />,
+      }
+    : application.aiReview.tone === "fair"
+      ? {
+          border: "border-amber-200",
+          bg: "bg-amber-50",
+          text: "text-amber-800",
+          icon: "text-amber-600",
+          dot: "bg-amber-500",
+          iconNode: <AlertTriangle size={15} />,
+        }
+      : {
+          border: "border-red-200",
+          bg: "bg-red-50",
+          text: "text-red-800",
+          icon: "text-red-600",
+          dot: "bg-red-500",
+          iconNode: <AlertTriangle size={15} />,
+        };
 
   return (
     <AdminLayout>
@@ -186,6 +237,9 @@ export default function CandidateDetail() {
               <Link to={`/admin/chats?candidate=${application.id}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-white px-3.5 text-xs font-bold text-muted-foreground hover:border-primary/40 hover:text-primary">
                 <MessageSquare size={15} /> Mở chat
               </Link>
+              <button type="button" onClick={() => setDeleteOpen(true)} className="inline-flex h-10 items-center gap-2 rounded-xl border border-red-200 bg-white px-3.5 text-xs font-bold text-red-700 hover:bg-red-50">
+                <Trash2 size={15} /> {t("admin.deleteCandidate")}
+              </button>
               {hasCv && (
                 <a href={application.cvUrl} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-xs font-bold text-white shadow-sm hover:bg-primary/90">
                   <FileText size={15} /> {t("common.openCv")} <ExternalLink size={13} />
@@ -241,6 +295,23 @@ export default function CandidateDetail() {
                   {application.aiStatus === "completed" && application.aiConfidence !== null && (
                     <p className="mt-2 text-xs font-semibold text-muted-foreground">Độ tin cậy của bằng chứng: {application.aiConfidence}%</p>
                   )}
+                  <div className={`mt-3 rounded-xl border p-3 ${aiReviewTone.border} ${aiReviewTone.bg}`}>
+                    <div className="flex items-center gap-2">
+                      <span className={aiReviewTone.icon}>{aiReviewTone.iconNode}</span>
+                      <span className={`text-xs font-black ${aiReviewTone.text}`}>{application.aiReview.label}</span>
+                    </div>
+                    <p className="mt-1.5 text-xs font-medium leading-5 text-muted-foreground">{application.aiReview.note}</p>
+                    {application.aiReview.signals.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {application.aiReview.signals.map(signal => (
+                          <span key={signal} className="inline-flex items-center gap-1 rounded-full border border-white/70 bg-white/80 px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                            <span className={`size-1.5 rounded-full ${aiReviewTone.dot}`} />
+                            {signal}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   {application.aiStatus === "failed" && application.aiError && (
                     <p className="mt-2 text-xs font-semibold text-red-600">{application.aiError}</p>
                   )}
@@ -327,6 +398,22 @@ export default function CandidateDetail() {
           </aside>
         </div>
       </div>
+      <AlertDialog open={deleteOpen} onOpenChange={open => { if (!isDeleting) setDeleteOpen(open); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("admin.deleteCandidateTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("admin.deleteCandidateDescription")} <strong>{candidate.name}</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>{t("admin.cancel")}</AlertDialogCancel>
+            <AlertDialogAction disabled={isDeleting} onClick={() => void handleDeleteCandidate()} className="bg-red-600 text-white hover:bg-red-700">
+              {isDeleting ? t("admin.deletingCandidate") : t("admin.deleteCandidate")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 }

@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Res, StreamableFile, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, StreamableFile, UseGuards } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { ApiCookieAuth, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiProduces, ApiQuery, ApiTags, ApiUnauthorizedResponse } from "@nestjs/swagger";
+import { ApiCookieAuth, ApiCreatedResponse, ApiNoContentResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiProduces, ApiQuery, ApiTags, ApiUnauthorizedResponse } from "@nestjs/swagger";
 import { ApplicationStatus } from "@prisma/client";
 import type { Response } from "express";
 import { ACCESS_TOKEN_SECURITY_NAME } from "../../config/swagger";
@@ -48,7 +48,7 @@ export class CandidatesController {
     response.set({
       "Content-Type": openedFile.contentType,
       "Content-Length": openedFile.sizeBytes.toString(),
-      "Content-Disposition": `inline; filename="${sanitizeHeaderFilename(file.originalName)}"`,
+      "Content-Disposition": buildInlineContentDisposition(file.originalName),
       "Cache-Control": "private, no-store",
       "Content-Security-Policy": `frame-ancestors ${getFrameAncestors(this.configService.get<string>("WEB_ORIGIN"))}`,
     });
@@ -115,10 +115,37 @@ export class CandidatesController {
   updateApplication(@Param("applicationId") applicationId: string, @Body() dto: UpdateApplicationStatusDto) {
     return this.candidatesService.updateApplication(applicationId, dto);
   }
+
+  @ApiOperation({ summary: "Delete a candidate and all related applications/pool entries" })
+  @ApiParam({ name: "id", example: "cmcandidate123" })
+  @ApiNoContentResponse({ description: "Candidate deleted." })
+  @ApiNotFoundResponse({ description: "Candidate not found." })
+  @Delete(":id")
+  deleteCandidate(@Param("id") id: string) {
+    return this.candidatesService.deleteCandidate(id);
+  }
 }
 
-function sanitizeHeaderFilename(value: string) {
-  return value.replace(/["\\\r\n]/g, "_");
+export function buildInlineContentDisposition(filename: string) {
+  const fallback = sanitizeAsciiHeaderFilename(filename);
+  return `inline; filename="${fallback}"; filename*=UTF-8''${encodeRFC5987ValueChars(filename)}`;
+}
+
+function sanitizeAsciiHeaderFilename(value: string) {
+  const fallback = value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\x20-\x7e]/g, "_")
+    .replace(/["\\\r\n]/g, "_")
+    .trim();
+
+  return fallback || "cv";
+}
+
+function encodeRFC5987ValueChars(value: string) {
+  return encodeURIComponent(value)
+    .replace(/['()]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)
+    .replace(/\*/g, "%2A");
 }
 
 function getFrameAncestors(webOrigin?: string) {

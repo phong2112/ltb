@@ -68,10 +68,12 @@ describe("AiQueueService", () => {
     const internals = service as unknown as QueueServiceInternals;
     internals.matchQueue = matchQueue;
 
-    await internals.processExtractionJob({
-      ...createJob("application-1"),
-      data: { applicationId: "application-1", runId: "retry-1" },
-    });
+    const retryJob = createJob("application-1") as ProcessingJob & {
+      data: { applicationId: string; runId?: string };
+    };
+    retryJob.data = { applicationId: "application-1", runId: "retry-1" };
+
+    await internals.processExtractionJob(retryJob);
 
     expect(matchQueue.add).toHaveBeenCalledWith(
       "analyze-application",

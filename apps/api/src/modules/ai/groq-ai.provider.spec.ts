@@ -78,21 +78,12 @@ describe("GroqAiProvider", () => {
 
     await expect(provider.analyzeMatch(matchInput())).resolves.toMatchObject({
       summary: expect.any(String),
-      profile: {
-        currentRole: null,
-        totalYearsExperience: null,
-        skills: [],
-        languages: [],
-      },
       evaluations: [{
         criterionId: "criterion-1",
         status: "met",
         evidence: ["React"],
         reason: "CV có nêu React.",
       }],
-      strengths: [],
-      risks: [],
-      screeningQuestions: [],
     });
     expect(mockCreate).toHaveBeenCalledTimes(1);
   });
@@ -176,12 +167,6 @@ function response(content: unknown) {
 
 function validAnalysis(): ProviderMatchAnalysis {
   return {
-    profile: {
-      currentRole: "Frontend Engineer",
-      totalYearsExperience: 4,
-      skills: ["React"],
-      languages: ["Tiếng Việt"],
-    },
     summary: "Ứng viên phù hợp.",
     evaluations: [{
       criterionId: "criterion-1",
@@ -189,9 +174,6 @@ function validAnalysis(): ProviderMatchAnalysis {
       evidence: ["React"],
       reason: "Có bằng chứng.",
     }],
-    strengths: ["React"],
-    risks: [],
-    screeningQuestions: ["Kinh nghiệm gần nhất?"],
   };
 }
 

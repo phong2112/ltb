@@ -13,6 +13,7 @@ import type {
   CandidateMessage,
   CandidateMessageChannel,
   CandidateProfile,
+  AiReviewTone,
   Job,
   JobQuestion,
 } from "@/app/data-types";
@@ -161,6 +162,7 @@ function mapCandidate(application: ApiApplication): Candidate | null {
     aiScore: application.matchResult?.score ?? 0,
     aiStatus,
     aiConfidence: typeof aiMetadata?.confidence === "number" ? aiMetadata.confidence : null,
+    aiReview: buildAiReview(aiStatus, aiMetadata),
     aiError: application.cvParseResult?.errorMessage ?? "",
     aiSummary: application.cvParseResult?.summary ?? "Hồ sơ đang được AI phân tích...",
     strengths: toStringArray(application.matchResult?.strengths),
@@ -179,18 +181,79 @@ function mapAiAnalysisStatus(status?: ApiCvParseStatus): AiAnalysisStatus {
 
 export function mapApplicationAnalysis(analysis: ApiApplicationAnalysis): Pick<
   Candidate,
-  "aiScore" | "aiStatus" | "aiConfidence" | "aiError" | "aiSummary" | "strengths" | "risks" | "missingReqs"
+  "aiScore" | "aiStatus" | "aiConfidence" | "aiReview" | "aiError" | "aiSummary" | "strengths" | "risks" | "missingReqs"
 > {
+  const status = mapAiAnalysisStatus(analysis.status);
   return {
     aiScore: analysis.matchResult?.score ?? 0,
-    aiStatus: mapAiAnalysisStatus(analysis.status),
+    aiStatus: status,
     aiConfidence: typeof analysis.confidence === "number" ? analysis.confidence : null,
+    aiReview: buildAiReview(status, asRecord(analysis.analysisSignals), analysis.confidence),
     aiError: analysis.errorMessage ?? "",
     aiSummary: analysis.summary ?? "Hồ sơ đang được AI phân tích...",
     strengths: toStringArray(analysis.matchResult?.strengths),
     risks: toStringArray(analysis.matchResult?.risks),
     missingReqs: toStringArray(analysis.matchResult?.missingRequirements),
   };
+}
+
+function buildAiReview(
+  status: AiAnalysisStatus,
+  metadata: Record<string, unknown> | null,
+  fallbackConfidence?: number | null,
+): Candidate["aiReview"] {
+  if (status === "pending") {
+    return {
+      label: "Đang đọc CV",
+      note: "Kết quả sẽ cập nhật sau khi hệ thống đọc xong CV.",
+      tone: "fair",
+      signals: [],
+    };
+  }
+
+  if (status === "failed") {
+    return {
+      label: "Cần xem thủ công",
+      note: "AI chưa đọc được CV này. HR nên mở file CV để đánh giá trực tiếp.",
+      tone: "check",
+      signals: ["AI lỗi"],
+    };
+  }
+
+  const confidence = typeof metadata?.confidence === "number"
+    ? metadata.confidence
+    : typeof fallbackConfidence === "number"
+      ? fallbackConfidence
+      : null;
+  const evidenceCoverage = typeof metadata?.evidenceCoverage === "number" ? metadata.evidenceCoverage : confidence;
+  const inputTruncated = metadata?.inputTruncated === true;
+  const lowConfidenceOcr = metadata?.lowConfidenceOcr === true;
+  const ocrTruncated = metadata?.ocrTruncated === true;
+  const aiInput = asRecord(metadata?.aiInput);
+  const selectedCharacters = typeof aiInput?.selectedCharacters === "number" ? aiInput.selectedCharacters : null;
+  const omittedCharacters = typeof aiInput?.omittedCharacters === "number" ? aiInput.omittedCharacters : null;
+  const wasReduced = inputTruncated || ocrTruncated || (selectedCharacters !== null && omittedCharacters !== null && omittedCharacters > selectedCharacters);
+  const signals = [
+    evidenceCoverage !== null ? `Bằng chứng CV: ${Math.round(evidenceCoverage)}%` : null,
+    wasReduced ? "CV đã được lọc gọn" : null,
+    lowConfidenceOcr ? "File scan khó đọc" : null,
+  ].filter((signal): signal is string => Boolean(signal));
+
+  let tone: AiReviewTone = "good";
+  let label = "Đủ dữ liệu";
+  let note = "AI có đủ bằng chứng để TA dùng điểm này làm tham khảo nhanh.";
+
+  if (lowConfidenceOcr || (confidence !== null && confidence < 55)) {
+    tone = "check";
+    label = "Nên kiểm tra CV";
+    note = "Dữ liệu đọc từ CV chưa chắc đầy đủ. HR nên mở CV để xác nhận trước khi quyết định.";
+  } else if (wasReduced || (confidence !== null && confidence < 80)) {
+    tone = "fair";
+    label = "Dữ liệu vừa đủ";
+    note = "Điểm AI dùng được để sàng lọc nhanh, nhưng nên xem thêm CV ở các yêu cầu quan trọng.";
+  }
+
+  return { label, note, tone, signals };
 }
 
 export function mapCandidateProfile(candidate: ApiCandidateProfile): CandidateProfile {

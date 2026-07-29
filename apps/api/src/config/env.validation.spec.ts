@@ -114,7 +114,7 @@ describe("validateEnv", () => {
   });
 
   it("rejects unsupported AI providers", () => {
-    expect(() => validateEnv({ ...requiredConfig, AI_PROVIDER: "ollama" }))
+    expect(() => validateEnv({ ...requiredConfig, AI_PROVIDER: "local-ai" }))
       .toThrow("AI_PROVIDER must be one of: disabled, groq");
   });
 

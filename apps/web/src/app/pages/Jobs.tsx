@@ -22,8 +22,8 @@ export default function Jobs() {
   const [search, setSearch] = useState(query);
   const [typeFilter, setTypeFilter] = useState(ALL_FILTER);
   const [levelFilter, setLevelFilter] = useState(ALL_FILTER);
-  const jobsContentRef = useRef<HTMLDivElement>(null);
   const focusedJobIdRef = useRef<string | null>(null);
+  const skipNextCardScrollRef = useRef<string | null>(null);
 
   useEffect(() => { setSearch(query); }, [query]);
 
@@ -41,6 +41,12 @@ export default function Jobs() {
     if (!selectedJobId || selectedJob?.id !== selectedJobId) return;
 
     const frame = window.requestAnimationFrame(() => {
+      if (skipNextCardScrollRef.current === selectedJobId) {
+        skipNextCardScrollRef.current = null;
+        focusedJobIdRef.current = selectedJobId;
+        return;
+      }
+
       const selectedCard = document.getElementById(`job-card-${selectedJobId}`);
       if (!selectedCard) return;
 
@@ -69,12 +75,12 @@ export default function Jobs() {
   };
 
   const selectJob = (jobId: string) => {
+    if (selectedJob?.id === jobId) return;
+
     const nextParams = new URLSearchParams(params);
     nextParams.set("job", jobId);
+    skipNextCardScrollRef.current = jobId;
     setParams(nextParams, { replace: true });
-    window.requestAnimationFrame(() => {
-      jobsContentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
   };
 
   return (
@@ -111,7 +117,7 @@ export default function Jobs() {
         </div>
       </div>
 
-      <div ref={jobsContentRef} className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="flex flex-wrap gap-2 mb-6 items-center">
           <Filter size={13} className="text-muted-foreground" />
           {TYPE_FILTERS.map(item => (

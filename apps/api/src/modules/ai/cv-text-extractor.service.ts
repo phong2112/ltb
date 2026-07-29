@@ -6,6 +6,7 @@ import { PDFParse } from "pdf-parse";
 import WordExtractor = require("word-extractor");
 import { CvStorageService } from "../files/cv-storage.service";
 import { CvOcrService } from "./cv-ocr.service";
+import { calculateTextQuality, cleanExtractedCvText } from "./cv-text-cleaner";
 
 export type CandidateFileForExtraction = {
   originalName: string;
@@ -21,6 +22,7 @@ export type ExtractedCvText = {
   ocrTruncated?: boolean;
   totalPages?: number;
   lowConfidenceOcr?: boolean;
+  qualityScore?: number;
 };
 
 const MIN_READABLE_TEXT_CHARACTERS = 40;
@@ -46,25 +48,25 @@ export class CvTextExtractorService {
 
     if (extension === ".pdf" || file.mimeType === "application/pdf") {
       const pdf = await extractPdf(buffer);
-      const pdfText = normalizeExtractedText(pdf.text);
+      const pdfText = cleanExtractedCvText(pdf.text);
       const shouldTryOcr = shouldOcrPdf(pdfText, pdf.pageCount);
 
       if (!shouldTryOcr) {
-        return { text: pdfText, parser: "pdf-parse" };
-      }
+        result = { text: pdfText, parser: "pdf-parse" };
+      } else {
+        try {
+          const ocr = await this.cvOcrService.recognizePdf(buffer);
+          const ocrText = cleanExtractedCvText(ocr.text);
 
-      try {
-        const ocr = await this.cvOcrService.recognizePdf(buffer);
-        const ocrText = normalizeExtractedText(ocr.text);
-
-        if (isLikelyGibberish(pdfText) || ocrText.length > pdfText.length) {
-          result = this.toOcrExtractedText(ocrText, ocr);
-        } else {
+          if (shouldPreferOcr(pdfText, ocrText)) {
+            result = this.toOcrExtractedText(ocrText, ocr);
+          } else {
+            result = { text: pdfText, parser: "pdf-parse" };
+          }
+        } catch (error) {
+          if (!hasEnoughText(pdfText)) throw error;
           result = { text: pdfText, parser: "pdf-parse" };
         }
-      } catch (error) {
-        if (!hasEnoughText(pdfText)) throw error;
-        result = { text: pdfText, parser: "pdf-parse" };
       }
     } else if (extension === ".docx") {
       const extracted = await mammoth.extractRawText({ buffer });
@@ -80,13 +82,17 @@ export class CvTextExtractorService {
       throw new Error("Unsupported CV format");
     }
 
-    const normalizedText = normalizeExtractedText(result.text);
+    const normalizedText = cleanExtractedCvText(result.text);
 
     if (!hasEnoughText(normalizedText)) {
       throw new Error("CV does not contain enough readable text after OCR");
     }
 
-    return { ...result, text: normalizedText };
+    return {
+      ...result,
+      text: normalizedText,
+      qualityScore: calculateTextQuality(normalizedText),
+    };
   }
 
   private toOcrExtractedText(
@@ -121,6 +127,19 @@ function isLikelyGibberish(value: string) {
   if (!value) return false;
   const suspicious = value.match(/[\uFFFD\u0001-\u0008\u000B\u000C\u000E-\u001F]/gu)?.length ?? 0;
   return suspicious / value.length > MAX_GIBBERISH_CHARACTER_RATIO;
+}
+
+function shouldPreferOcr(pdfText: string, ocrText: string) {
+  if (!hasEnoughText(pdfText) || isLikelyGibberish(pdfText)) return hasEnoughText(ocrText);
+  if (!hasEnoughText(ocrText)) return false;
+
+  const pdfQuality = calculateTextQuality(pdfText);
+  const ocrQuality = calculateTextQuality(ocrText);
+  const ocrIsSubstantiallyLonger = ocrText.length >= pdfText.length * 1.25;
+  const ocrIsNotMateriallyWorse = ocrQuality >= pdfQuality - 8;
+  const ocrIsClearlyCleaner = ocrQuality >= pdfQuality + 10 && ocrText.length >= pdfText.length * 0.75;
+
+  return ocrIsClearlyCleaner || (ocrIsSubstantiallyLonger && ocrIsNotMateriallyWorse);
 }
 
 function isSupportedImage(extension: string, mimeType: string) {
@@ -159,14 +178,4 @@ async function readStreamToBuffer(stream: NodeJS.ReadableStream, maxBytes: numbe
   }
 
   return Buffer.concat(chunks);
-}
-
-function normalizeExtractedText(value: string) {
-  return value
-    .replace(/\u0000/g, " ")
-    .replace(/\r\n?/g, "\n")
-    .replace(/[\t ]+/g, " ")
-    .replace(/ *\n */g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
 }

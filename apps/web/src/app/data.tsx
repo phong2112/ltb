@@ -244,6 +244,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
     await reloadAdminData();
   };
 
+  const deleteCandidate = async (id: string) => {
+    await apiRequest(`/admin/candidates/${id}`, {
+      method: "DELETE",
+      notification: {
+        loading: "Đang xóa ứng viên...",
+        success: "Đã xóa ứng viên",
+        error: "Không thể xóa ứng viên",
+      },
+    });
+    await reloadAdminData();
+  };
+
   const sendCandidateMessage = async (applicationId: string, channel: CandidateMessageChannel, content: string) => {
     const message = await apiRequest<ApiCandidateMessage>(`/admin/candidates/applications/${applicationId}/messages`, {
       method: "POST",
@@ -347,6 +359,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         updateJob,
         addCandidate,
         updateCandidate,
+        deleteCandidate,
         sendCandidateMessage,
         isJobSaved,
         toggleSavedJob,

@@ -240,13 +240,13 @@ Set `AI_PROVIDER=groq` and `GROQ_API_KEY` in the backend environment to enable c
 4. Open the candidate detail page. It polls the lightweight application-analysis endpoint while processing is pending.
 5. Review the AI summary, match score, confidence, strengths, risks, and missing requirements.
 
-The model never supplies the final score. It classifies every JD criterion as `met`, `partial`, `not_met`, or `unknown` with CV evidence; the API calculates the weighted score. AI output is assistive and must not automatically reject a candidate.
+The model never supplies the final score. It classifies every JD criterion as `met`, `partial`, `not_met`, or `unknown`; the API verifies quoted evidence against the cleaned CV payload and calculates the weighted score. Strengths, required risks, missing requirements, and screening questions are derived from those same grounded evaluations. AI output is assistive and must not automatically reject a candidate.
 
 Scanned PDFs without a usable text layer and uploaded JPG/PNG CVs are processed locally with Tesseract `vie+eng`. OCR is limited by `OCR_MAX_PAGES` and `OCR_TIMEOUT_MS`; unreadable documents still show a failed state for manual review.
 
 The processing pipeline first persists extracted CV text, then enqueues a separate AI matching job. Extraction concurrency and Groq request concurrency are configured independently with `CV_EXTRACTION_CONCURRENCY` and `AI_MATCH_CONCURRENCY`.
 
-The OCR worker is reused and serialized across requests, hybrid PDFs are compared against OCR text, oversized PDFs process their first configured pages, and low-confidence OCR is flagged for manual review. Run the fictional-fixture evaluation harness using [docs/cv-pipeline-evaluation.md](docs/cv-pipeline-evaluation.md).
+The OCR worker is reused and serialized across requests, hybrid PDFs are compared by completeness and text quality, oversized PDFs process their first configured pages, and low-confidence OCR is flagged for manual review. Stored extraction text is kept for audit; a separate normalized, PII-reduced, bounded payload is sent to AI. See the score/confidence semantics and fictional-fixture harness in [docs/cv-pipeline-evaluation.md](docs/cv-pipeline-evaluation.md).
 
 ## Architecture Notes
 

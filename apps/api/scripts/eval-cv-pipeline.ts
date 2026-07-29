@@ -7,6 +7,8 @@ import { Readable } from "node:stream";
 import type { CvStorageService } from "../src/modules/files/cv-storage.service";
 import { CvOcrService } from "../src/modules/ai/cv-ocr.service";
 import { CvTextExtractorService } from "../src/modules/ai/cv-text-extractor.service";
+import { prepareCvMatchInputForAi } from "../src/modules/ai/cv-text-cleaner";
+import { groundCriterionEvaluations } from "../src/modules/ai/match-analysis";
 import { calculateMatchScore, extractMatchCriteria } from "../src/modules/ai/match-scoring";
 import { GroqAiProvider } from "../src/modules/ai/groq-ai.provider";
 
@@ -80,13 +82,20 @@ async function main() {
         let score: number | undefined;
 
         if (provider) {
+          const aiReadyCv = prepareCvMatchInputForAi(extracted.text, 45_000, criteria, [
+            expected.fullNameContains,
+          ]);
           const analysis = await provider.analyzeMatch({
             jobTitle: "Frontend Engineer",
             jobDescription: "Xây dựng sản phẩm tuyển dụng web có khả năng truy cập tốt.",
             criteria,
-            cvText: extracted.text,
+            cvText: aiReadyCv.text,
           });
-          const evaluationMap = new Map(analysis.evaluations.map((evaluation) => [evaluation.criterionId, evaluation]));
+          const evaluationMap = groundCriterionEvaluations(
+            criteria,
+            analysis.evaluations,
+            aiReadyCv.text,
+          );
           coverage = criteria.length === 0
             ? 0
             : criteria.filter((criterion) => evaluationMap.get(criterion.id)?.status !== "unknown").length / criteria.length;

@@ -10,11 +10,18 @@ import {
   type MatchCriterion,
 } from "./ai.types";
 import { CvTextExtractorService, type ExtractedCvText } from "./cv-text-extractor.service";
-import { calculateConfidence, calculateMatchScore, extractMatchCriteria } from "./match-scoring";
+import { prepareCvMatchInputForAi } from "./cv-text-cleaner";
+import { buildGroundedMatchInsights, groundCriterionEvaluations } from "./match-analysis";
+import {
+  calculateConfidence,
+  calculateMatchScore,
+  calculatePotentialMatchScore,
+  extractMatchCriteria,
+} from "./match-scoring";
 
 const MAX_AI_CV_CHARACTERS = 45_000;
 const MAX_JOB_DESCRIPTION_CHARACTERS = 12_000;
-const CV_EXTRACTION_VERSION = "cv-text-extraction-v2";
+const CV_EXTRACTION_VERSION = "cv-text-extraction-v3";
 const LOW_CONFIDENCE_OCR_WARNING = "OCR chất lượng thấp — nên kiểm tra thủ công.";
 
 type ExtractedApplicationCv = {
@@ -114,6 +121,7 @@ export class AiService {
             parser: extracted.parser,
             extractionVersion: CV_EXTRACTION_VERSION,
             extractedCharacters: extracted.text.length,
+            qualityScore: extracted.qualityScore,
             fileName: cvFile.originalName,
             ocrUsed: extracted.parser === "tesseract-ocr",
             ...(extracted.ocrPages === undefined ? {} : { ocrPages: extracted.ocrPages }),
@@ -178,24 +186,36 @@ export class AiService {
     });
 
     const criteria = extractMatchCriteria(htmlToPlainText(application.job.requirements));
+    const aiReadyCv = prepareCvMatchInputForAi(
+      extractedText,
+      MAX_AI_CV_CHARACTERS,
+      criteria,
+      [application.submittedFullName],
+    );
     const analysis = await this.provider.analyzeMatch({
       jobTitle: application.job.title,
       jobDescription: htmlToPlainText(application.job.description).slice(0, MAX_JOB_DESCRIPTION_CHARACTERS),
       criteria,
-      cvText: extractedText.slice(0, MAX_AI_CV_CHARACTERS),
+      cvText: aiReadyCv.text,
     });
-    const normalizedEvaluations = normalizeEvaluations(criteria, analysis.evaluations);
+    const normalizedEvaluations = groundCriterionEvaluations(
+      criteria,
+      analysis.evaluations,
+      aiReadyCv.text,
+    );
     const score = calculateMatchScore(criteria, normalizedEvaluations);
-    const confidence = calculateConfidence(criteria, normalizedEvaluations);
-    const missingRequirements = buildMissingRequirements(criteria, normalizedEvaluations);
+    const potentialScore = calculatePotentialMatchScore(criteria, normalizedEvaluations);
+    const evidenceCoverage = calculateConfidence(criteria, normalizedEvaluations);
     const extractionMetadata = asInputJsonObject(application.cvParseResult?.structuredData);
     const lowConfidenceOcr = extractionMetadata.lowConfidenceOcr === true;
+    const confidence = adjustConfidence(evidenceCoverage, extractionMetadata, aiReadyCv.truncated);
+    const insights = buildGroundedMatchInsights(criteria, normalizedEvaluations);
     const summary = lowConfidenceOcr
       ? appendWarning(analysis.summary, LOW_CONFIDENCE_OCR_WARNING)
       : analysis.summary;
     const risks = lowConfidenceOcr
-      ? appendUnique(analysis.risks, LOW_CONFIDENCE_OCR_WARNING)
-      : analysis.risks;
+      ? appendUnique(insights.risks, LOW_CONFIDENCE_OCR_WARNING)
+      : insights.risks;
 
     await this.prisma.$transaction([
       this.prisma.cvParseResult.update({
@@ -213,8 +233,25 @@ export class AiService {
             promptVersion: MATCH_PROMPT_VERSION,
             parser: extractedInput?.parser ?? extractionMetadata.parser ?? "unknown",
             confidence,
-            inputTruncated: extractedText.length > MAX_AI_CV_CHARACTERS,
-            profile: analysis.profile,
+            evidenceCoverage,
+            inputTruncated: aiReadyCv.truncated,
+            aiInput: {
+              sourceCharacters: aiReadyCv.sourceCharacters,
+              cleanedCharacters: aiReadyCv.cleanedCharacters,
+              selectedCharacters: aiReadyCv.selectedCharacters,
+              omittedCharacters: aiReadyCv.omittedCharacters,
+              redactionCount: aiReadyCv.redactionCount,
+              strategy: aiReadyCv.strategy,
+              sections: aiReadyCv.sections,
+              criterionSnippetCount: aiReadyCv.criterionSnippetCount,
+            },
+            scoreBreakdown: {
+              confirmedScore: score,
+              potentialScore,
+              evidenceCoverage,
+              required: countCriterionStatuses(criteria, normalizedEvaluations, true),
+              optional: countCriterionStatuses(criteria, normalizedEvaluations, false),
+            },
             criteria: criteria.map((criterion) => ({
               ...criterion,
               evaluation: normalizedEvaluations.get(criterion.id),
@@ -227,17 +264,17 @@ export class AiService {
         create: {
           applicationId,
           score,
-          strengths: analysis.strengths,
+          strengths: insights.strengths,
           risks,
-          missingRequirements,
-          screeningQuestions: analysis.screeningQuestions,
+          missingRequirements: insights.missingRequirements,
+          screeningQuestions: insights.screeningQuestions,
         },
         update: {
           score,
-          strengths: analysis.strengths,
+          strengths: insights.strengths,
           risks,
-          missingRequirements,
-          screeningQuestions: analysis.screeningQuestions,
+          missingRequirements: insights.missingRequirements,
+          screeningQuestions: insights.screeningQuestions,
         },
       }),
       this.prisma.activityLog.create({
@@ -299,31 +336,6 @@ export class AiService {
   }
 }
 
-function normalizeEvaluations(criteria: MatchCriterion[], evaluations: CriterionEvaluation[]) {
-  const evaluationById = new Map(evaluations.map((evaluation) => [evaluation.criterionId, evaluation]));
-
-  return new Map(criteria.map((criterion) => {
-    const evaluation = evaluationById.get(criterion.id) ?? {
-      criterionId: criterion.id,
-      status: "unknown" as const,
-      evidence: [],
-      reason: "CV không cung cấp đủ thông tin cho tiêu chí này.",
-    };
-
-    return [criterion.id, evaluation];
-  }));
-}
-
-function buildMissingRequirements(criteria: MatchCriterion[], evaluations: Map<string, CriterionEvaluation>) {
-  return criteria.flatMap((criterion) => {
-    const evaluation = evaluations.get(criterion.id);
-    if (!evaluation || evaluation.status === "met") return [];
-
-    const label = evaluation.status === "unknown" ? "Chưa đủ thông tin" : evaluation.status === "partial" ? "Đáp ứng một phần" : "Chưa đáp ứng";
-    return [`${label}: ${criterion.text}`];
-  });
-}
-
 function appendWarning(summary: string, warning: string) {
   return summary.includes(warning) ? summary : `${summary}\n\n${warning}`;
 }
@@ -354,6 +366,41 @@ function asInputJsonObject(value: Prisma.JsonValue | null | undefined): Prisma.I
 function readParser(value: Prisma.InputJsonValue | null | undefined): ExtractedCvText["parser"] | undefined {
   if (value === "pdf-parse" || value === "mammoth" || value === "word-extractor" || value === "tesseract-ocr") return value;
   return undefined;
+}
+
+function adjustConfidence(
+  evidenceCoverage: number,
+  extractionMetadata: Prisma.InputJsonObject,
+  inputTruncated: boolean,
+) {
+  const ocrConfidence = typeof extractionMetadata.ocrConfidence === "number"
+    ? Math.max(0, Math.min(100, extractionMetadata.ocrConfidence))
+    : 100;
+  const extractionFactor = extractionMetadata.lowConfidenceOcr === true
+    ? ocrConfidence / 100
+    : 1;
+  const truncationFactor = extractionMetadata.ocrTruncated === true || inputTruncated ? 0.85 : 1;
+  return Math.round(evidenceCoverage * extractionFactor * truncationFactor);
+}
+
+function countCriterionStatuses(
+  criteria: MatchCriterion[],
+  evaluations: Map<string, CriterionEvaluation>,
+  required: boolean,
+) {
+  const counts = { total: 0, met: 0, partial: 0, notMet: 0, unknown: 0 };
+
+  for (const criterion of criteria) {
+    if (criterion.required !== required) continue;
+    counts.total += 1;
+    const status = evaluations.get(criterion.id)?.status ?? "unknown";
+    if (status === "met") counts.met += 1;
+    else if (status === "partial") counts.partial += 1;
+    else if (status === "not_met") counts.notMet += 1;
+    else counts.unknown += 1;
+  }
+
+  return counts;
 }
 
 function toSafeErrorMessage(error: unknown, stage: AiProcessingStage) {

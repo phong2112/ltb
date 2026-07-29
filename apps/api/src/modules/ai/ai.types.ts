@@ -16,20 +16,9 @@ export type CriterionEvaluation = {
   reason: string;
 };
 
-type CandidateProfile = {
-  currentRole: string | null;
-  totalYearsExperience: number | null;
-  skills: string[];
-  languages: string[];
-};
-
 export type ProviderMatchAnalysis = {
-  profile: CandidateProfile;
   summary: string;
   evaluations: CriterionEvaluation[];
-  strengths: string[];
-  risks: string[];
-  screeningQuestions: string[];
 };
 
 export type AnalyzeMatchInput = {

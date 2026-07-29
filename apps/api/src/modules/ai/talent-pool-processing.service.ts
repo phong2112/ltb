@@ -7,8 +7,10 @@ import { PrismaService } from "../prisma/prisma.service";
 import { parseCvProfileFromText } from "./parse-cv-profile";
 import { AI_PROVIDER, type AiProvider } from "./ai.types";
 import { CvTextExtractorService } from "./cv-text-extractor.service";
+import { prepareCvTextForAi } from "./cv-text-cleaner";
 
-const EXTRACTION_VERSION = "talent-pool-extraction-v1";
+const EXTRACTION_VERSION = "talent-pool-extraction-v2";
+const MAX_AI_CV_CHARACTERS = 45_000;
 
 @Injectable()
 export class TalentPoolProcessingService {
@@ -50,6 +52,7 @@ export class TalentPoolProcessingService {
         source: "ta_upload",
         parser: extracted.parser,
         extractionVersion: EXTRACTION_VERSION,
+        qualityScore: extracted.qualityScore,
         ...(extracted.ocrConfidence === undefined ? {} : { ocrConfidence: extracted.ocrConfidence }),
         ...(extracted.lowConfidenceOcr ? { lowConfidenceOcr: true } : {}),
         ...(extracted.ocrTruncated ? { ocrTruncated: true } : {}),
@@ -64,10 +67,17 @@ export class TalentPoolProcessingService {
       let aiFullName: string | undefined;
       if (this.aiEnabled) {
         try {
+          const aiReadyCv = prepareCvTextForAi(extracted.text, MAX_AI_CV_CHARACTERS);
           const profile = await this.aiProvider.extractProfile({
-            cvText: extracted.text,
+            cvText: aiReadyCv.text,
             fileName: entry.file.originalName,
           });
+          structuredData.aiInput = {
+            sourceCharacters: aiReadyCv.sourceCharacters,
+            cleanedCharacters: aiReadyCv.cleanedCharacters,
+            redactionCount: aiReadyCv.redactionCount,
+            truncated: aiReadyCv.truncated,
+          };
           if (profile.fullName?.trim()) {
             aiFullName = profile.fullName.trim();
             structuredData.fullName = aiFullName;

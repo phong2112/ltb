@@ -22,7 +22,6 @@ describe("AI match scoring", () => {
     `);
 
     expect(criteria.map((criterion) => criterion.text)).toEqual([
-      "Design, develop, and maintain native iOS applications.",
       "Minimum 5 years of hands-on experience in native iOS application development.",
       "Strong proficiency in Swift and SwiftUI.",
     ]);

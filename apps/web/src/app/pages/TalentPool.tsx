@@ -49,13 +49,20 @@ const STATUS_OPTIONS: Array<TalentPoolStatus | "ALL"> = [
 
 type ValidationIssue = TalentPoolUploadResult & { status: "error" };
 
-export default function TalentPool() {
+type TalentPoolContentProps = {
+  embedded?: boolean;
+  showHeader?: boolean;
+  onTotalChange?: (total: number) => void;
+};
+
+export function TalentPoolContent({ embedded = false, showHeader = true, onTotalChange }: TalentPoolContentProps) {
   const { language, t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [jobs, setJobs] = useState<ApiJob[]>([]);
   const [targetJobId, setTargetJobId] = useState("");
   const [isDragging, setIsDragging] = useState(false);
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResults, setUploadResults] = useState<TalentPoolUploadResult[]>([]);
   const [searchInput, setSearchInput] = useState("");
@@ -110,6 +117,10 @@ export default function TalentPool() {
     return () => window.clearInterval(timer);
   }, [data.items, loadEntries]);
 
+  useEffect(() => {
+    onTotalChange?.(data.total);
+  }, [data.total, onTotalChange]);
+
   function addFiles(selected: File[]) {
     const issues: ValidationIssue[] = [];
     const accepted: File[] = [];
@@ -163,15 +174,41 @@ export default function TalentPool() {
   const totalPages = Math.max(1, Math.ceil(data.total / PAGE_SIZE));
 
   return (
-    <AdminLayout>
-      <div className="mx-auto w-full max-w-[1500px] space-y-5">
-        <header>
-          <h1 className="text-2xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{t("talentPool.title")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{data.total} {t("talentPool.profileCount")}</p>
+    <div className={`${embedded ? "w-full" : "mx-auto w-full max-w-[1500px]"} space-y-5`}>
+      {showHeader && (
+        <header className={embedded ? "flex flex-wrap items-end justify-between gap-3" : undefined}>
+          <div>
+            <h2 className={`${embedded ? "text-xl" : "text-2xl"} font-black text-foreground`} style={{ fontFamily: "'Playfair Display', serif" }}>{t("talentPool.title")}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{data.total} {t("talentPool.profileCount")}</p>
+          </div>
         </header>
+      )}
 
-        <section className="overflow-hidden rounded-xl border border-border bg-white">
-          <div className="grid gap-5 p-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <section className="overflow-hidden rounded-xl border border-border bg-white">
+        <div className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-sm font-black text-foreground">{t("talentPool.dropTitle")}</p>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              PDF, DOC, DOCX, JPG, PNG · {t("talentPool.upTo")} {MAX_FILE_SIZE_MB} MB · {t("talentPool.maxFiles")} {MAX_FILES}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <select id="target-job" value={targetJobId} onChange={event => setTargetJobId(event.target.value)} className="h-9 min-w-52 rounded-lg border border-border bg-input-background px-3 text-xs font-semibold text-muted-foreground outline-none focus:border-primary">
+              <option value="">{t("talentPool.keepGeneral")}</option>
+              {jobs.filter(job => job.status !== "ARCHIVED").map(job => <option key={job.id} value={job.id}>{job.title}</option>)}
+            </select>
+            <button type="button" onClick={() => setIsUploadOpen(open => !open)} className="inline-flex h-9 items-center gap-2 rounded-lg border border-primary/30 bg-white px-3 text-xs font-bold text-primary hover:bg-pink-50">
+              <Upload size={14} /> {t("talentPool.chooseFiles")}
+            </button>
+            <button type="button" disabled={!files.length || isUploading} onClick={() => void handleUpload()} className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">
+              <Upload size={14} /> {isUploading ? t("talentPool.uploading") : `${t("talentPool.uploadButton")} (${files.length})`}
+            </button>
+          </div>
+        </div>
+
+        {(isUploadOpen || files.length > 0 || uploadResults.length > 0) && (
+          <div className="border-t border-border">
+          <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_280px]">
             <div>
               <div
                 onDragEnter={event => { event.preventDefault(); setIsDragging(true); }}
@@ -182,11 +219,10 @@ export default function TalentPool() {
                   setIsDragging(false);
                   addFiles(Array.from(event.dataTransfer.files));
                 }}
-                className={`flex min-h-40 flex-col items-center justify-center border border-dashed px-6 py-6 text-center transition-colors ${isDragging ? "border-primary bg-pink-50" : "border-border bg-background/60"}`}
+                className={`flex min-h-28 flex-col items-center justify-center border border-dashed px-5 py-4 text-center transition-colors ${isDragging ? "border-primary bg-pink-50" : "border-border bg-background/60"}`}
               >
-                <div className="mb-3 flex size-10 items-center justify-center rounded-lg bg-secondary text-primary"><Upload size={19} /></div>
                 <p className="text-sm font-black text-foreground">{t("talentPool.dropTitle")}</p>
-                <p className="mt-1 text-xs text-muted-foreground">PDF, DOC, DOCX, JPG, PNG · {t("talentPool.upTo")} {MAX_FILE_SIZE_MB} MB · {t("talentPool.maxFiles")} {MAX_FILES}</p>
+                <p className="mt-1 text-xs text-muted-foreground">PDF, DOC, DOCX, JPG, PNG · {t("talentPool.upTo")} {MAX_FILE_SIZE_MB} MB</p>
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="mt-4 inline-flex h-9 items-center gap-2 rounded-lg border border-primary/30 bg-white px-4 text-xs font-bold text-primary hover:bg-pink-50">
                   <FileText size={14} /> {t("talentPool.chooseFiles")}
                 </button>
@@ -209,18 +245,8 @@ export default function TalentPool() {
               )}
             </div>
 
-            <div className="space-y-4 border-border lg:border-l lg:pl-5">
-              <div>
-                <label htmlFor="target-job" className="mb-1.5 block text-xs font-bold text-foreground">{t("talentPool.targetJob")}</label>
-                <select id="target-job" value={targetJobId} onChange={event => setTargetJobId(event.target.value)} className="h-10 w-full rounded-lg border border-border bg-input-background px-3 text-sm outline-none focus:border-primary">
-                  <option value="">{t("talentPool.keepGeneral")}</option>
-                  {jobs.filter(job => job.status !== "ARCHIVED").map(job => <option key={job.id} value={job.id}>{job.title}</option>)}
-                </select>
-                <p className="mt-1.5 text-xs leading-5 text-muted-foreground">{t("talentPool.targetJobHint")}</p>
-              </div>
-              <button type="button" disabled={!files.length || isUploading} onClick={() => void handleUpload()} className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">
-                <Upload size={15} /> {isUploading ? t("talentPool.uploading") : `${t("talentPool.uploadButton")} (${files.length})`}
-              </button>
+            <div className="space-y-3 border-border lg:border-l lg:pl-4">
+              <p className="text-xs leading-5 text-muted-foreground">{t("talentPool.targetJobHint")}</p>
               {isUploading && <div className="h-1.5 overflow-hidden rounded-full bg-secondary"><div className="h-full w-2/3 animate-pulse rounded-full bg-primary" /></div>}
             </div>
           </div>
@@ -238,9 +264,11 @@ export default function TalentPool() {
               </div>
             </div>
           )}
-        </section>
+          </div>
+        )}
+      </section>
 
-        <section className="overflow-hidden rounded-xl border border-border bg-white">
+      <section className="overflow-hidden rounded-xl border border-border bg-white">
           <div className="grid gap-3 border-b border-border p-4 lg:grid-cols-[minmax(0,1fr)_220px_180px]">
             <label className="flex h-10 items-center gap-2 rounded-lg border border-border bg-background px-3"><Search size={14} className="text-muted-foreground" /><input value={searchInput} onChange={event => setSearchInput(event.target.value)} placeholder={t("talentPool.searchPlaceholder")} className="min-w-0 flex-1 bg-transparent text-sm outline-none" /></label>
             <label className="flex h-10 items-center gap-2 rounded-lg border border-border bg-background px-3"><Tag size={14} className="text-muted-foreground" /><input value={tagInput} onChange={event => setTagInput(event.target.value)} placeholder={t("talentPool.tagPlaceholder")} className="min-w-0 flex-1 bg-transparent text-sm outline-none" /></label>
@@ -256,29 +284,49 @@ export default function TalentPool() {
           ) : data.items.length === 0 ? (
             <div className="py-16 text-center text-muted-foreground"><UsersRound size={30} className="mx-auto mb-3 opacity-40" /><p className="text-sm font-semibold">{t("talentPool.empty")}</p></div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[860px] table-fixed text-left">
-                <thead className="bg-background/70 text-[10px] font-black uppercase text-muted-foreground"><tr><th className="w-[28%] px-4 py-3">{t("talentPool.candidate")}</th><th className="w-[24%] px-4 py-3">{t("common.email")}</th><th className="w-[15%] px-4 py-3">{t("admin.status")}</th><th className="w-[20%] px-4 py-3">Tags</th><th className="w-[13%] px-4 py-3">{t("talentPool.createdAt")}</th></tr></thead>
-                <tbody className="divide-y divide-border">
-                  {data.items.map(entry => {
-                    const email = stringField(entry.structuredData?.email) || entry.candidate.email || "—";
-                    return (
-                      <tr key={entry.id} className="group hover:bg-pink-50/40">
-                        <td className="px-4 py-3"><Link to={`/admin/talent-pool/${entry.id}`} className="flex min-w-0 items-center gap-3"><span className="flex size-9 flex-none items-center justify-center rounded-lg bg-primary/10 text-xs font-black text-primary">{initials(entry.candidate.fullName)}</span><span className="min-w-0"><span className="block truncate text-sm font-bold text-foreground group-hover:text-primary">{entry.candidate.fullName}</span><span className="block truncate text-xs text-muted-foreground">{stringField(entry.structuredData?.title) || t("talentPool.noTitle")}</span></span></Link></td>
-                        <td className="truncate px-4 py-3 text-xs text-muted-foreground" title={email}>{email}</td>
-                        <td className="px-4 py-3"><StatusBadge status={entry.status} language={language} /></td>
-                        <td className="px-4 py-3"><div className="flex max-h-12 flex-wrap gap-1 overflow-hidden">{entry.tags.length ? entry.tags.map(item => <span key={item} className="rounded bg-secondary px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">{item}</span>) : <span className="text-xs text-muted-foreground">—</span>}</div></td>
-                        <td className="px-4 py-3"><Link to={`/admin/talent-pool/${entry.id}`} className="flex items-center justify-between gap-2 text-xs text-muted-foreground">{formatDate(entry.createdAt, language)}<ChevronRight size={14} className="group-hover:text-primary" /></Link></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <div className="divide-y divide-border">
+              {data.items.map(entry => {
+                const email = stringField(entry.structuredData?.email) || entry.candidate.email || "—";
+                const title = stringField(entry.structuredData?.title) || t("talentPool.noTitle");
+                return (
+                  <Link key={entry.id} to={`/admin/talent-pool/${entry.id}`} className="group flex items-center gap-4 p-4 transition-colors hover:bg-pink-50/50">
+                    <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                      {initials(entry.candidate.fullName)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-bold text-foreground transition-colors group-hover:text-primary">{entry.candidate.fullName}</p>
+                        <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                          {entry.promotedApplicationId ? t("talentPool.openApplication") : t("talentPool.keepGeneral")}
+                        </span>
+                        {entry.tags.slice(0, 2).map(item => (
+                          <span key={item} className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-muted-foreground">{item}</span>
+                        ))}
+                      </div>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {title} · {email}
+                      </p>
+                    </div>
+                    <div className="hidden flex-shrink-0 items-center gap-3 sm:flex">
+                      <StatusBadge status={entry.status} language={language} />
+                      <span className="text-xs text-muted-foreground">{formatDate(entry.createdAt, language)}</span>
+                    </div>
+                    <ChevronRight size={14} className="flex-shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+                  </Link>
+                );
+              })}
             </div>
           )}
           <ListPagination currentPage={Math.min(page, totalPages)} pageSize={PAGE_SIZE} totalItems={data.total} onPageChange={setPage} />
-        </section>
-      </div>
+      </section>
+    </div>
+  );
+}
+
+export default function TalentPool() {
+  return (
+    <AdminLayout>
+      <TalentPoolContent />
     </AdminLayout>
   );
 }

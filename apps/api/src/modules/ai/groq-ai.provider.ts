@@ -22,13 +22,7 @@ const extractedProfileSchema = z.object({
 });
 
 const matchAnalysisSchema = z.object({
-  profile: z.object({
-    currentRole: z.string().nullable(),
-    totalYearsExperience: z.number().min(0).max(60).nullable(),
-    skills: z.array(z.string()).max(30),
-    languages: z.array(z.string()).max(10),
-  }),
-  summary: z.string().min(1).max(1200),
+  summary: z.string().min(1).max(800),
   evaluations: z.array(z.object({
     criterionId: z.string(),
     status: z.enum(["met", "partial", "not_met", "unknown"]),
@@ -37,10 +31,7 @@ const matchAnalysisSchema = z.object({
       z.array(z.string()).max(3),
     ),
     reason: z.string().min(1).max(500),
-  })).max(20),
-  strengths: z.array(z.string()).max(6),
-  risks: z.array(z.string()).max(6),
-  screeningQuestions: z.array(z.string()).max(6),
+  })).max(15),
 });
 
 @Injectable()
@@ -121,8 +112,6 @@ export class GroqAiProvider implements AiProvider {
           `elapsedMs=${Date.now() - startedAt}`,
           `responseChars=${rawContent.length}`,
           `evaluations=${analysis.evaluations.length}`,
-          `strengths=${analysis.strengths.length}`,
-          `risks=${analysis.risks.length}`,
         ].join(" "),
       );
 
@@ -335,16 +324,12 @@ function normalizeMatchAnalysisCandidate(value: unknown) {
 
   return {
     ...record,
-    profile: normalizeProfile(record.profile),
     summary: typeof record.summary === "string" && record.summary.trim()
       ? record.summary
       : "AI đã phân tích CV và đối chiếu với các tiêu chí tuyển dụng.",
     evaluations: Array.isArray(record.evaluations)
       ? record.evaluations.map(normalizeEvaluation)
       : [],
-    strengths: toStringArray(record.strengths),
-    risks: toStringArray(record.risks),
-    screeningQuestions: toStringArray(record.screeningQuestions),
   };
 }
 
@@ -358,16 +343,6 @@ function unwrapMatchAnalysisRecord(record: Record<string, unknown> | undefined) 
   }
 
   return undefined;
-}
-
-function normalizeProfile(value: unknown) {
-  const profile = toRecord(value);
-  return {
-    currentRole: readNullableString(profile?.currentRole ?? profile?.title ?? profile?.role),
-    totalYearsExperience: readNullableNumber(profile?.totalYearsExperience ?? profile?.yearsExperience),
-    skills: toStringArray(profile?.skills).slice(0, 30),
-    languages: toStringArray(profile?.languages).slice(0, 10),
-  };
 }
 
 function normalizeEvaluation(value: unknown) {
@@ -397,15 +372,6 @@ function toStringArray(value: unknown) {
   }
 
   return typeof value === "string" && value.trim() ? [value.trim()] : [];
-}
-
-function readNullableString(value: unknown) {
-  return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
-function readNullableNumber(value: unknown) {
-  const parsed = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(parsed) && parsed >= 0 && parsed <= 60 ? parsed : null;
 }
 
 function toRecord(value: unknown): Record<string, unknown> | undefined {

@@ -6,6 +6,7 @@ export type { CandidateStatus, JobStatus } from "@/app/status-config";
 export type CandidateMessageChannel = "system" | "messenger" | "zalo" | "email" | "linkedin";
 type CandidateMessageDirection = "inbound" | "outbound";
 export type AiAnalysisStatus = "pending" | "completed" | "failed";
+export type AiReviewTone = "good" | "fair" | "check";
 export type ApiCvParseStatus =
   | "PENDING"
   | "EXTRACTING"
@@ -76,6 +77,12 @@ export type Candidate = {
   aiScore: number;
   aiStatus: AiAnalysisStatus;
   aiConfidence: number | null;
+  aiReview: {
+    label: string;
+    note: string;
+    tone: AiReviewTone;
+    signals: string[];
+  };
   aiError: string;
   aiSummary: string;
   strengths: string[];
@@ -195,6 +202,7 @@ export type ApiApplicationAnalysis = {
   summary?: string | null;
   errorMessage?: string | null;
   confidence?: number | null;
+  analysisSignals?: unknown;
   updatedAt?: string;
   matchResult?: ApiApplication["matchResult"];
 };
@@ -243,6 +251,7 @@ export type DataCtx = {
   updateJob: (id: string, patch: Partial<Job>) => Promise<void>;
   addCandidate: (c: NewCandidate) => Promise<void>;
   updateCandidate: (id: string, patch: Partial<Candidate>) => Promise<void>;
+  deleteCandidate: (id: string) => Promise<void>;
   sendCandidateMessage: (applicationId: string, channel: CandidateMessageChannel, content: string) => Promise<void>;
   isJobSaved: (id: string) => boolean;
   toggleSavedJob: (id: string) => boolean;

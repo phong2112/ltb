@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router";
 import {
   LayoutDashboard, Briefcase, Users, Bell, MessageSquare,
-  LogOut, ChevronRight, Settings, Languages, ArrowLeft, ContactRound
+  LogOut, ChevronRight, Settings, Languages, ArrowLeft
 } from "lucide-react";
 import { useData } from "@/app/data";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
@@ -22,7 +22,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { to: "/admin/dashboard", icon: <LayoutDashboard size={17} />, label: t("common.dashboard") },
     { to: "/admin/jobs", icon: <Briefcase size={17} />, label: t("common.jobs") },
     { to: "/admin/candidates", icon: <Users size={17} />, label: t("admin.candidatesNav") },
-    { to: "/admin/talent-pool", icon: <ContactRound size={17} />, label: t("talentPool.nav") },
     { to: "/admin/chats", icon: <MessageSquare size={17} />, label: "Tin nhắn" },
     { to: "/admin/follow-up", icon: <Bell size={17} />, label: t("common.followUp") },
     { to: "/admin/templates", icon: <MessageSquare size={17} />, label: t("common.templates") },
@@ -34,7 +33,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     dashboard: t("common.dashboard"),
     jobs: t("common.jobs"),
     candidates: t("admin.candidatesNav"),
-    "talent-pool": t("talentPool.nav"),
+    "talent-pool": t("admin.candidatesNav"),
     chats: "Tin nhắn",
     "follow-up": t("common.followUp"),
     templates: t("common.templates"),

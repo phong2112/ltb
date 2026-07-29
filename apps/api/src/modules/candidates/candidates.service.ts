@@ -141,6 +141,7 @@ export class CandidatesService {
       summary: application.cvParseResult.summary,
       errorMessage: application.cvParseResult.errorMessage,
       confidence: typeof metadata?.confidence === "number" ? metadata.confidence : null,
+      analysisSignals: buildAnalysisSignals(metadata),
       updatedAt: application.cvParseResult.updatedAt,
       matchResult: application.matchResult,
     };
@@ -394,9 +395,84 @@ export class CandidatesService {
       },
     });
   }
+
+  async deleteCandidate(id: string) {
+    await this.getCandidate(id);
+
+    const filePaths = await this.prisma.$transaction(async tx => {
+      const applications = await tx.application.findMany({
+        where: { candidateId: id },
+        select: {
+          id: true,
+          files: { select: { path: true } },
+        },
+      });
+      const talentPoolEntries = await tx.talentPoolEntry.findMany({
+        where: { candidateId: id },
+        select: {
+          id: true,
+          file: { select: { path: true } },
+        },
+      });
+      const applicationIds = applications.map(application => application.id);
+      const talentPoolEntryIds = talentPoolEntries.map(entry => entry.id);
+      const paths = [
+        ...applications.flatMap(application => application.files.map(file => file.path)),
+        ...talentPoolEntries.flatMap(entry => entry.file ? [entry.file.path] : []),
+      ];
+
+      if (applicationIds.length > 0) {
+        await tx.candidateMessage.deleteMany({ where: { applicationId: { in: applicationIds } } });
+        await tx.followUpTask.deleteMany({ where: { applicationId: { in: applicationIds } } });
+        await tx.matchResult.deleteMany({ where: { applicationId: { in: applicationIds } } });
+        await tx.cvParseResult.deleteMany({ where: { applicationId: { in: applicationIds } } });
+        await tx.candidateFile.deleteMany({ where: { applicationId: { in: applicationIds } } });
+        await tx.application.deleteMany({ where: { id: { in: applicationIds } } });
+      }
+
+      if (talentPoolEntryIds.length > 0) {
+        await tx.candidateFile.deleteMany({ where: { talentPoolEntryId: { in: talentPoolEntryIds } } });
+        await tx.talentPoolEntry.deleteMany({ where: { id: { in: talentPoolEntryIds } } });
+      }
+
+      await tx.candidate.delete({ where: { id } });
+
+      return paths;
+    });
+
+    await Promise.allSettled(
+      Array.from(new Set(filePaths)).map(path => this.cvStorageService.deleteCandidateCv(path)),
+    );
+
+    return { id };
+  }
 }
 
 function asRecord(value: Prisma.JsonValue | null | undefined) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+function buildAnalysisSignals(metadata: Record<string, unknown> | undefined) {
+  const aiInput = asPlainRecord(metadata?.aiInput);
+
+  return {
+    confidence: typeof metadata?.confidence === "number" ? metadata.confidence : null,
+    evidenceCoverage: typeof metadata?.evidenceCoverage === "number" ? metadata.evidenceCoverage : null,
+    inputTruncated: metadata?.inputTruncated === true,
+    lowConfidenceOcr: metadata?.lowConfidenceOcr === true,
+    ocrTruncated: metadata?.ocrTruncated === true,
+    aiInput: aiInput
+      ? {
+          selectedCharacters: typeof aiInput.selectedCharacters === "number" ? aiInput.selectedCharacters : null,
+          omittedCharacters: typeof aiInput.omittedCharacters === "number" ? aiInput.omittedCharacters : null,
+        }
+      : null,
+  };
+}
+
+function asPlainRecord(value: unknown) {
   return value && typeof value === "object" && !Array.isArray(value)
     ? value as Record<string, unknown>
     : undefined;

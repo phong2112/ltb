@@ -36,6 +36,7 @@ describe("CvTextExtractorService", () => {
     })).resolves.toEqual({
       text: "Frontend engineer with five years of React and TypeScript experience. ".repeat(4).trim(),
       parser: "pdf-parse",
+      qualityScore: expect.any(Number),
     });
     expect(ocr.recognizePdf).not.toHaveBeenCalled();
   });
@@ -70,7 +71,11 @@ describe("CvTextExtractorService", () => {
       originalName: "thin-text.pdf",
       mimeType: "application/pdf",
       path: "cv/thin-text.pdf",
-    })).resolves.toEqual({ text: pdfText, parser: "pdf-parse" });
+    })).resolves.toEqual({
+      text: pdfText,
+      parser: "pdf-parse",
+      qualityScore: expect.any(Number),
+    });
   });
 
   it("propagates OCR truncation and low-confidence metadata", async () => {
@@ -110,6 +115,7 @@ describe("CvTextExtractorService", () => {
       parser: "tesseract-ocr",
       ocrPages: 2,
       ocrConfidence: 91,
+      qualityScore: expect.any(Number),
     });
     expect(ocr.recognizePdf).toHaveBeenCalledWith(Buffer.from("%PDF"));
   });

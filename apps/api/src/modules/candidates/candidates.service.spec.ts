@@ -17,7 +17,15 @@ describe("CandidatesService", () => {
             status: "COMPLETED",
             summary: "Ứng viên phù hợp.",
             errorMessage: null,
-            structuredData: { confidence: 80 },
+            structuredData: {
+              confidence: 80,
+              evidenceCoverage: 90,
+              inputTruncated: true,
+              aiInput: {
+                selectedCharacters: 12000,
+                omittedCharacters: 30000,
+              },
+            },
             updatedAt: new Date("2026-07-22T09:00:00.000Z"),
           },
           matchResult: {
@@ -42,6 +50,17 @@ describe("CandidatesService", () => {
       summary: "Ứng viên phù hợp.",
       errorMessage: null,
       confidence: 80,
+      analysisSignals: {
+        confidence: 80,
+        evidenceCoverage: 90,
+        inputTruncated: true,
+        lowConfidenceOcr: false,
+        ocrTruncated: false,
+        aiInput: {
+          selectedCharacters: 12000,
+          omittedCharacters: 30000,
+        },
+      },
       updatedAt: new Date("2026-07-22T09:00:00.000Z"),
       matchResult: expect.objectContaining({ score: 75 }),
     });

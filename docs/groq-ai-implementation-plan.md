@@ -12,11 +12,11 @@ Current `main` state:
 - `apps/web/src/app/data-model.ts` and `data-types.ts` do not map AI results to frontend types.
 - README says Phase 5 AI CV Parsing And Matching is not enabled on stable branch.
 
-There is an older implementation on `feature/ai-agent` that uses Ollama/local AI. Do not deploy Ollama. Use that branch only as a reference for CV extraction, prompts, scoring, queue structure, and tests.
+There is an older local-AI implementation on `feature/ai-agent`. Do not deploy local model infrastructure. Use that branch only as a reference for CV extraction, prompts, scoring, queue structure, and tests.
 
 ## Goal
 
-Replace the local Ollama AI approach with GROQ API cloud inference.
+Replace local AI inference with GROQ API cloud inference.
 
 The backend should:
 
@@ -29,7 +29,7 @@ The backend should:
 
 ## Non-Goals
 
-- Do not run or deploy Ollama.
+- Do not run or deploy local model infrastructure.
 - Do not require GPU infrastructure.
 - Do not expose `GROQ_API_KEY` to the frontend.
 - Do not make GROQ calls from the browser.
@@ -91,7 +91,7 @@ If using BullMQ queue:
 pnpm --filter @hr-copilot/api add bullmq
 ```
 
-Do not add `ollama`.
+Do not add local model provider SDKs.
 
 ## Environment Variables
 
@@ -187,7 +187,7 @@ git show feature/ai-agent:apps/api/src/modules/ai/cv-ocr.service.ts
 Do not port:
 
 ```text
-apps/api/src/modules/ai/ollama-ai.provider.ts
+apps/api/src/modules/ai/local-ai.provider.ts
 ```
 
 Replace it with `groq-ai.provider.ts`.
@@ -431,12 +431,12 @@ GROQ_TIMEOUT_MS=120000
 
 If queue is used, also provision Redis and set `REDIS_URL`.
 
-No Ollama container, no GPU, and no model files are required.
+No local model container, GPU, or model files are required.
 
 ## Acceptance Criteria
 
-- `main` can build without Ollama.
-- No `ollama` package is added.
+- `main` can build without local model infrastructure.
+- No local model provider SDK is added.
 - `AI_PROVIDER=groq` processes uploaded CVs through GROQ API.
 - Candidate application submission still succeeds if AI is disabled.
 - Candidate application submission is not blocked by slow AI analysis when queue/background mode is enabled.

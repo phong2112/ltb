@@ -14,6 +14,7 @@ describe("AiService", () => {
       id: "application-1",
       candidateId: "candidate-1",
       jobId: "job-1",
+      submittedFullName: "Nguyen Van Candidate",
       job: {
         title: "Frontend Engineer",
         description: "Build accessible web products",
@@ -46,7 +47,7 @@ describe("AiService", () => {
     };
     const textExtractor = {
       extract: jest.fn().mockResolvedValue({
-        text: "Frontend Engineer with five years of React experience.",
+        text: "Nguyen Van Candidate\ncandidate@example.com\nFrontend Engineer with five years of React experience.",
         parser: "tesseract-ocr",
         ocrPages: 2,
         ocrConfidence: 42,
@@ -57,15 +58,11 @@ describe("AiService", () => {
       name: "mock",
       model: "mock-model",
       analyzeMatch: jest.fn().mockResolvedValue({
-        profile: { currentRole: "Frontend Engineer", totalYearsExperience: 5, skills: ["React"], languages: [] },
         summary: "Ứng viên phù hợp một phần.",
         evaluations: [
           { criterionId: "criterion-1", status: "met", evidence: ["five years of React"], reason: "Có React" },
           { criterionId: "criterion-2", status: "unknown", evidence: [], reason: "Không thấy TypeScript" },
         ],
-        strengths: ["Có kinh nghiệm React"],
-        risks: ["Chưa đủ bằng chứng TypeScript"],
-        screeningQuestions: ["Bạn đã dùng TypeScript trong dự án nào?"],
       }),
       extractProfile: jest.fn(),
     };
@@ -78,6 +75,12 @@ describe("AiService", () => {
     await service.processApplication("application-1");
 
     expect(provider.analyzeMatch).toHaveBeenCalledTimes(1);
+    expect(provider.analyzeMatch).toHaveBeenCalledWith(expect.objectContaining({
+      cvText: expect.not.stringContaining("candidate@example.com"),
+    }));
+    expect(provider.analyzeMatch).toHaveBeenCalledWith(expect.objectContaining({
+      cvText: expect.not.stringContaining("Nguyen Van Candidate"),
+    }));
     expect(matchUpsert).toHaveBeenCalledWith(expect.objectContaining({
       create: expect.objectContaining({
         score: 50,
