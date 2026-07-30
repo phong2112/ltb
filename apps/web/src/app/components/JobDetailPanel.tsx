@@ -7,7 +7,7 @@ import { notificationService } from "@/app/services/notification";
 import RichTextContent from "@/app/components/RichTextContent";
 import ApplicationDialog from "@/app/components/ApplicationDialog";
 
-export default function JobDetailPanel({ job }: { job: Job }) {
+export default function JobDetailPanel({ job, variant = "panel" }: { job: Job; variant?: "panel" | "inline" }) {
   const { isJobSaved, toggleSavedJob } = useData();
   const { language, t } = useLanguage();
   const contentRef = useRef<HTMLDivElement>(null);
@@ -21,6 +21,41 @@ export default function JobDetailPanel({ job }: { job: Job }) {
   function toggleSaved() {
     const isNowSaved = toggleSavedJob(job.id);
     notificationService.info(t(isNowSaved ? "savedJobs.savedNotice" : "savedJobs.removedNotice"));
+  }
+
+  const actions = (
+    <div className="flex flex-col gap-2 sm:flex-row">
+      <ApplicationDialog job={job} triggerClassName="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md active:translate-y-0" />
+      <button type="button" onClick={toggleSaved} aria-pressed={saved} className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-bold transition-all hover:-translate-y-0.5 hover:shadow-sm active:translate-y-0 active:scale-[0.98] ${saved ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary hover:text-primary"}`}><Heart size={15} fill={saved ? "currentColor" : "none"} /> {saved ? t("jobDetail.savedJob") : t("jobDetail.saveJob")}</button>
+    </div>
+  );
+
+  const content = (
+    <>
+      <div className="grid gap-2 rounded-xl bg-pink-50/60 p-4 text-xs text-muted-foreground sm:grid-cols-2">
+        <span className="flex items-center gap-2"><Building2 size={13} className="text-primary" />{job.company}</span>
+        <span className="flex items-center gap-2"><MapPin size={13} className="text-primary" />{job.location}</span>
+        <span className="flex items-center gap-2"><Briefcase size={13} className="text-primary" />{translateJobType(job.type, language)} · {translateJobLevel(job.level, language)}</span>
+        <span className="flex items-center gap-2"><DollarSign size={13} className="text-primary" />{salary}</span>
+      </div>
+      {[[t("jobDetail.description"), job.description], [t("jobDetail.requirements"), job.requirements], [t("jobDetail.benefits"), job.benefits]].map(([title, content]) => (
+        <section key={title}>
+          <h3 className="mb-3 text-lg font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{title}</h3>
+          {content ? <RichTextContent value={content} className="text-sm text-foreground" /> : <p className="text-sm text-muted-foreground">—</p>}
+        </section>
+      ))}
+    </>
+  );
+
+  if (variant === "inline") {
+    return (
+      <div className="mt-4 border-t border-border pt-4">
+        {actions}
+        <div ref={contentRef} className="mt-5 space-y-7">
+          {content}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -43,24 +78,12 @@ export default function JobDetailPanel({ job }: { job: Job }) {
           <span className="rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">💰 {salary}</span>
         </div>
         {job.tags.length > 0 && <div className="mt-2 flex flex-wrap gap-1.5">{job.tags.map(tag => <span key={tag} className="rounded-full border border-pink-100 bg-pink-50 px-2.5 py-1 text-[11px] font-semibold text-primary">{tag}</span>)}</div>}
-        <div className="mt-3.5 flex flex-col gap-2 border-t border-border pt-3.5 sm:flex-row">
-          <ApplicationDialog job={job} triggerClassName="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md active:translate-y-0" />
-          <button type="button" onClick={toggleSaved} aria-pressed={saved} className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-bold transition-all hover:-translate-y-0.5 hover:shadow-sm active:translate-y-0 active:scale-[0.98] ${saved ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary hover:text-primary"}`}><Heart size={15} fill={saved ? "currentColor" : "none"} /> {saved ? t("jobDetail.savedJob") : t("jobDetail.saveJob")}</button>
+        <div className="mt-3.5 border-t border-border pt-3.5">
+          {actions}
         </div>
       </div>
       <div ref={contentRef} className="scrollbar-stable space-y-7 p-5 lg:min-h-0 lg:flex-1 lg:overscroll-contain lg:overflow-y-auto lg:p-6">
-        <div className="grid gap-2 rounded-xl bg-pink-50/60 p-4 text-xs text-muted-foreground sm:grid-cols-2">
-          <span className="flex items-center gap-2"><Building2 size={13} className="text-primary" />{job.company}</span>
-          <span className="flex items-center gap-2"><MapPin size={13} className="text-primary" />{job.location}</span>
-          <span className="flex items-center gap-2"><Briefcase size={13} className="text-primary" />{translateJobType(job.type, language)} · {translateJobLevel(job.level, language)}</span>
-          <span className="flex items-center gap-2"><DollarSign size={13} className="text-primary" />{salary}</span>
-        </div>
-        {[[t("jobDetail.description"), job.description], [t("jobDetail.requirements"), job.requirements], [t("jobDetail.benefits"), job.benefits]].map(([title, content]) => (
-          <section key={title}>
-            <h3 className="mb-3 text-lg font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{title}</h3>
-            {content ? <RichTextContent value={content} className="text-sm text-foreground" /> : <p className="text-sm text-muted-foreground">—</p>}
-          </section>
-        ))}
+        {content}
       </div>
     </article>
   );

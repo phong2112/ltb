@@ -1,8 +1,8 @@
-import type { MouseEvent } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { ChevronRight, Clock, Heart, MapPin } from "lucide-react";
 import type { Job } from "@/app/data";
-import { useLanguage } from "@/app/i18n";
+import { translateJobLevel, translateJobType, useLanguage } from "@/app/i18n";
 import { URGENT_BADGE_CLASS } from "@/app/status-config";
 
 type PublicJobCardProps = {
@@ -11,6 +11,7 @@ type PublicJobCardProps = {
   onSelect?: (jobId: string) => void;
   showRemoveSaved?: boolean;
   onRemoveSaved?: (jobId: string) => void;
+  expandedContent?: ReactNode;
 };
 
 export default function PublicJobCard({
@@ -19,8 +20,9 @@ export default function PublicJobCard({
   onSelect,
   showRemoveSaved = false,
   onRemoveSaved,
+  expandedContent,
 }: PublicJobCardProps) {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
   const interactive = Boolean(onSelect);
@@ -83,6 +85,12 @@ export default function PublicJobCard({
       </div>
 
       <div className="mt-4 flex min-h-6 flex-wrap content-start gap-1.5">
+        <span className="rounded-full bg-pink-100 px-2.5 py-1 text-[10px] font-bold text-pink-700">
+          {translateJobType(job.type, language)}
+        </span>
+        <span className="rounded-full border border-border bg-secondary px-2.5 py-1 text-[10px] font-bold text-secondary-foreground">
+          {translateJobLevel(job.level, language)}
+        </span>
         {job.tags.slice(0, 3).map(tag => (
           <span key={tag} className="rounded-full bg-pink-50 px-2.5 py-1 text-[10px] font-semibold text-primary">
             {tag}
@@ -124,6 +132,14 @@ export default function PublicJobCard({
           </Link>
         </div>
       </div>
+      {expandedContent && (
+        <div
+          onClick={event => event.stopPropagation()}
+          onKeyDown={event => event.stopPropagation()}
+        >
+          {expandedContent}
+        </div>
+      )}
     </article>
   );
 }

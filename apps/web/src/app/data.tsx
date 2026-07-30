@@ -18,6 +18,7 @@ import {
   type Candidate,
   type CandidateMessageChannel,
   type CandidateProfile,
+  type CandidateStatus,
   type Job,
   type JobInput,
   type LoginResult,
@@ -57,12 +58,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const reloadAdminData = useCallback(async (status?: string) => {
+  const reloadAdminData = useCallback(async (status?: CandidateStatus) => {
     setError("");
     setIsLoading(true);
 
     try {
-      const query = status ? `?status=${encodeURIComponent(status)}` : "";
+      const apiStatus = toApiApplicationStatus(status);
+      const query = apiStatus ? `?status=${encodeURIComponent(apiStatus)}` : "";
       const [adminJobs, adminCandidates] = await Promise.all([
         apiRequest<ApiJob[]>("/admin/jobs"),
         apiRequest<ApiCandidateProfile[]>(`/admin/candidates${query}`),

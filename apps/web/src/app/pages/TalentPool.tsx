@@ -27,6 +27,8 @@ import {
 
 const PAGE_SIZE = 10;
 const MAX_FILES = 20;
+const BULK_UPLOAD_MODE = "bulk";
+const PER_FILE_UPLOAD_MODE = "per-file";
 const MAX_FILE_SIZE_MB = readMaxFileSizeMb();
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ALLOWED_MIME_TYPES = new Set([
@@ -48,6 +50,7 @@ const STATUS_OPTIONS: Array<TalentPoolStatus | "ALL"> = [
 ];
 
 type ValidationIssue = TalentPoolUploadResult & { status: "error" };
+type UploadMode = typeof BULK_UPLOAD_MODE | typeof PER_FILE_UPLOAD_MODE;
 
 type TalentPoolContentProps = {
   embedded?: boolean;
@@ -61,6 +64,8 @@ export function TalentPoolContent({ embedded = false, showHeader = true, onTotal
   const [files, setFiles] = useState<File[]>([]);
   const [jobs, setJobs] = useState<ApiJob[]>([]);
   const [targetJobId, setTargetJobId] = useState("");
+  const [uploadMode, setUploadMode] = useState<UploadMode>(BULK_UPLOAD_MODE);
+  const [fileTargetJobIds, setFileTargetJobIds] = useState<Record<string, string>>({});
   const [isDragging, setIsDragging] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -155,12 +160,20 @@ export function TalentPoolContent({ embedded = false, showHeader = true, onTotal
     setUploadResults([]);
     const toastId = notificationService.loading(t("talentPool.uploading"));
     try {
-      const response = await uploadTalentPoolFiles(files, targetJobId || undefined);
-      setUploadResults(response.results);
-      const created = response.results.filter(result => result.status === "created").length;
+      const responses = uploadMode === BULK_UPLOAD_MODE
+        ? [await uploadTalentPoolFiles(files, targetJobId || undefined)]
+        : await Promise.all(
+          groupFilesByTargetJob(files, fileTargetJobIds).map(group =>
+            uploadTalentPoolFiles(group.files, group.targetJobId || undefined),
+          ),
+        );
+      const results = responses.flatMap(response => response.results);
+      setUploadResults(results);
+      const created = results.filter(result => result.status === "created").length;
       notificationService.success(`${created} ${t("talentPool.uploadedCount")}`, toastId);
       if (created > 0) {
         setFiles([]);
+        setFileTargetJobIds({});
         if (fileInputRef.current) fileInputRef.current.value = "";
         await loadEntries(true);
       }
@@ -171,7 +184,22 @@ export function TalentPoolContent({ embedded = false, showHeader = true, onTotal
     }
   }
 
+  function removeFile(file: File) {
+    const key = fileKey(file);
+    setFiles(current => current.filter(item => fileKey(item) !== key));
+    setFileTargetJobIds(current => {
+      const rest = { ...current };
+      delete rest[key];
+      return rest;
+    });
+  }
+
+  function updateFileTarget(file: File, jobId: string) {
+    setFileTargetJobIds(current => ({ ...current, [fileKey(file)]: jobId }));
+  }
+
   const totalPages = Math.max(1, Math.ceil(data.total / PAGE_SIZE));
+  const activeJobs = jobs.filter(job => job.status !== "ARCHIVED");
 
   return (
     <div className={`${embedded ? "w-full" : "mx-auto w-full max-w-[1500px]"} space-y-5`}>
@@ -193,10 +221,20 @@ export function TalentPoolContent({ embedded = false, showHeader = true, onTotal
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <select id="target-job" value={targetJobId} onChange={event => setTargetJobId(event.target.value)} className="h-9 min-w-52 rounded-lg border border-border bg-input-background px-3 text-xs font-semibold text-muted-foreground outline-none focus:border-primary">
-              <option value="">{t("talentPool.keepGeneral")}</option>
-              {jobs.filter(job => job.status !== "ARCHIVED").map(job => <option key={job.id} value={job.id}>{job.title}</option>)}
-            </select>
+            <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
+              <button type="button" onClick={() => setUploadMode(BULK_UPLOAD_MODE)} className={`h-8 rounded-md px-3 text-xs font-bold transition-colors ${uploadMode === BULK_UPLOAD_MODE ? "bg-primary text-white" : "text-muted-foreground hover:text-primary"}`}>
+                {t("talentPool.bulkAssign")}
+              </button>
+              <button type="button" onClick={() => setUploadMode(PER_FILE_UPLOAD_MODE)} className={`h-8 rounded-md px-3 text-xs font-bold transition-colors ${uploadMode === PER_FILE_UPLOAD_MODE ? "bg-primary text-white" : "text-muted-foreground hover:text-primary"}`}>
+                {t("talentPool.perFileAssign")}
+              </button>
+            </div>
+            {uploadMode === BULK_UPLOAD_MODE && (
+              <select id="target-job" value={targetJobId} onChange={event => setTargetJobId(event.target.value)} className="h-9 min-w-52 rounded-lg border border-border bg-input-background px-3 text-xs font-semibold text-muted-foreground outline-none focus:border-primary">
+                <option value="">{t("talentPool.keepGeneral")}</option>
+                {activeJobs.map(job => <option key={job.id} value={job.id}>{job.title}</option>)}
+              </select>
+            )}
             <button type="button" onClick={() => setIsUploadOpen(open => !open)} className="inline-flex h-9 items-center gap-2 rounded-lg border border-primary/30 bg-white px-3 text-xs font-bold text-primary hover:bg-pink-50">
               <Upload size={14} /> {t("talentPool.chooseFiles")}
             </button>
@@ -237,8 +275,14 @@ export function TalentPoolContent({ embedded = false, showHeader = true, onTotal
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-bold text-foreground">{file.name}</p>
                         <p className="text-[11px] text-muted-foreground">{formatFileSize(file.size)}</p>
+                        {uploadMode === PER_FILE_UPLOAD_MODE && (
+                          <select value={fileTargetJobIds[fileKey(file)] ?? ""} onChange={event => updateFileTarget(file, event.target.value)} className="mt-2 h-8 w-full rounded-md border border-border bg-input-background px-2 text-xs font-semibold text-muted-foreground outline-none focus:border-primary">
+                            <option value="">{t("talentPool.keepGeneral")}</option>
+                            {activeJobs.map(job => <option key={job.id} value={job.id}>{job.title}</option>)}
+                          </select>
+                        )}
                       </div>
-                      <button type="button" onClick={() => setFiles(current => current.filter(item => fileKey(item) !== fileKey(file)))} className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-red-50 hover:text-red-600" aria-label={t("talentPool.removeFile")}><X size={13} /></button>
+                      <button type="button" onClick={() => removeFile(file)} className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-red-50 hover:text-red-600" aria-label={t("talentPool.removeFile")}><X size={13} /></button>
                     </div>
                   ))}
                 </div>
@@ -349,6 +393,19 @@ function readMaxFileSizeMb() {
 }
 
 function fileKey(file: File) { return `${file.name}:${file.size}:${file.lastModified}`; }
+function groupFilesByTargetJob(files: File[], fileTargetJobIds: Record<string, string>) {
+  const groups = new Map<string, File[]>();
+
+  for (const file of files) {
+    const targetJobId = fileTargetJobIds[fileKey(file)] ?? "";
+    groups.set(targetJobId, [...(groups.get(targetJobId) ?? []), file]);
+  }
+
+  return Array.from(groups, ([targetJobId, groupedFiles]) => ({
+    targetJobId,
+    files: groupedFiles,
+  }));
+}
 function formatFileSize(bytes: number) { return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`; }
 function formatDate(value: string, language: "vi" | "en") { return new Intl.DateTimeFormat(language === "vi" ? "vi-VN" : "en-US", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(value)); }
 function stringField(value: unknown) { return typeof value === "string" ? value : ""; }

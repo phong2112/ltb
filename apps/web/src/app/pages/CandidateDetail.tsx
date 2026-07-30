@@ -8,8 +8,6 @@ import {
   CheckCircle,
   ChevronLeft,
   ClipboardList,
-  ExternalLink,
-  FileText,
   History,
   Mail,
   MapPin,
@@ -161,7 +159,6 @@ export default function CandidateDetail() {
         : application.aiScore >= 60
           ? { text: "text-orange-700", soft: "bg-orange-50", border: "border-orange-200", bar: "bg-orange-500" }
           : { text: "text-red-700", soft: "bg-red-50", border: "border-red-200", bar: "bg-red-500" };
-  const hasCv = Boolean(application.cvUrl && application.cvUrl !== "#");
   const primaryEmail = candidate.email || application.email || "—";
   const primaryPhone = candidate.phone || application.phone || "—";
   const scoreValue = Math.max(0, Math.min(application.aiScore, 100));
@@ -224,27 +221,12 @@ export default function CandidateDetail() {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-              <div className={`flex h-10 items-center gap-2 rounded-xl border px-3 ${scoreTone.soft} ${scoreTone.border}`}>
-                <Sparkles size={15} className={scoreTone.text} />
-                <span className="text-xs font-black text-muted-foreground">{t("admin.matchScore")}</span>
-                <span className={`text-sm font-black ${scoreTone.text}`}>{scoreLabel}</span>
-              </div>
-              {application.email && (
-                <a href={`mailto:${application.email}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-white px-3.5 text-xs font-bold text-muted-foreground hover:border-primary/40 hover:text-primary">
-                  <Mail size={15} /> Email
-                </a>
-              )}
               <Link to={`/admin/chats?candidate=${application.id}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-white px-3.5 text-xs font-bold text-muted-foreground hover:border-primary/40 hover:text-primary">
                 <MessageSquare size={15} /> Mở chat
               </Link>
               <button type="button" onClick={() => setDeleteOpen(true)} className="inline-flex h-10 items-center gap-2 rounded-xl border border-red-200 bg-white px-3.5 text-xs font-bold text-red-700 hover:bg-red-50">
                 <Trash2 size={15} /> {t("admin.deleteCandidate")}
               </button>
-              {hasCv && (
-                <a href={application.cvUrl} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-xs font-bold text-white shadow-sm hover:bg-primary/90">
-                  <FileText size={15} /> {t("common.openCv")} <ExternalLink size={13} />
-                </a>
-              )}
             </div>
           </div>
         </header>

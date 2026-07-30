@@ -36,6 +36,7 @@ export default function Jobs() {
     return matchSearch && (typeFilter === ALL_FILTER || j.type === typeFilter) && (levelFilter === ALL_FILTER || j.level === levelFilter);
   });
   const selectedJob = filtered.find(job => job.id === selectedJobId) ?? filtered[0];
+  const expandedJobId = selectedJobId && selectedJob?.id === selectedJobId ? selectedJobId : null;
 
   useEffect(() => {
     if (!selectedJobId || selectedJob?.id !== selectedJobId) return;
@@ -75,9 +76,16 @@ export default function Jobs() {
   };
 
   const selectJob = (jobId: string) => {
-    if (selectedJob?.id === jobId) return;
-
     const nextParams = new URLSearchParams(params);
+
+    if (expandedJobId === jobId) {
+      nextParams.delete("job");
+      skipNextCardScrollRef.current = null;
+      focusedJobIdRef.current = null;
+      setParams(nextParams, { replace: true, preventScrollReset: true });
+      return;
+    }
+
     nextParams.set("job", jobId);
     skipNextCardScrollRef.current = jobId;
     setParams(nextParams, { replace: true, preventScrollReset: true });
@@ -151,18 +159,23 @@ export default function Jobs() {
         ) : (
           <div className="grid items-start gap-4 lg:h-[calc(100dvh-6rem)] lg:grid-cols-[370px_minmax(0,1fr)] lg:items-stretch">
             <div className="scrollbar-stable space-y-3 lg:h-full lg:min-h-0 lg:overscroll-contain lg:overflow-y-auto lg:pr-1">
-            {filtered.map(job => (
-              <PublicJobCard
-                key={job.id}
-                job={job}
-                active={selectedJob?.id === job.id}
-                onSelect={selectJob}
-                showRemoveSaved={showSaved}
-                onRemoveSaved={removeSavedJob}
-              />
-            ))}
+            {filtered.map(job => {
+              const active = expandedJobId === job.id;
+
+              return (
+                <PublicJobCard
+                  key={job.id}
+                  job={job}
+                  active={active}
+                  onSelect={selectJob}
+                  showRemoveSaved={showSaved}
+                  onRemoveSaved={removeSavedJob}
+                  expandedContent={active ? <div className="lg:hidden"><JobDetailPanel job={job} variant="inline" /></div> : undefined}
+                />
+              );
+            })}
             </div>
-            {selectedJob && <div id="job-detail" className="lg:h-full lg:min-h-0"><JobDetailPanel job={selectedJob} /></div>}
+            {selectedJob && <div id="job-detail" className="hidden lg:block lg:h-full lg:min-h-0"><JobDetailPanel job={selectedJob} /></div>}
           </div>
         )}
       </div>

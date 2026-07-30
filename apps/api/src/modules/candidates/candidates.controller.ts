@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, StreamableFile, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, StreamableFile, UseGuards } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { ApiCookieAuth, ApiCreatedResponse, ApiNoContentResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiProduces, ApiQuery, ApiTags, ApiUnauthorizedResponse } from "@nestjs/swagger";
 import { ApplicationStatus } from "@prisma/client";
@@ -32,7 +32,7 @@ export class CandidatesController {
   })
   @Get()
   listCandidates(@Query("status") status?: string) {
-    return this.candidatesService.listCandidates(status as ApplicationStatus | undefined);
+    return this.candidatesService.listCandidates(parseApplicationStatus(status));
   }
 
   @ApiOperation({ summary: "Stream an uploaded candidate CV file" })
@@ -150,4 +150,13 @@ function encodeRFC5987ValueChars(value: string) {
 
 function getFrameAncestors(webOrigin?: string) {
   return Array.from(new Set(["'self'", "http://localhost:3000", "http://localhost:8080", webOrigin].filter(Boolean))).join(" ");
+}
+
+function parseApplicationStatus(status?: string): ApplicationStatus | undefined {
+  if (!status) return undefined;
+  if (Object.values(ApplicationStatus).includes(status as ApplicationStatus)) {
+    return status as ApplicationStatus;
+  }
+
+  throw new BadRequestException("Trạng thái hồ sơ không nằm trong danh sách cho phép.");
 }
