@@ -90,16 +90,16 @@ DATABASE_URL=${MIGRATION_DATABASE_URL:-$DATABASE_URL} pnpm --filter @hr-copilot/
 pnpm --filter @hr-copilot/api start:prod
 ```
 
-### 3. Point Vercel Frontend To Render
+### 3. Point Vercel Frontend To The API Proxy
 
-After Render deploys, copy the Render service URL and set the Vercel production environment variable:
+After Render deploys, keep browser requests on the Vercel domain and let `vercel.json` proxy `/api/*` to the Render service:
 
 ```text
-VITE_API_BASE_PATH=https://your-render-service.onrender.com
+VITE_API_BASE_PATH=/api
 VITE_MAX_CV_FILE_SIZE_MB=10
 ```
 
-Redeploy the Vercel frontend after changing `VITE_*` variables because Vite injects them at build time.
+Redeploy the Vercel frontend after changing `VITE_*` variables because Vite injects them at build time. Use the Render service URL directly only for smoke tests and backend debugging.
 
 ### 4. Smoke Test Render + Neon
 
@@ -175,11 +175,12 @@ SPA fallback: all browser routes rewrite to /index.html
 Set production environment variables in Vercel:
 
 ```text
-VITE_API_BASE_PATH=https://your-api-domain.com
+VITE_API_BASE_PATH=/api
 VITE_MAX_CV_FILE_SIZE_MB=10
 ```
 
 Vite exposes `VITE_*` values to browser code. Do not put private API keys, database URLs, or storage secrets in Vercel frontend environment variables.
+The root `vercel.json` rewrites `/api/*` to the Render API so admin auth cookies stay on the frontend domain instead of being treated as third-party cookies by new browsers.
 
 Deploy from the CLI:
 
