@@ -3,9 +3,9 @@ import {
   type ActionNotification,
 } from "@/app/services/notification";
 
-export const API_BASE = (
-  (import.meta.env.VITE_API_BASE_PATH as string | undefined) ?? "/api"
-).replace(/\/$/, "");
+export const API_BASE = resolveApiBase(
+  import.meta.env.VITE_API_BASE_PATH as string | undefined,
+);
 
 type ApiRequestInit = RequestInit & {
   skipAuthRefresh?: boolean;
@@ -115,4 +115,24 @@ function shouldAttemptAuthRefresh(path: string) {
     path !== "/auth/refresh" &&
     path !== "/auth/logout"
   );
+}
+
+function resolveApiBase(configuredBase: string | undefined) {
+  const normalizedBase = (configuredBase || "/api").replace(/\/$/, "");
+  if (typeof window === "undefined") return normalizedBase;
+
+  // Keep admin auth cookies first-party on Vercel; direct Render calls are
+  // treated as third-party cookies by fresh/incognito browser sessions.
+  if (
+    window.location.hostname.endsWith(".vercel.app") &&
+    isAbsoluteUrl(normalizedBase)
+  ) {
+    return "/api";
+  }
+
+  return normalizedBase;
+}
+
+function isAbsoluteUrl(value: string) {
+  return /^https?:\/\//i.test(value);
 }

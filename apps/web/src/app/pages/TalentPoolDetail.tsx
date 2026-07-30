@@ -43,11 +43,10 @@ type ProfileForm = {
   phone: string;
   title: string;
   skills: string;
-  tags: string;
   notes: string;
 };
 
-const EMPTY_FORM: ProfileForm = { fullName: "", email: "", phone: "", title: "", skills: "", tags: "", notes: "" };
+const EMPTY_FORM: ProfileForm = { fullName: "", email: "", phone: "", title: "", skills: "", notes: "" };
 
 export default function TalentPoolDetail() {
   const { id } = useParams();
@@ -110,7 +109,6 @@ export default function TalentPoolDetail() {
         phone: form.phone.trim(),
         title: form.title.trim(),
         skills: splitValues(form.skills),
-        tags: splitValues(form.tags),
         notes: form.notes.trim(),
       });
       setEntry(updated);
@@ -166,6 +164,7 @@ export default function TalentPoolDetail() {
 
   const promotedJob = jobs.find(job => job.id === promoteJobId);
   const cvUrl = entry.file ? `${API_BASE}/admin/candidates/files/${entry.file.id}` : "#";
+  const displayName = resolvedFullName(entry);
 
   return (
     <AdminLayout>
@@ -173,12 +172,12 @@ export default function TalentPoolDetail() {
         <header className="flex flex-col gap-4 rounded-xl border border-border bg-white p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <Link to="/admin/talent-pool" className="mb-2 inline-flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-primary"><ArrowLeft size={13} /> {t("common.backToList")}</Link>
-            <div className="flex flex-wrap items-center gap-3"><h1 className="max-w-full truncate text-xl font-black text-foreground sm:text-2xl" style={{ fontFamily: "'Playfair Display', serif" }}>{entry.candidate.fullName}</h1><StatusBadge status={entry.status} language={language} /></div>
+            <div className="flex flex-wrap items-center gap-3"><h1 className="max-w-full truncate text-xl font-black text-foreground sm:text-2xl" style={{ fontFamily: "'Playfair Display', serif" }}>{displayName}</h1><StatusBadge status={entry.status} language={language} /></div>
             <p className="mt-1 text-xs text-muted-foreground">{entry.file?.originalName ?? "CV"} · {formatDate(entry.createdAt, language)}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => void handleSave()} disabled={!isDirty || isSaving} className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-xs font-bold text-white disabled:opacity-50"><Save size={14} /> {isSaving ? t("talentPool.saving") : t("talentPool.save")}</button>
-            <DeleteDialog name={entry.candidate.fullName} isDeleting={isDeleting} onConfirm={() => void handleDelete()} t={t} />
+            <DeleteDialog name={displayName} isDeleting={isDeleting} onConfirm={() => void handleDelete()} t={t} />
           </div>
         </header>
 
@@ -194,7 +193,6 @@ export default function TalentPoolDetail() {
                 <Field label={t("common.email")} icon={<Mail size={14} />}><input type="email" value={form.email} onChange={event => updateField("email", event.target.value)} className={inputClass} /></Field>
                 <Field label={t("admin.phone")} icon={<Phone size={14} />}><input value={form.phone} onChange={event => updateField("phone", event.target.value)} className={inputClass} /></Field>
                 <Field label={t("talentPool.skills")} icon={<Tag size={14} />} wide><input value={form.skills} onChange={event => updateField("skills", event.target.value)} placeholder={t("talentPool.commaSeparated")} className={inputClass} /></Field>
-                <Field label="Tags" icon={<Tag size={14} />} wide><input value={form.tags} onChange={event => updateField("tags", event.target.value)} placeholder={t("talentPool.commaSeparated")} className={inputClass} /></Field>
                 <Field label={t("admin.hrNote")} icon={<NotebookPen size={14} />} wide><textarea rows={4} value={form.notes} onChange={event => updateField("notes", event.target.value)} className={`${inputClass} h-auto resize-y`} /></Field>
               </div>
               {(entry.structuredData?.linkedinUrl || entry.structuredData?.portfolioUrl) && (
@@ -219,7 +217,7 @@ export default function TalentPoolDetail() {
             </section>
           </main>
 
-          <CvDocumentPreview name={entry.candidate.fullName} cvUrl={cvUrl} cvFile={entry.file} t={t} />
+          <CvDocumentPreview name={displayName} cvUrl={cvUrl} cvFile={entry.file} t={t} />
         </div>
       </div>
     </AdminLayout>
@@ -248,9 +246,24 @@ function DeleteDialog({ name, isDeleting, onConfirm, t }: { name: string; isDele
 }
 
 function ExternalProfileLink({ href, label }: { href: string; label: string }) { return <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-bold text-primary hover:bg-pink-50">{label}<ExternalLink size={12} /></a>; }
-function formFromEntry(entry: TalentPoolEntry): ProfileForm { const data = entry.structuredData ?? {}; return { fullName: entry.candidate.fullName ?? "", email: text(data.email) || entry.candidate.email || "", phone: text(data.phone) || entry.candidate.phone || "", title: text(data.title), skills: stringList(data.skills).join(", "), tags: entry.tags.join(", "), notes: entry.notes ?? "" }; }
+function formFromEntry(entry: TalentPoolEntry): ProfileForm { const data = entry.structuredData ?? {}; return { fullName: resolvedFullName(entry), email: text(data.email) || entry.candidate.email || "", phone: text(data.phone) || entry.candidate.phone || "", title: text(data.title), skills: stringList(data.skills).join(", "), notes: entry.notes ?? "" }; }
 function splitValues(value: string) { return [...new Set(value.split(",").map(item => item.trim()).filter(Boolean))]; }
 function text(value: unknown) { return typeof value === "string" ? value : ""; }
 function stringList(value: unknown) { return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []; }
 function linkField(value: unknown) { return typeof value === "string" && /^https?:\/\//i.test(value) ? value : ""; }
+function resolvedFullName(entry: TalentPoolEntry) {
+  const extractedName = text(entry.structuredData?.fullName).trim();
+  const currentName = entry.candidate.fullName?.trim() ?? "";
+  return extractedName && shouldPreferExtractedName(currentName, entry.file?.originalName) ? extractedName : currentName;
+}
+function shouldPreferExtractedName(currentName: string, originalName?: string) {
+  const lower = currentName.toLowerCase();
+  if (!currentName || lower === "ứng viên đang xử lý") return true;
+  if (/\.(pdf|docx?|rtf|txt)$/i.test(currentName)) return true;
+  if (/\d{6,}/.test(currentName) && /[-_]/.test(currentName)) return true;
+  if (/(^|[-_])inbound\d/i.test(currentName)) return true;
+  if (currentName.includes("_")) return true;
+  const fileBaseName = originalName ? originalName.replace(/\.[^.]+$/, "").trim().toLowerCase() : "";
+  return !!fileBaseName && lower === fileBaseName;
+}
 function formatDate(value: string, language: "vi" | "en") { return new Intl.DateTimeFormat(language === "vi" ? "vi-VN" : "en-US", { dateStyle: "medium" }).format(new Date(value)); }

@@ -8,7 +8,10 @@
     "start": "node dist/main.js",
     "start:prod": "node dist/main.js",
     "eval:cv": "tsx scripts/eval-cv-pipeline.ts",
+    "eval:uploads": "tsx scripts/eval-upload-cvs.ts",
+    "eval:profiles": "tsx scripts/eval-upload-profiles.ts",
     "eval:cv:fixtures": "tsx scripts/generate-cv-eval-fixtures.ts",
+    "backfill:pool-names": "tsx scripts/backfill-talent-pool-names.ts",
     "lint": "eslint \"src/**/*.ts\" \"scripts/**/*.ts\" && tsc --project tsconfig.scripts.json",
     "test": "jest --passWithNoTests"
   },

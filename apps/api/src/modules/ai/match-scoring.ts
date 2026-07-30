@@ -2,8 +2,13 @@ import type { CriterionEvaluation, CriterionStatus, MatchCriterion } from "./ai.
 
 const MAX_MATCH_CRITERIA = 15;
 const PROSE_LINE_LENGTH = 140;
-const OPTIONAL_CRITERION_PATTERN = /(lợi thế|ưu tiên|khuyến khích|là một điểm cộng|điểm cộng|nice[ -]?to[ -]?have|preferred|plus\b)/i;
-const REQUIRED_CRITERION_PATTERN = /(bắt buộc|yêu cầu|tối thiểu|ít nhất|minimum|required|must\b)/i;
+const OPTIONAL_CRITERION_PATTERN = /(lợi thế|loi the|ưu tiên|uu tien|khuyến khích|khuyen khich|là một điểm cộng|la mot diem cong|điểm cộng|diem cong|nice[ -]?to[ -]?have|preferred|plus\b)/i;
+const REQUIRED_CRITERION_PATTERN = /(bắt buộc|bat buoc|yêu cầu|yeu cau|tối thiểu|toi thieu|ít nhất|it nhat|minimum|required|must\b)/i;
+const CRITICAL_CRITERION_PATTERN = /(bắt buộc|bat buoc|điều kiện tiên quyết|dieu kien tien quyet|không phù hợp nếu|khong phu hop neu|loại nếu|loai neu|must[ -]?have|mandatory|required|license|licence|chứng chỉ bắt buộc|chung chi bat buoc|giấy phép hành nghề|giay phep hanh nghe|visa|work permit|security clearance)/i;
+const QUANTITATIVE_CRITERION_PATTERN = /(?:\d+\+?\s*(?:năm|nam|years?|yrs?)|(?:tối thiểu|toi thieu|ít nhất|it nhat|minimum)\s+\d+)/i;
+const SOFT_SKILL_CRITERION_PATTERN = /(giao tiếp|giao tiep|làm việc nhóm|lam viec nhom|lắng nghe|lang nghe|coaching|huấn luyện|huan luyen|phân tích lỗi|phan tich loi|storytelling|thẩm mỹ|tham my|chú trọng chi tiết|chu trong chi tiet|stakeholder|communication|teamwork|detail|analytical)/i;
+const DOMAIN_CRITERION_PATTERN = /(fintech|payment|saas|startup|e-?commerce|thương mại điện tử|thuong mai dien tu|healthcare|banking|retail|domain)/i;
+const HARD_SKILL_CRITERION_PATTERN = /(react|typescript|next\.?js|node\.?js|nestjs|swiftui?|figma|selenium|playwright|cypress|postgresql|mysql|mongodb|kubernetes|docker|terraform|aws|api|rest|graphql|ci\/cd|tailwind|python|sql|tableau|power bi)/i;
 
 export function extractMatchCriteria(requirements: string): MatchCriterion[] {
   const lines = requirements
@@ -27,14 +32,20 @@ export function extractMatchCriteria(requirements: string): MatchCriterion[] {
   ).slice(0, MAX_MATCH_CRITERIA);
 
   return uniqueLines.map((text, index) => {
-    const required = REQUIRED_CRITERION_PATTERN.test(text)
-      || !OPTIONAL_CRITERION_PATTERN.test(text);
+    const preferred = OPTIONAL_CRITERION_PATTERN.test(text);
+    const critical = !preferred && CRITICAL_CRITERION_PATTERN.test(text);
+    const required = critical || REQUIRED_CRITERION_PATTERN.test(text) || !preferred;
+    const importance = critical ? "critical" : required ? "required" : "preferred";
+    const constraintType = classifyConstraintType(text);
 
     return {
       id: `criterion-${index + 1}`,
       text,
+      importance,
+      constraintType,
       required,
-      weight: required ? 2 : 1,
+      blocker: critical,
+      weight: criterionWeight(importance),
     };
   });
 }
@@ -52,6 +63,11 @@ function splitCriterionLine(rawLine: string) {
 }
 
 export function calculateMatchScore(criteria: MatchCriterion[], evaluations: Map<string, CriterionEvaluation>) {
+  const rawScore = calculateWeightedScore(criteria, evaluations);
+  return applyScoreCaps(rawScore, criteria, evaluations);
+}
+
+function calculateWeightedScore(criteria: MatchCriterion[], evaluations: Map<string, CriterionEvaluation>) {
   const totalWeight = criteria.reduce((sum, criterion) => sum + criterion.weight, 0);
   if (totalWeight === 0) return 0;
 
@@ -61,6 +77,34 @@ export function calculateMatchScore(criteria: MatchCriterion[], evaluations: Map
   }, 0);
 
   return Math.round((earnedWeight / totalWeight) * 100);
+}
+
+function applyScoreCaps(
+  score: number,
+  criteria: MatchCriterion[],
+  evaluations: Map<string, CriterionEvaluation>,
+) {
+  const criticalStatuses = criteria
+    .filter((criterion) => criterion.importance === "critical" || criterion.blocker)
+    .map((criterion) => evaluations.get(criterion.id)?.status ?? "unknown");
+
+  if (criticalStatuses.some((status) => status === "not_met" || status === "unknown")) {
+    return Math.min(score, 55);
+  }
+
+  if (criticalStatuses.some((status) => status === "partial")) {
+    return Math.min(score, 75);
+  }
+
+  const requiredStatuses = criteria
+    .filter((criterion) => criterion.required)
+    .map((criterion) => evaluations.get(criterion.id)?.status ?? "unknown");
+
+  if (requiredStatuses.some((status) => status === "not_met")) return Math.min(score, 70);
+  if (requiredStatuses.some((status) => status === "unknown")) return Math.min(score, 80);
+  if (hasPartialQuantitativeRequired(criteria, evaluations)) return Math.min(score, 85);
+
+  return score;
 }
 
 export function calculateConfidence(criteria: MatchCriterion[], evaluations: Map<string, CriterionEvaluation>) {
@@ -102,9 +146,35 @@ function statusScore(status: CriterionStatus) {
   return 0;
 }
 
+function criterionWeight(importance: MatchCriterion["importance"]) {
+  if (importance === "critical") return 4;
+  if (importance === "required") return 2;
+  return 1;
+}
+
+function classifyConstraintType(text: string): MatchCriterion["constraintType"] {
+  if (QUANTITATIVE_CRITERION_PATTERN.test(text)) return "quantitative";
+  if (SOFT_SKILL_CRITERION_PATTERN.test(text)) return "soft_skill";
+  if (DOMAIN_CRITERION_PATTERN.test(text)) return "domain";
+  if (HARD_SKILL_CRITERION_PATTERN.test(text)) return "hard_skill";
+  return "general";
+}
+
+function hasPartialQuantitativeRequired(
+  criteria: MatchCriterion[],
+  evaluations: Map<string, CriterionEvaluation>,
+) {
+  return criteria.some((criterion) => (
+    criterion.required
+    && criterion.constraintType === "quantitative"
+    && evaluations.get(criterion.id)?.status === "partial"
+  ));
+}
+
 function normalizeCriterionLine(line: string) {
   return line
-    .replace(/^[-*•\d.)\s]+/, "")
+    .replace(/^\s*[-*•]\s+/, "")
+    .replace(/^\s*\d+[.)]\s+/, "")
     .replace(/&amp;/g, "&")
     .trim();
 }

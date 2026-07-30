@@ -53,9 +53,9 @@ describe("CV text cleaner", () => {
       Page 1/3
     `;
     const result = prepareCvMatchInputForAi(cv, 4_000, [
-      { id: "criterion-1", text: "Strong React and TypeScript experience", required: true, weight: 2 },
-      { id: "criterion-2", text: "Node.js REST API experience", required: true, weight: 2 },
-      { id: "criterion-3", text: "AWS experience", required: false, weight: 1 },
+      { id: "criterion-1", text: "Strong React and TypeScript experience", importance: "required", constraintType: "hard_skill", required: true, blocker: false, weight: 2 },
+      { id: "criterion-2", text: "Node.js REST API experience", importance: "required", constraintType: "hard_skill", required: true, blocker: false, weight: 2 },
+      { id: "criterion-3", text: "AWS experience", importance: "preferred", constraintType: "hard_skill", required: false, blocker: false, weight: 1 },
     ], ["Nguyen Van A"]);
 
     expect(result.strategy).toBe("criteria_curated_pack");

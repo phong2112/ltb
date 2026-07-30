@@ -7,6 +7,16 @@ export type CandidateMessageChannel = "system" | "messenger" | "zalo" | "email" 
 type CandidateMessageDirection = "inbound" | "outbound";
 export type AiAnalysisStatus = "pending" | "completed" | "failed";
 export type AiReviewTone = "good" | "fair" | "check";
+export type CvSummary = {
+  overview: string;
+  currentTitle: string | null;
+  totalExperience: string | null;
+  keySkills: string[];
+  workHighlights: string[];
+  education: string[];
+  languages: string[];
+  notesForTa: string[];
+};
 export type ApiCvParseStatus =
   | "PENDING"
   | "EXTRACTING"
@@ -85,6 +95,7 @@ export type Candidate = {
   };
   aiError: string;
   aiSummary: string;
+  cvSummary: CvSummary | null;
   strengths: string[];
   risks: string[];
   missingReqs: string[];
@@ -201,6 +212,7 @@ export type ApiApplicationAnalysis = {
   status: ApiCvParseStatus;
   summary?: string | null;
   errorMessage?: string | null;
+  cvSummary?: CvSummary | null;
   confidence?: number | null;
   analysisSignals?: unknown;
   updatedAt?: string;

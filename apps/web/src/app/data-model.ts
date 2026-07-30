@@ -165,6 +165,7 @@ function mapCandidate(application: ApiApplication): Candidate | null {
     aiReview: buildAiReview(aiStatus, aiMetadata),
     aiError: application.cvParseResult?.errorMessage ?? "",
     aiSummary: application.cvParseResult?.summary ?? "Hồ sơ đang được AI phân tích...",
+    cvSummary: parseCvSummary(aiMetadata?.cvSummary),
     strengths: toStringArray(application.matchResult?.strengths),
     risks: toStringArray(application.matchResult?.risks),
     missingReqs: toStringArray(application.matchResult?.missingRequirements),
@@ -181,7 +182,7 @@ function mapAiAnalysisStatus(status?: ApiCvParseStatus): AiAnalysisStatus {
 
 export function mapApplicationAnalysis(analysis: ApiApplicationAnalysis): Pick<
   Candidate,
-  "aiScore" | "aiStatus" | "aiConfidence" | "aiReview" | "aiError" | "aiSummary" | "strengths" | "risks" | "missingReqs"
+  "aiScore" | "aiStatus" | "aiConfidence" | "aiReview" | "aiError" | "aiSummary" | "cvSummary" | "strengths" | "risks" | "missingReqs"
 > {
   const status = mapAiAnalysisStatus(analysis.status);
   return {
@@ -191,6 +192,7 @@ export function mapApplicationAnalysis(analysis: ApiApplicationAnalysis): Pick<
     aiReview: buildAiReview(status, asRecord(analysis.analysisSignals), analysis.confidence),
     aiError: analysis.errorMessage ?? "",
     aiSummary: analysis.summary ?? "Hồ sơ đang được AI phân tích...",
+    cvSummary: analysis.cvSummary ?? null,
     strengths: toStringArray(analysis.matchResult?.strengths),
     risks: toStringArray(analysis.matchResult?.risks),
     missingReqs: toStringArray(analysis.matchResult?.missingRequirements),
@@ -339,6 +341,25 @@ function formatPostedDate(value?: string) {
 
 function toStringArray(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function parseCvSummary(value: unknown): Candidate["cvSummary"] {
+  const record = asRecord(value);
+  if (!record) return null;
+
+  const overview = typeof record.overview === "string" ? record.overview.trim() : "";
+  if (!overview) return null;
+
+  return {
+    overview,
+    currentTitle: typeof record.currentTitle === "string" && record.currentTitle.trim() ? record.currentTitle.trim() : null,
+    totalExperience: typeof record.totalExperience === "string" && record.totalExperience.trim() ? record.totalExperience.trim() : null,
+    keySkills: toStringArray(record.keySkills),
+    workHighlights: toStringArray(record.workHighlights),
+    education: toStringArray(record.education),
+    languages: toStringArray(record.languages),
+    notesForTa: toStringArray(record.notesForTa),
+  };
 }
 
 function asRecord(value: unknown) {

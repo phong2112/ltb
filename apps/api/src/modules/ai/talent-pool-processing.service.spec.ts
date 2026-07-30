@@ -89,6 +89,7 @@ describe("TalentPoolProcessingService", () => {
         normalizedEmail: "a@example.com",
         phone: "0901 234 567",
         normalizedPhone: "0901234567",
+        fullName: "Nguyen Van A",
       }),
     }));
     expect(tx.talentPoolEntry.update).toHaveBeenCalledWith(expect.objectContaining({
@@ -104,6 +105,31 @@ describe("TalentPoolProcessingService", () => {
     expect(provider.extractProfile).toHaveBeenCalledWith(expect.objectContaining({ fileName: "candidate.pdf" }));
     expect(tx.candidate.update).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ fullName: "Nguyen Van A" }),
+    }));
+  });
+
+  it("keeps AI extracted names ahead of deterministic text parsing", async () => {
+    const { service, tx, provider } = createService({ aiEnabled: true });
+    provider.extractProfile.mockResolvedValue({
+      fullName: "Nguyen Van AI",
+      title: null,
+      yearsExperience: null,
+      skills: [],
+      languages: [],
+    });
+
+    await service.processPoolEntry("entry-1");
+
+    expect(tx.candidate.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ fullName: "Nguyen Van AI" }),
+    }));
+    expect(tx.talentPoolEntry.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        structuredData: expect.objectContaining({
+          fullName: "Nguyen Van AI",
+          fullNameSource: "ai",
+        }),
+      }),
     }));
   });
 

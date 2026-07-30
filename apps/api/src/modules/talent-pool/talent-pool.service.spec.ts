@@ -102,6 +102,33 @@ describe("TalentPoolService", () => {
     }));
   });
 
+  it("does not use the uploaded CV filename as the candidate name", async () => {
+    const tx = {
+      candidate: { create: jest.fn().mockResolvedValue({ id: "candidate-1" }) },
+      talentPoolEntry: { create: jest.fn().mockResolvedValue({ id: "entry-1" }) },
+      candidateFile: { create: jest.fn() },
+      activityLog: { create: jest.fn() },
+    };
+    const $transaction = jest.fn(async (callback: (client: typeof tx) => Promise<string>) => callback(tx));
+    const storePoolCv = jest.fn().mockResolvedValue({
+      originalName: "IT Helpdesk_Dinh Xuan Phuong.pdf",
+      storedName: "cv/candidate-1/pool/entry-1/file.pdf",
+      mimeType: "application/pdf",
+      sizeBytes: 14,
+      path: "cv/candidate-1/pool/entry-1/file.pdf",
+    });
+    const { service } = createService({
+      prisma: { $transaction },
+      storage: { storePoolCv },
+    });
+
+    await service.uploadMany([createFile("IT Helpdesk_Dinh Xuan Phuong.pdf", Buffer.from("%PDF-1.7\n%%EOF"))], {});
+
+    expect(tx.candidate.create).toHaveBeenCalledWith({
+      data: { fullName: "Ứng viên đang xử lý", source: "talent_pool" },
+    });
+  });
+
   it("processes inline when the pool queue is disabled", async () => {
     const { service, processing } = createService({
       prisma: { $transaction: jest.fn().mockResolvedValue("entry-1") },
@@ -147,6 +174,47 @@ describe("TalentPoolService", () => {
         ]),
       },
     });
+  });
+
+  it("returns the extracted CV name when the stored candidate name is still a filename", async () => {
+    const { service } = createService({
+      prisma: {
+        talentPoolEntry: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: "entry-1",
+            candidateId: "candidate-1",
+            candidate: {
+              id: "candidate-1",
+              fullName: "1784628428323-inbound4290200574812242911",
+              email: null,
+              phone: null,
+            },
+            file: {
+              id: "file-1",
+              originalName: "1784628428323-inbound4290200574812242911.pdf",
+              mimeType: "application/pdf",
+              sizeBytes: 260_000,
+            },
+            extractedText: [
+              "SENIOR QA / QA LEAD PROFILE",
+              "HUE DO THI (SANDY)",
+              "SENIOR QA ENGINEER | QA LEAD",
+              "Certified Tester AI Testing | ISTQB Advanced Level - Test Manager | ISTQB Agile Tester",
+              "Functional, regression, performance, security, and automation testing with LLM-based workflows.",
+            ].join("\n"),
+            structuredData: { email: "dothihue9x@gmail.com" },
+          }),
+        },
+      },
+    });
+
+    await expect(service.getEntry("entry-1")).resolves.toEqual(expect.objectContaining({
+      candidate: expect.objectContaining({ fullName: "Hue Do Thi" }),
+      structuredData: expect.objectContaining({
+        title: "SENIOR QA ENGINEER | QA LEAD",
+        skills: expect.arrayContaining(["QA", "Automation Testing", "AI Testing", "ISTQB"]),
+      }),
+    }));
   });
 
   it("does not delete a shared physical CV after deleting a promoted pool entry", async () => {

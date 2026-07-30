@@ -2,16 +2,19 @@ import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import Groq from "groq-sdk";
 import { z } from "zod";
-import { buildExtractProfilePrompt, buildMatchPrompt } from "./ai.prompt";
+import { buildCvSummaryPrompt, buildExtractProfilePrompt, buildMatchPrompt } from "./ai.prompt";
 import type {
   AiProvider,
   AnalyzeMatchInput,
+  CvSummary,
   ExtractProfileInput,
   ExtractedProfile,
   ProviderMatchAnalysis,
+  SummarizeCvInput,
 } from "./ai.types";
 
 const MAX_PROFILE_CV_CHARACTERS = 45_000;
+const MAX_SUMMARY_CV_CHARACTERS = 45_000;
 
 const extractedProfileSchema = z.object({
   fullName: z.string().nullable(),
@@ -32,6 +35,17 @@ const matchAnalysisSchema = z.object({
     ),
     reason: z.string().min(1).max(500),
   })).max(15),
+});
+
+const cvSummarySchema = z.object({
+  overview: z.string().min(1).max(500),
+  currentTitle: z.string().nullable(),
+  totalExperience: z.string().nullable(),
+  keySkills: z.array(z.string()).max(12),
+  workHighlights: z.array(z.string()).max(6),
+  education: z.array(z.string()).max(4),
+  languages: z.array(z.string()).max(6),
+  notesForTa: z.array(z.string()).max(5),
 });
 
 @Injectable()
@@ -164,6 +178,57 @@ export class GroqAiProvider implements AiProvider {
     } catch (error) {
       this.logger.warn(
         `Groq profile extract failed: model=${this.model} elapsedMs=${Date.now() - startedAt} error=${toSafeLogMessage(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  async summarizeCv(input: SummarizeCvInput): Promise<CvSummary> {
+    const prompt = buildCvSummaryPrompt({
+      cvText: input.cvText.slice(0, MAX_SUMMARY_CV_CHARACTERS),
+    });
+    const startedAt = Date.now();
+    const baseMessages = [
+      {
+        role: "system" as const,
+        content: [
+          "Bạn là trợ lý tuyển dụng.",
+          "Tóm tắt CV độc lập với JD, chỉ dựa trên nội dung CV.",
+          "Chỉ trả về một JSON object hợp lệ, không markdown, không giải thích.",
+        ].join(" "),
+      },
+      { role: "user" as const, content: prompt },
+    ];
+
+    try {
+      let rawContent = await this.createStructuredCompletion(baseMessages);
+      let summary: CvSummary;
+
+      try {
+        summary = parseStructuredResponse(rawContent, cvSummarySchema, normalizeCvSummaryCandidate);
+      } catch (error) {
+        if (!(error instanceof StructuredResponseError)) throw error;
+
+        this.logger.warn(`Groq CV summary response requires repair: ${error.message}`);
+        rawContent = await this.createStructuredCompletion([
+          ...baseMessages,
+          { role: "assistant" as const, content: rawContent },
+          {
+            role: "user" as const,
+            content: `JSON vừa trả về không đúng schema (${error.message}). Hãy sửa và chỉ trả về một JSON object hợp lệ, không có markdown hoặc giải thích.`,
+          },
+        ]);
+        summary = parseStructuredResponse(rawContent, cvSummarySchema, normalizeCvSummaryCandidate);
+      }
+
+      this.logger.log(
+        `Groq CV summary completed: model=${this.model} elapsedMs=${Date.now() - startedAt} cvChars=${input.cvText.length}`,
+      );
+
+      return summary;
+    } catch (error) {
+      this.logger.warn(
+        `Groq CV summary failed: model=${this.model} elapsedMs=${Date.now() - startedAt} cvChars=${input.cvText.length} error=${toSafeLogMessage(error)}`,
       );
       throw error;
     }
@@ -316,6 +381,50 @@ function formatSchemaIssues(error: z.ZodError) {
   return error.issues
     .map(issue => `${issue.path.join(".") || "root"}: ${issue.message}`)
     .join("; ");
+}
+
+function normalizeCvSummaryCandidate(value: unknown) {
+  const record = unwrapKnownPayload(value, ["cvSummary", "summary", "result"]);
+  if (!record) return value;
+
+  return {
+    overview: typeof record.overview === "string"
+      ? record.overview
+      : typeof record.summary === "string"
+        ? record.summary
+        : "Chưa có tóm tắt CV.",
+    currentTitle: nullableString(record.currentTitle ?? record.title),
+    totalExperience: nullableString(record.totalExperience ?? record.yearsExperience),
+    keySkills: stringArray(record.keySkills ?? record.skills),
+    workHighlights: stringArray(record.workHighlights ?? record.highlights ?? record.experienceHighlights),
+    education: stringArray(record.education),
+    languages: stringArray(record.languages),
+    notesForTa: stringArray(record.notesForTa ?? record.notes ?? record.taNotes),
+  };
+}
+
+function nullableString(value: unknown) {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return null;
+}
+
+function stringArray(value: unknown) {
+  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === "string");
+  return typeof value === "string" ? [value] : [];
+}
+
+function unwrapKnownPayload(value: unknown, keys: string[]) {
+  const record = toRecord(value);
+  if (!record) return undefined;
+  if (typeof record.overview === "string") return record;
+
+  for (const key of keys) {
+    const nested = toRecord(record[key]);
+    if (nested && typeof nested.overview === "string") return nested;
+  }
+
+  return record;
 }
 
 function normalizeMatchAnalysisCandidate(value: unknown) {

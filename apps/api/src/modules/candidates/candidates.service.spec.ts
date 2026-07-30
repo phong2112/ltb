@@ -21,6 +21,16 @@ describe("CandidatesService", () => {
               confidence: 80,
               evidenceCoverage: 90,
               inputTruncated: true,
+              cvSummary: {
+                overview: "Frontend Engineer có kinh nghiệm React.",
+                currentTitle: "Frontend Engineer",
+                totalExperience: "4 năm",
+                keySkills: ["React"],
+                workHighlights: ["Xây dashboard."],
+                education: [],
+                languages: ["Tiếng Anh"],
+                notesForTa: ["CV có portfolio."],
+              },
               aiInput: {
                 selectedCharacters: 12000,
                 omittedCharacters: 30000,
@@ -48,6 +58,16 @@ describe("CandidatesService", () => {
       applicationId: "application-1",
       status: "COMPLETED",
       summary: "Ứng viên phù hợp.",
+      cvSummary: {
+        overview: "Frontend Engineer có kinh nghiệm React.",
+        currentTitle: "Frontend Engineer",
+        totalExperience: "4 năm",
+        keySkills: ["React"],
+        workHighlights: ["Xây dashboard."],
+        education: [],
+        languages: ["Tiếng Anh"],
+        notesForTa: ["CV có portfolio."],
+      },
       errorMessage: null,
       confidence: 80,
       analysisSignals: {

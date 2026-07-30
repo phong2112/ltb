@@ -7,6 +7,7 @@ import ListPagination from "@/app/components/ListPagination";
 import AdminLayout from "@/app/layouts/AdminLayout";
 import { notificationService } from "@/app/services/notification";
 import {
+  deleteTalentPoolEntry,
   listTalentPool,
   type TalentPoolListItem,
   type TalentPoolUploadResult,
@@ -30,6 +31,9 @@ const TALENT_POOL_FETCH_SIZE = 100;
 const TALENT_POOL_STATUS: CandidateStatus = "talent_pool";
 const BULK_UPLOAD_MODE = "bulk";
 const PER_FILE_UPLOAD_MODE = "per-file";
+const SORT_NEWEST = "newest";
+const SORT_OLDEST = "oldest";
+const SORT_NAME_ASC = "name-asc";
 
 const STATUS_OPTS: (CandidateStatus | "all")[] = [
   "all",
@@ -38,6 +42,7 @@ const STATUS_OPTS: (CandidateStatus | "all")[] = [
 ];
 
 type UploadMode = typeof BULK_UPLOAD_MODE | typeof PER_FILE_UPLOAD_MODE;
+type SortOrder = typeof SORT_NEWEST | typeof SORT_OLDEST | typeof SORT_NAME_ASC;
 
 function readUrlStatus(
   searchParams: ReturnType<typeof useSearchParams>[0],
@@ -56,6 +61,7 @@ type UnifiedCandidateRow = {
   email: string;
   title: string;
   date: string;
+  sortTimestamp: number;
   status: CandidateStatus;
   applicationsCount: number;
   hasNew: boolean;
@@ -75,6 +81,7 @@ export default function CandidateInbox() {
     () => readUrlStatus(searchParams),
   );
   const [jobFilter, setJobFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState<SortOrder>(SORT_NEWEST);
   const [currentPage, setCurrentPage] = useState(1);
   const [poolEntries, setPoolEntries] = useState<TalentPoolListItem[]>([]);
   const [talentPoolTotal, setTalentPoolTotal] = useState(0);
@@ -86,6 +93,7 @@ export default function CandidateInbox() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResults, setUploadResults] = useState<TalentPoolUploadResult[]>([]);
   const [candidateToDelete, setCandidateToDelete] = useState<(typeof candidateProfiles)[number] | null>(null);
+  const [poolEntryToDelete, setPoolEntryToDelete] = useState<TalentPoolListItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const loadPoolEntries = useCallback(async () => {
@@ -112,6 +120,7 @@ export default function CandidateInbox() {
       email: candidate.email,
       title: latestApplication.jobTitle,
       date: latestApplication.appliedAt,
+      sortTimestamp: timestamp(latestApplication.appliedAt),
       status: latestApplication.status,
       applicationsCount: candidate.applications.length,
       hasNew: candidate.applications.some(application => application.status === "new"),
@@ -137,6 +146,7 @@ export default function CandidateInbox() {
       email,
       title,
       date: formatDate(entry.createdAt, language),
+      sortTimestamp: timestamp(entry.createdAt),
       status: TALENT_POOL_STATUS,
       applicationsCount: 0,
       hasNew: false,
@@ -147,8 +157,8 @@ export default function CandidateInbox() {
 
   const filtered = rows.filter(row => {
     const q = search.toLowerCase();
-    return !q || [row.name, row.email, row.title, ...(row.poolEntry?.tags ?? [])].some(value => value.toLowerCase().includes(q));
-  });
+    return !q || [row.name, row.email, row.title, ...stringList(row.poolEntry?.structuredData?.skills)].some(value => value.toLowerCase().includes(q));
+  }).sort((left, right) => compareRows(left, right, sortOrder, language));
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const activePage = Math.min(currentPage, totalPages);
@@ -258,6 +268,22 @@ export default function CandidateInbox() {
     try {
       await deleteCandidate(candidateToDelete.id);
       setCandidateToDelete(null);
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
+  async function handleDeletePoolEntry() {
+    if (!poolEntryToDelete || isDeleting) return;
+    setIsDeleting(true);
+    const toastId = notificationService.loading(t("talentPool.deleting"));
+    try {
+      await deleteTalentPoolEntry(poolEntryToDelete.id);
+      notificationService.success(t("talentPool.deleted"), toastId);
+      setPoolEntryToDelete(null);
+      await loadPoolEntries();
+    } catch (error) {
+      notificationService.error(error, t("talentPool.deleteError"), toastId);
     } finally {
       setIsDeleting(false);
     }
@@ -415,6 +441,19 @@ export default function CandidateInbox() {
               <option key={j.id} value={j.id}>{j.title}</option>
             ))}
           </select>
+          <select
+            value={sortOrder}
+            onChange={e => {
+              setSortOrder(e.target.value as SortOrder);
+              setCurrentPage(1);
+            }}
+            className="px-3 py-1 rounded-full text-xs font-bold border border-border bg-white text-muted-foreground outline-none focus:border-primary transition-colors"
+            aria-label={t("admin.sortCandidates")}
+          >
+            <option value={SORT_NEWEST}>{t("admin.sortNewest")}</option>
+            <option value={SORT_OLDEST}>{t("admin.sortOldest")}</option>
+            <option value={SORT_NAME_ASC}>{t("admin.sortNameAsc")}</option>
+          </select>
           <span className="w-full text-xs text-muted-foreground sm:ml-auto sm:w-auto self-center">
             {filtered.length} {t("jobs.resultCount")}
           </span>
@@ -459,7 +498,7 @@ export default function CandidateInbox() {
                     </span>
                     <span className="text-xs text-muted-foreground">{row.date}</span>
                   </div>
-                  {row.candidate && (
+                  {row.candidate ? (
                     <button
                       type="button"
                       onClick={() => setCandidateToDelete(row.candidate ?? null)}
@@ -469,7 +508,17 @@ export default function CandidateInbox() {
                     >
                       <Trash2 size={14} />
                     </button>
-                  )}
+                  ) : row.poolEntry ? (
+                    <button
+                      type="button"
+                      onClick={() => setPoolEntryToDelete(row.poolEntry ?? null)}
+                      className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
+                      title={t("talentPool.delete")}
+                      aria-label={`${t("talentPool.delete")}: ${row.name}`}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  ) : null}
                   <ChevronRight size={14} className="text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
                 </div>
             ))}
@@ -499,12 +548,32 @@ export default function CandidateInbox() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AlertDialog open={Boolean(poolEntryToDelete)} onOpenChange={open => { if (!open && !isDeleting) setPoolEntryToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("talentPool.deleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("talentPool.deleteDescription")} <strong>{poolEntryToDelete?.candidate.fullName}</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>{t("admin.cancel")}</AlertDialogCancel>
+            <AlertDialogAction disabled={isDeleting} onClick={() => void handleDeletePoolEntry()} className="bg-red-600 text-white hover:bg-red-700">
+              {isDeleting ? t("talentPool.deleting") : t("talentPool.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 }
 
 function stringField(value: unknown) {
   return typeof value === "string" ? value : "";
+}
+
+function stringList(value: unknown) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
 
 function fileKey(file: File) {
@@ -531,4 +600,22 @@ function formatDate(value: string, language: "vi" | "en") {
     month: "2-digit",
     year: "numeric",
   }).format(new Date(value));
+}
+
+function timestamp(value: string) {
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function compareRows(left: UnifiedCandidateRow, right: UnifiedCandidateRow, sortOrder: SortOrder, language: "vi" | "en") {
+  if (sortOrder === SORT_NAME_ASC) {
+    return left.name.localeCompare(right.name, language === "vi" ? "vi" : "en", { sensitivity: "base" })
+      || right.sortTimestamp - left.sortTimestamp;
+  }
+
+  const byDate = sortOrder === SORT_OLDEST
+    ? left.sortTimestamp - right.sortTimestamp
+    : right.sortTimestamp - left.sortTimestamp;
+
+  return byDate || left.name.localeCompare(right.name, language === "vi" ? "vi" : "en", { sensitivity: "base" });
 }

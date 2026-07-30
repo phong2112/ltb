@@ -64,6 +64,16 @@ describe("AiService", () => {
           { criterionId: "criterion-2", status: "unknown", evidence: [], reason: "Không thấy TypeScript" },
         ],
       }),
+      summarizeCv: jest.fn().mockResolvedValue({
+        overview: "Frontend Engineer có kinh nghiệm React.",
+        currentTitle: "Frontend Engineer",
+        totalExperience: "5 năm",
+        keySkills: ["React"],
+        workHighlights: ["Xây dựng sản phẩm web bằng React."],
+        education: [],
+        languages: [],
+        notesForTa: ["CV không nêu TypeScript."],
+      }),
       extractProfile: jest.fn(),
     };
     const service = new AiService(
@@ -75,6 +85,10 @@ describe("AiService", () => {
     await service.processApplication("application-1");
 
     expect(provider.analyzeMatch).toHaveBeenCalledTimes(1);
+    expect(provider.summarizeCv).toHaveBeenCalledTimes(1);
+    expect(provider.summarizeCv).toHaveBeenCalledWith(expect.objectContaining({
+      cvText: expect.not.stringContaining("candidate@example.com"),
+    }));
     expect(provider.analyzeMatch).toHaveBeenCalledWith(expect.objectContaining({
       cvText: expect.not.stringContaining("candidate@example.com"),
     }));
@@ -102,6 +116,16 @@ describe("AiService", () => {
         structuredData: expect.objectContaining({
           lowConfidenceOcr: true,
           ocrConfidence: 42,
+        }),
+      }),
+    }));
+    expect(cvParseUpdate).toHaveBeenLastCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        structuredData: expect.objectContaining({
+          cvSummary: expect.objectContaining({
+            overview: "Frontend Engineer có kinh nghiệm React.",
+            keySkills: ["React"],
+          }),
         }),
       }),
     }));

@@ -2,11 +2,12 @@ import { Inject, Injectable } from "@nestjs/common";
 import { CvParseStatus, FileKind, Prisma } from "@prisma/client";
 import sanitizeHtml from "sanitize-html";
 import { PrismaService } from "../prisma/prisma.service";
-import { MATCH_PROMPT_VERSION } from "./ai.prompt";
+import { CV_SUMMARY_PROMPT_VERSION, MATCH_PROMPT_VERSION } from "./ai.prompt";
 import {
   AI_PROVIDER,
   type AiProvider,
   type CriterionEvaluation,
+  type CvSummary,
   type MatchCriterion,
 } from "./ai.types";
 import { CvTextExtractorService, type ExtractedCvText } from "./cv-text-extractor.service";
@@ -192,6 +193,9 @@ export class AiService {
       criteria,
       [application.submittedFullName],
     );
+    const cvSummary = sanitizeCvSummary(await this.provider.summarizeCv({
+      cvText: aiReadyCv.text,
+    }));
     const analysis = await this.provider.analyzeMatch({
       jobTitle: application.job.title,
       jobDescription: htmlToPlainText(application.job.description).slice(0, MAX_JOB_DESCRIPTION_CHARACTERS),
@@ -231,6 +235,8 @@ export class AiService {
             provider: this.provider.name,
             model: this.provider.model,
             promptVersion: MATCH_PROMPT_VERSION,
+            cvSummary,
+            cvSummaryPromptVersion: CV_SUMMARY_PROMPT_VERSION,
             parser: extractedInput?.parser ?? extractionMetadata.parser ?? "unknown",
             confidence,
             evidenceCoverage,
@@ -249,6 +255,7 @@ export class AiService {
               confirmedScore: score,
               potentialScore,
               evidenceCoverage,
+              critical: countCriterionStatuses(criteria, normalizedEvaluations, "critical"),
               required: countCriterionStatuses(criteria, normalizedEvaluations, true),
               optional: countCriterionStatuses(criteria, normalizedEvaluations, false),
             },
@@ -344,6 +351,40 @@ function appendUnique(values: string[], value: string) {
   return values.includes(value) ? values : [...values, value];
 }
 
+function sanitizeCvSummary(summary: CvSummary): Prisma.InputJsonObject {
+  return {
+    overview: sanitizeSummaryText(summary.overview),
+    currentTitle: sanitizeNullableSummaryText(summary.currentTitle),
+    totalExperience: sanitizeNullableSummaryText(summary.totalExperience),
+    keySkills: sanitizeSummaryList(summary.keySkills, 12),
+    workHighlights: sanitizeSummaryList(summary.workHighlights, 6),
+    education: sanitizeSummaryList(summary.education, 4),
+    languages: sanitizeSummaryList(summary.languages, 6),
+    notesForTa: sanitizeSummaryList(summary.notesForTa, 5),
+  };
+}
+
+function sanitizeSummaryList(values: string[], maxItems: number) {
+  return values
+    .map(sanitizeSummaryText)
+    .filter(Boolean)
+    .slice(0, maxItems);
+}
+
+function sanitizeNullableSummaryText(value: string | null) {
+  const sanitized = value ? sanitizeSummaryText(value) : "";
+  return sanitized || null;
+}
+
+function sanitizeSummaryText(value: string) {
+  return value
+    .replace(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/giu, "[email đã ẩn]")
+    .replace(/https?:\/\/[^\s)"'<>]+/giu, "[url đã ẩn]")
+    .replace(/\+?\d[\d\s.\-()]{7,}\d/gu, "[số điện thoại đã ẩn]")
+    .replace(/\s+/gu, " ")
+    .trim();
+}
+
 function htmlToPlainText(value: string) {
   const withLineBreaks = value
     .replace(/<br\s*\/?\s*>/gi, "\n")
@@ -386,12 +427,13 @@ function adjustConfidence(
 function countCriterionStatuses(
   criteria: MatchCriterion[],
   evaluations: Map<string, CriterionEvaluation>,
-  required: boolean,
+  filter: boolean | MatchCriterion["importance"],
 ) {
   const counts = { total: 0, met: 0, partial: 0, notMet: 0, unknown: 0 };
 
   for (const criterion of criteria) {
-    if (criterion.required !== required) continue;
+    if (typeof filter === "boolean" && criterion.required !== filter) continue;
+    if (typeof filter === "string" && criterion.importance !== filter) continue;
     counts.total += 1;
     const status = evaluations.get(criterion.id)?.status ?? "unknown";
     if (status === "met") counts.met += 1;

@@ -136,6 +136,29 @@ describe("GroqAiProvider", () => {
       response_format: { type: "json_object" },
     }));
   });
+
+  it("returns a standalone CV summary that is independent from match analysis", async () => {
+    mockCreate.mockResolvedValueOnce(response({
+      overview: "Frontend Engineer có kinh nghiệm xây dựng ứng dụng web.",
+      currentTitle: "Frontend Engineer",
+      totalExperience: "4 năm",
+      keySkills: ["React", "TypeScript"],
+      workHighlights: ["Phát triển dashboard nội bộ."],
+      education: ["Đại học Công nghệ"],
+      languages: ["Tiếng Việt", "Tiếng Anh"],
+      notesForTa: ["CV có mô tả dự án web rõ ràng."],
+    }));
+    const provider = createProvider();
+
+    await expect(provider.summarizeCv({
+      cvText: "Frontend Engineer with React and TypeScript experience.",
+    })).resolves.toMatchObject({
+      overview: "Frontend Engineer có kinh nghiệm xây dựng ứng dụng web.",
+      keySkills: ["React", "TypeScript"],
+      workHighlights: ["Phát triển dashboard nội bộ."],
+    });
+    expect(mockCreate.mock.calls[0][0].messages[1].content).toContain("Đây KHÔNG phải phân tích match");
+  });
 });
 
 function createProvider() {
@@ -181,7 +204,7 @@ function matchInput(): AnalyzeMatchInput {
   return {
     jobTitle: "Frontend Engineer",
     jobDescription: "Xây dựng ứng dụng web.",
-    criteria: [{ id: "criterion-1", text: "React", required: true, weight: 2 }],
+    criteria: [{ id: "criterion-1", text: "React", importance: "required", constraintType: "hard_skill", required: true, blocker: false, weight: 2 }],
     cvText: "Ứng viên có 4 năm kinh nghiệm React.",
   };
 }

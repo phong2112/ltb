@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
   AlertTriangle,
@@ -8,7 +8,10 @@ import {
   CheckCircle,
   ChevronLeft,
   ClipboardList,
+  FileText,
+  GraduationCap,
   History,
+  Languages,
   Mail,
   MapPin,
   MessageSquare,
@@ -269,6 +272,8 @@ export default function CandidateDetail() {
               </div>
             </section>
 
+            <CvSummarySection application={application} />
+
             <section className="overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_10px_30px_rgba(120,70,86,0.04)]">
               <div className="grid gap-5 border-b border-border px-5 py-5 lg:grid-cols-[minmax(0,1fr)_220px]">
                 <div className="min-w-0">
@@ -397,6 +402,84 @@ export default function CandidateDetail() {
         </AlertDialogContent>
       </AlertDialog>
     </AdminLayout>
+  );
+}
+
+function CvSummarySection({ application }: { application: ReturnType<typeof useData>["candidates"][number] }) {
+  const summary = application.cvSummary;
+
+  return (
+    <section className="rounded-2xl border border-border/80 bg-white p-5 shadow-[0_10px_30px_rgba(120,70,86,0.04)]">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <SectionHeading icon={<FileText size={16} />} title="Tóm tắt CV" />
+          <p className="mt-3 max-w-4xl text-sm leading-6 text-foreground">
+            {summary?.overview ?? (application.aiStatus === "failed" ? "AI chưa tóm tắt được CV này. TA có thể mở file CV để xem trực tiếp." : "Tóm tắt CV sẽ hiển thị sau khi AI đọc xong hồ sơ.")}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 sm:justify-end">
+          {summary?.currentTitle && <SummaryPill label={summary.currentTitle} />}
+          {summary?.totalExperience && <SummaryPill label={summary.totalExperience} />}
+        </div>
+      </div>
+
+      {summary && (
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          <CvSummaryList icon={<Sparkles size={14} />} title="Kỹ năng chính" items={summary.keySkills} inline />
+          <CvSummaryList icon={<Briefcase size={14} />} title="Kinh nghiệm nổi bật" items={summary.workHighlights} />
+          <CvSummaryList icon={<GraduationCap size={14} />} title="Học vấn" items={summary.education} />
+          <CvSummaryList icon={<Languages size={14} />} title="Ngôn ngữ" items={summary.languages} inline />
+          <div className="lg:col-span-2">
+            <CvSummaryList icon={<NotebookPen size={14} />} title="Ghi chú nhanh cho TA" items={summary.notesForTa} />
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function SummaryPill({ label }: { label: string }) {
+  return (
+    <span className="inline-flex max-w-full items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-bold text-primary">
+      <span className="truncate">{label}</span>
+    </span>
+  );
+}
+
+function CvSummaryList({ icon, title, items, inline = false }: {
+  icon: ReactNode;
+  title: string;
+  items: string[];
+  inline?: boolean;
+}) {
+  return (
+    <div className="min-w-0 rounded-xl border border-border/80 bg-background/60 p-4">
+      <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+        <span className="text-primary">{icon}</span> {title}
+      </p>
+      {items.length > 0 ? (
+        inline ? (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {items.map(item => (
+              <span key={item} className="max-w-full rounded-full border border-border bg-white px-2.5 py-1 text-xs font-bold text-foreground">
+                {item}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {items.map(item => (
+              <li key={item} className="grid grid-cols-[8px_minmax(0,1fr)] gap-2 text-sm leading-6 text-foreground">
+                <span className="mt-2 size-1.5 rounded-full bg-primary" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        )
+      ) : (
+        <p className="mt-3 text-sm font-semibold text-muted-foreground">—</p>
+      )}
+    </div>
   );
 }
 

@@ -6,7 +6,7 @@ import {
   ChevronRight,
   FileText,
   Search,
-  Tag,
+  Trash2,
   Upload,
   UsersRound,
   X,
@@ -18,12 +18,24 @@ import { useLanguage } from "@/app/i18n";
 import { apiRequest } from "@/app/services/api-client";
 import { notificationService } from "@/app/services/notification";
 import {
+  deleteTalentPoolEntry,
   listTalentPool,
+  type TalentPoolListItem,
   type TalentPoolListResponse,
   type TalentPoolStatus,
   type TalentPoolUploadResult,
   uploadTalentPoolFiles,
 } from "@/app/services/talent-pool-api";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/app/components/ui/alert-dialog";
 
 const PAGE_SIZE = 10;
 const MAX_FILES = 20;
@@ -72,20 +84,19 @@ export function TalentPoolContent({ embedded = false, showHeader = true, onTotal
   const [uploadResults, setUploadResults] = useState<TalentPoolUploadResult[]>([]);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [tagInput, setTagInput] = useState("");
-  const [tag, setTag] = useState("");
   const [status, setStatus] = useState<TalentPoolStatus | "ALL">("ALL");
   const [page, setPage] = useState(1);
   const [data, setData] = useState<TalentPoolListResponse>({ total: 0, page: 1, pageSize: PAGE_SIZE, items: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [entryToDelete, setEntryToDelete] = useState<TalentPoolListItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadEntries = useCallback(async (quiet = false) => {
     if (!quiet) setIsLoading(true);
     try {
       const response = await listTalentPool({
         search,
-        tag,
         status: status === "ALL" ? undefined : status,
         page,
         pageSize: PAGE_SIZE,
@@ -97,7 +108,7 @@ export function TalentPoolContent({ embedded = false, showHeader = true, onTotal
     } finally {
       if (!quiet) setIsLoading(false);
     }
-  }, [page, search, status, tag, t]);
+  }, [page, search, status, t]);
 
   useEffect(() => {
     void apiRequest<ApiJob[]>("/admin/jobs").then(setJobs).catch(() => setJobs([]));
@@ -106,11 +117,10 @@ export function TalentPoolContent({ embedded = false, showHeader = true, onTotal
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setSearch(searchInput.trim());
-      setTag(tagInput.trim());
       setPage(1);
     }, 350);
     return () => window.clearTimeout(timer);
-  }, [searchInput, tagInput]);
+  }, [searchInput]);
 
   useEffect(() => {
     void loadEntries();
@@ -196,6 +206,26 @@ export function TalentPoolContent({ embedded = false, showHeader = true, onTotal
 
   function updateFileTarget(file: File, jobId: string) {
     setFileTargetJobIds(current => ({ ...current, [fileKey(file)]: jobId }));
+  }
+
+  async function handleDeleteEntry() {
+    if (!entryToDelete || isDeleting) return;
+    setIsDeleting(true);
+    const toastId = notificationService.loading(t("talentPool.deleting"));
+    try {
+      await deleteTalentPoolEntry(entryToDelete.id);
+      notificationService.success(t("talentPool.deleted"), toastId);
+      setEntryToDelete(null);
+      if (data.items.length === 1 && page > 1) {
+        setPage(current => Math.max(1, current - 1));
+      } else {
+        await loadEntries(true);
+      }
+    } catch (error) {
+      notificationService.error(error, t("talentPool.deleteError"), toastId);
+    } finally {
+      setIsDeleting(false);
+    }
   }
 
   const totalPages = Math.max(1, Math.ceil(data.total / PAGE_SIZE));
@@ -313,9 +343,8 @@ export function TalentPoolContent({ embedded = false, showHeader = true, onTotal
       </section>
 
       <section className="overflow-hidden rounded-xl border border-border bg-white">
-          <div className="grid gap-3 border-b border-border p-4 lg:grid-cols-[minmax(0,1fr)_220px_180px]">
+          <div className="grid gap-3 border-b border-border p-4 lg:grid-cols-[minmax(0,1fr)_180px]">
             <label className="flex h-10 items-center gap-2 rounded-lg border border-border bg-background px-3"><Search size={14} className="text-muted-foreground" /><input value={searchInput} onChange={event => setSearchInput(event.target.value)} placeholder={t("talentPool.searchPlaceholder")} className="min-w-0 flex-1 bg-transparent text-sm outline-none" /></label>
-            <label className="flex h-10 items-center gap-2 rounded-lg border border-border bg-background px-3"><Tag size={14} className="text-muted-foreground" /><input value={tagInput} onChange={event => setTagInput(event.target.value)} placeholder={t("talentPool.tagPlaceholder")} className="min-w-0 flex-1 bg-transparent text-sm outline-none" /></label>
             <select value={status} onChange={event => { setStatus(event.target.value as TalentPoolStatus | "ALL"); setPage(1); }} className="h-10 rounded-lg border border-border bg-background px-3 text-sm font-semibold outline-none focus:border-primary">
               {STATUS_OPTIONS.map(option => <option key={option} value={option}>{statusLabel(option, language)}</option>)}
             </select>
@@ -332,37 +361,67 @@ export function TalentPoolContent({ embedded = false, showHeader = true, onTotal
               {data.items.map(entry => {
                 const email = stringField(entry.structuredData?.email) || entry.candidate.email || "—";
                 const title = stringField(entry.structuredData?.title) || t("talentPool.noTitle");
+                const skills = stringList(entry.structuredData?.skills);
                 return (
-                  <Link key={entry.id} to={`/admin/talent-pool/${entry.id}`} className="group flex items-center gap-4 p-4 transition-colors hover:bg-pink-50/50">
-                    <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                      {initials(entry.candidate.fullName)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-bold text-foreground transition-colors group-hover:text-primary">{entry.candidate.fullName}</p>
-                        <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
-                          {entry.promotedApplicationId ? t("talentPool.openApplication") : t("talentPool.keepGeneral")}
-                        </span>
-                        {entry.tags.slice(0, 2).map(item => (
-                          <span key={item} className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-muted-foreground">{item}</span>
-                        ))}
+                  <div key={entry.id} className="group flex items-center gap-3 p-4 transition-colors hover:bg-pink-50/50">
+                    <Link to={`/admin/talent-pool/${entry.id}`} className="flex min-w-0 flex-1 items-center gap-4">
+                      <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                        {initials(entry.candidate.fullName)}
                       </div>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {title} · {email}
-                      </p>
-                    </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-bold text-foreground transition-colors group-hover:text-primary">{entry.candidate.fullName}</p>
+                          <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                            {entry.promotedApplicationId ? t("talentPool.openApplication") : t("talentPool.keepGeneral")}
+                          </span>
+                          {skills.slice(0, 2).map(item => (
+                            <span key={item} className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-muted-foreground">{item}</span>
+                          ))}
+                        </div>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {title} · {email}
+                        </p>
+                      </div>
+                    </Link>
                     <div className="hidden flex-shrink-0 items-center gap-3 sm:flex">
                       <StatusBadge status={entry.status} language={language} />
                       <span className="text-xs text-muted-foreground">{formatDate(entry.createdAt, language)}</span>
                     </div>
-                    <ChevronRight size={14} className="flex-shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
-                  </Link>
+                    <button
+                      type="button"
+                      onClick={() => setEntryToDelete(entry)}
+                      className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
+                      title={t("talentPool.delete")}
+                      aria-label={`${t("talentPool.delete")}: ${entry.candidate.fullName}`}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                    <Link to={`/admin/talent-pool/${entry.id}`} aria-label={entry.candidate.fullName}>
+                      <ChevronRight size={14} className="flex-shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+                    </Link>
+                  </div>
                 );
               })}
             </div>
           )}
           <ListPagination currentPage={Math.min(page, totalPages)} pageSize={PAGE_SIZE} totalItems={data.total} onPageChange={setPage} />
       </section>
+      <AlertDialog open={Boolean(entryToDelete)} onOpenChange={open => { if (!open && !isDeleting) setEntryToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("talentPool.deleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("talentPool.deleteDescription")} <strong>{entryToDelete?.candidate.fullName}</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>{t("admin.cancel")}</AlertDialogCancel>
+            <AlertDialogAction disabled={isDeleting} onClick={() => void handleDeleteEntry()} className="bg-red-600 text-white hover:bg-red-700">
+              {isDeleting ? t("talentPool.deleting") : t("talentPool.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -409,4 +468,5 @@ function groupFilesByTargetJob(files: File[], fileTargetJobIds: Record<string, s
 function formatFileSize(bytes: number) { return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`; }
 function formatDate(value: string, language: "vi" | "en") { return new Intl.DateTimeFormat(language === "vi" ? "vi-VN" : "en-US", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(value)); }
 function stringField(value: unknown) { return typeof value === "string" ? value : ""; }
+function stringList(value: unknown) { return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []; }
 function initials(name: string) { return name.trim().split(/\s+/).slice(-2).map(part => part[0]).join("").toUpperCase(); }

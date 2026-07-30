@@ -139,6 +139,7 @@ export class CandidatesService {
       applicationId: application.id,
       status: application.cvParseResult.status,
       summary: application.cvParseResult.summary,
+      cvSummary: readCvSummary(metadata),
       errorMessage: application.cvParseResult.errorMessage,
       confidence: typeof metadata?.confidence === "number" ? metadata.confidence : null,
       analysisSignals: buildAnalysisSignals(metadata),
@@ -470,6 +471,28 @@ function buildAnalysisSignals(metadata: Record<string, unknown> | undefined) {
         }
       : null,
   };
+}
+
+function readCvSummary(metadata: Record<string, unknown> | undefined) {
+  const summary = asPlainRecord(metadata?.cvSummary);
+  if (!summary) return null;
+
+  return {
+    overview: typeof summary.overview === "string" ? summary.overview : "",
+    currentTitle: typeof summary.currentTitle === "string" ? summary.currentTitle : null,
+    totalExperience: typeof summary.totalExperience === "string" ? summary.totalExperience : null,
+    keySkills: readStringList(summary.keySkills),
+    workHighlights: readStringList(summary.workHighlights),
+    education: readStringList(summary.education),
+    languages: readStringList(summary.languages),
+    notesForTa: readStringList(summary.notesForTa),
+  };
+}
+
+function readStringList(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
 }
 
 function asPlainRecord(value: unknown) {

@@ -60,11 +60,14 @@ export class TalentPoolProcessingService {
         ...(regex.email ? { email: regex.email } : {}),
         ...(regex.phone ? { phone: regex.phone } : {}),
         ...(regex.normalizedPhone ? { normalizedPhone: regex.normalizedPhone } : {}),
+        ...(regex.fullName ? { fullName: regex.fullName, fullNameSource: "cv_text" } : {}),
+        ...(regex.title ? { title: regex.title, titleSource: "cv_text" } : {}),
+        ...(regex.skills?.length ? { skills: regex.skills, skillsSource: "cv_text" } : {}),
         ...(regex.linkedinUrl ? { linkedinUrl: regex.linkedinUrl } : {}),
         ...(regex.portfolioUrl ? { portfolioUrl: regex.portfolioUrl } : {}),
       };
 
-      let aiFullName: string | undefined;
+      let extractedFullName = regex.fullName;
       if (this.aiEnabled) {
         try {
           const aiReadyCv = prepareCvTextForAi(extracted.text, MAX_AI_CV_CHARACTERS);
@@ -79,12 +82,19 @@ export class TalentPoolProcessingService {
             truncated: aiReadyCv.truncated,
           };
           if (profile.fullName?.trim()) {
-            aiFullName = profile.fullName.trim();
-            structuredData.fullName = aiFullName;
+            extractedFullName = profile.fullName.trim();
+            structuredData.fullName = extractedFullName;
+            structuredData.fullNameSource = "ai";
           }
-          if (profile.title?.trim()) structuredData.title = profile.title.trim();
+          if (profile.title?.trim()) {
+            structuredData.title = profile.title.trim();
+            structuredData.titleSource = "ai";
+          }
           if (profile.yearsExperience !== null) structuredData.yearsExperience = profile.yearsExperience;
-          if (profile.skills.length) structuredData.skills = profile.skills;
+          if (profile.skills.length) {
+            structuredData.skills = profile.skills;
+            structuredData.skillsSource = "ai";
+          }
           if (profile.languages.length) structuredData.languages = profile.languages;
           structuredData.aiEnriched = true;
         } catch {
@@ -99,7 +109,7 @@ export class TalentPoolProcessingService {
           phone: regex.phone,
           linkedinUrl: regex.linkedinUrl,
           portfolioUrl: regex.portfolioUrl,
-          fullName: aiFullName,
+          fullName: extractedFullName,
         });
 
         await tx.talentPoolEntry.update({

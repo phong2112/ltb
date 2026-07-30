@@ -68,11 +68,24 @@ does not need the candidate identity and redacts the known submitted name.
 - Each criterion is classified as `met`, `partial`, `not_met`, or `unknown`.
 - A known status must contain evidence that can be found in the CV payload.
   Otherwise the API downgrades it to `unknown`.
-- Required criteria have weight 2; optional criteria have weight 1.
+- Each extracted criterion carries an `importance` and a `constraintType`.
+  `importance` is `critical`, `required`, or `preferred`; `constraintType` is
+  `quantitative`, `hard_skill`, `soft_skill`, `domain`, or `general`.
+- Critical criteria have weight 4, required criteria have weight 2, and
+  preferred criteria have weight 1.
 - `met = 1`, `partial = 0.5`, and `not_met/unknown = 0`.
 - `confirmedScore` is therefore conservative. `potentialScore` in
   `structuredData.scoreBreakdown` shows the upper bound if all unknown criteria
   were later confirmed.
+- A missing or unknown critical blocker caps the score at 55. A partial critical
+  blocker caps the score at 75. Missing ordinary required criteria also cap
+  otherwise high scores, so small preferred matches cannot hide major gaps.
+- A partial quantitative required criterion, such as unclear evidence for
+  required years of experience, caps the score at 85 even when other criteria are
+  strong.
+- Alternative requirements using "or"/"hoặc" should be treated as satisfied
+  when one listed option is clearly evidenced, for example Selenium satisfying
+  "Playwright, Cypress hoặc Selenium".
 - `evidenceCoverage` measures the weighted share of criteria with a verified
   status. Displayed `confidence` additionally discounts low-confidence or
   truncated OCR/input.
@@ -102,6 +115,28 @@ Run the end-to-end evaluation with Groq configured:
 
 ```bash
 AI_PROVIDER=groq pnpm --filter @hr-copilot/api eval:cv
+```
+
+Run prompt/output checks against local uploaded CVs without printing raw CV text:
+
+```bash
+AI_PROVIDER=groq EVAL_ALLOW_EXTERNAL_AI=true pnpm --filter @hr-copilot/api eval:uploads
+```
+
+Optional filters:
+
+```bash
+AI_PROVIDER=groq EVAL_ALLOW_EXTERNAL_AI=true EVAL_FILE_MATCH=Nguyen-Quan EVAL_JOB_LIMIT=2 pnpm --filter @hr-copilot/api eval:uploads
+```
+
+Only set `EVAL_ALLOW_EXTERNAL_AI=true` for CVs that may be sent to the
+configured provider. The script prints scores and criterion statuses, not raw CV
+text.
+
+For rate-limited providers, add a delay and bounded retries:
+
+```bash
+AI_PROVIDER=groq EVAL_ALLOW_EXTERNAL_AI=true EVAL_REQUEST_DELAY_MS=65000 EVAL_MAX_QUOTA_RETRIES=3 pnpm --filter @hr-copilot/api eval:uploads
 ```
 
 The current fixture harness checks parser selection, minimum readable text,

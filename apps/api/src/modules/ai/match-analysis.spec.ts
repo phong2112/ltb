@@ -2,9 +2,9 @@ import type { MatchCriterion } from "./ai.types";
 import { buildGroundedMatchInsights, groundCriterionEvaluations } from "./match-analysis";
 
 const criteria: MatchCriterion[] = [
-  { id: "criterion-1", text: "React bắt buộc", required: true, weight: 2 },
-  { id: "criterion-2", text: "TypeScript bắt buộc", required: true, weight: 2 },
-  { id: "criterion-3", text: "AWS là lợi thế", required: false, weight: 1 },
+  { id: "criterion-1", text: "React bắt buộc", importance: "critical", constraintType: "hard_skill", required: true, blocker: true, weight: 4 },
+  { id: "criterion-2", text: "TypeScript bắt buộc", importance: "critical", constraintType: "hard_skill", required: true, blocker: true, weight: 4 },
+  { id: "criterion-3", text: "AWS là lợi thế", importance: "preferred", constraintType: "hard_skill", required: false, blocker: false, weight: 1 },
 ];
 
 describe("grounded match analysis", () => {

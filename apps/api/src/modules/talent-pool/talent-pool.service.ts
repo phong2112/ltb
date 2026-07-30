@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { CvParseStatus, FileKind, Prisma, TalentPoolSource } from "@prisma/client";
-import { basename, extname } from "node:path";
 import { AiQueueService } from "../ai/ai-queue.service";
+import { parseCvProfileFromText } from "../ai/parse-cv-profile";
 import { TalentPoolProcessingService } from "../ai/talent-pool-processing.service";
 import type { AuthUser } from "../auth/auth.types";
 import { normalizeEmail, normalizePhone } from "../candidates/candidate-contact.util";
@@ -66,13 +66,12 @@ export class TalentPoolService {
   }
 
   private async createEntryFromFile(file: Express.Multer.File, uploadedByUserId?: string): Promise<string> {
-    const fallbackName = basename(file.originalname, extname(file.originalname)).trim() || "Ứng viên chưa rõ tên";
     let storedPath: string | undefined;
 
     try {
       return await this.prisma.$transaction(async tx => {
         const candidate = await tx.candidate.create({
-          data: { fullName: fallbackName, source: "talent_pool" },
+          data: { fullName: "Ứng viên đang xử lý", source: "talent_pool" },
         });
 
         const entry = await tx.talentPoolEntry.create({
@@ -194,18 +193,26 @@ export class TalentPoolService {
       total,
       page,
       pageSize,
-      items: entries.map(entry => ({
-        id: entry.id,
-        status: entry.status,
-        candidate: entry.candidate,
-        fileId: entry.file?.id ?? null,
-        tags: entry.tags,
-        summary: entry.summary,
-        structuredData: entry.structuredData,
-        promotedApplicationId: entry.promotedApplicationId,
-        createdAt: entry.createdAt,
-        updatedAt: entry.updatedAt,
-      })),
+      items: entries.map(entry => {
+        const structuredData = this.withResolvedStructuredData(entry.structuredData, entry.extractedText);
+        return {
+          id: entry.id,
+          status: entry.status,
+          candidate: this.withResolvedCandidateName(
+            entry.candidate,
+            structuredData,
+            entry.file?.originalName,
+            entry.extractedText,
+          ),
+          fileId: entry.file?.id ?? null,
+          tags: entry.tags,
+          summary: entry.summary,
+          structuredData,
+          promotedApplicationId: entry.promotedApplicationId,
+          createdAt: entry.createdAt,
+          updatedAt: entry.updatedAt,
+        };
+      }),
     };
   }
 
@@ -222,12 +229,95 @@ export class TalentPoolService {
       throw new NotFoundException("Không tìm thấy hồ sơ trong kho ứng viên.");
     }
 
-    return entry;
+    const structuredData = this.withResolvedStructuredData(entry.structuredData, entry.extractedText);
+    return {
+      ...entry,
+      candidate: this.withResolvedCandidateName(
+        entry.candidate,
+        structuredData,
+        entry.file?.originalName,
+        entry.extractedText,
+      ),
+      structuredData,
+    };
+  }
+
+  private withResolvedStructuredData(structuredData: Prisma.JsonValue | null, extractedText?: string | null): Prisma.JsonObject | null {
+    const parsed = extractedText?.trim() ? parseCvProfileFromText(extractedText) : undefined;
+    const current: Prisma.JsonObject = (
+      structuredData && typeof structuredData === "object" && !Array.isArray(structuredData)
+        ? { ...(structuredData as Prisma.JsonObject) }
+        : {}
+    );
+
+    if (!this.extractStructuredFullName(current as Prisma.JsonValue) && parsed?.fullName) {
+      current.fullName = parsed.fullName;
+      current.fullNameSource = "cv_text";
+    }
+    if (!this.extractStructuredText(current as Prisma.JsonValue, "title") && parsed?.title) {
+      current.title = parsed.title;
+      current.titleSource = "cv_text";
+    }
+    if (!this.extractStructuredStringList(current as Prisma.JsonValue, "skills").length && parsed?.skills?.length) {
+      current.skills = parsed.skills;
+      current.skillsSource = "cv_text";
+    }
+
+    return Object.keys(current).length ? current : null;
+  }
+
+  private withResolvedCandidateName<T extends { fullName: string }>(
+    candidate: T,
+    structuredData: Prisma.JsonValue | null,
+    originalName?: string | null,
+    extractedText?: string | null,
+  ): T {
+    const extractedFullName = this.extractStructuredFullName(structuredData) ?? this.extractTextFullName(extractedText);
+    if (!extractedFullName || !this.shouldPreferExtractedName(candidate.fullName, originalName)) {
+      return candidate;
+    }
+
+    return { ...candidate, fullName: extractedFullName };
+  }
+
+  private extractStructuredFullName(structuredData: Prisma.JsonValue | null) {
+    return this.extractStructuredText(structuredData, "fullName");
+  }
+
+  private extractStructuredText(structuredData: Prisma.JsonValue | null, key: string) {
+    if (!structuredData || typeof structuredData !== "object" || Array.isArray(structuredData)) return undefined;
+    const value = (structuredData as Record<string, unknown>)[key];
+    return typeof value === "string" && value.trim().length >= 2 ? value.trim() : undefined;
+  }
+
+  private extractStructuredStringList(structuredData: Prisma.JsonValue | null, key: string) {
+    if (!structuredData || typeof structuredData !== "object" || Array.isArray(structuredData)) return [];
+    const value = (structuredData as Record<string, unknown>)[key];
+    return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && !!item.trim()) : [];
+  }
+
+  private extractTextFullName(extractedText?: string | null) {
+    if (!extractedText?.trim()) return undefined;
+    return parseCvProfileFromText(extractedText).fullName;
+  }
+
+  private shouldPreferExtractedName(currentName: string, originalName?: string | null) {
+    const trimmed = currentName.trim();
+    if (!trimmed) return true;
+    const lower = trimmed.toLowerCase();
+    if (lower === "ứng viên đang xử lý") return true;
+    if (/\.(pdf|docx?|rtf|txt)$/i.test(trimmed)) return true;
+    if (/\d{6,}/.test(trimmed) && /[-_]/.test(trimmed)) return true;
+    if (/(^|[-_])inbound\d/i.test(trimmed)) return true;
+    if (trimmed.includes("_")) return true;
+
+    const fileBaseName = originalName ? originalName.replace(/\.[^.]+$/, "").trim().toLowerCase() : "";
+    return !!fileBaseName && lower === fileBaseName;
   }
 
   async updateEntry(id: string, dto: UpdateTalentPoolEntryDto) {
     const entry = await this.getEntry(id);
-    const structuredData = mergeStructuredData(entry.structuredData, {
+    const structuredData = mergeStructuredData(entry.structuredData as Prisma.JsonValue | null, {
       ...(dto.email !== undefined ? { email: dto.email } : {}),
       ...(dto.phone !== undefined ? { phone: dto.phone, normalizedPhone: normalizePhone(dto.phone) } : {}),
       ...(dto.title !== undefined ? { title: dto.title } : {}),
