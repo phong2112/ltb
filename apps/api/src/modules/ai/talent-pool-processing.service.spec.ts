@@ -64,6 +64,17 @@ function createService(options: { aiEnabled?: boolean; existingCandidate?: Recor
       skills: ["TypeScript"],
       languages: ["Vietnamese"],
     }),
+    summarizeCv: jest.fn().mockResolvedValue({
+      overview: "Developer có kinh nghiệm TypeScript.",
+      currentTitle: "Developer",
+      totalExperience: "3 năm",
+      keySkills: ["TypeScript"],
+      workCompanies: ["FPT Software"],
+      workHighlights: ["Làm Developer tại FPT Software."],
+      education: [],
+      languages: ["Vietnamese"],
+      notesForTa: ["Có email a@example.com trong CV."],
+    }),
   };
   const service = new TalentPoolProcessingService(
     prisma as never,
@@ -103,8 +114,22 @@ describe("TalentPoolProcessingService", () => {
     await service.processPoolEntry("entry-1");
 
     expect(provider.extractProfile).toHaveBeenCalledWith(expect.objectContaining({ fileName: "candidate.pdf" }));
+    expect(provider.summarizeCv).toHaveBeenCalledWith(expect.objectContaining({
+      cvText: expect.not.stringContaining("a@example.com"),
+    }));
     expect(tx.candidate.update).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ fullName: "Nguyen Van A" }),
+    }));
+    expect(tx.talentPoolEntry.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        structuredData: expect.objectContaining({
+          cvSummary: expect.objectContaining({
+            overview: "Developer có kinh nghiệm TypeScript.",
+            workCompanies: ["FPT Software"],
+            notesForTa: ["Có email [email đã ẩn] trong CV."],
+          }),
+        }),
+      }),
     }));
   });
 

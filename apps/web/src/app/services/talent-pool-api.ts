@@ -1,4 +1,5 @@
 import { apiRequest } from "@/app/services/api-client";
+import type { CvSummary } from "@/app/data-types";
 
 export type TalentPoolStatus =
   | "PENDING"
@@ -16,6 +17,7 @@ export type TalentPoolStructuredData = {
   skills?: string[];
   languages?: string[];
   yearsExperience?: number;
+  cvSummary?: CvSummary;
   linkedinUrl?: string;
   portfolioUrl?: string;
   [key: string]: unknown;

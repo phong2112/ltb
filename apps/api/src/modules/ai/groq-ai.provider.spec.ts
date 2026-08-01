@@ -143,6 +143,7 @@ describe("GroqAiProvider", () => {
       currentTitle: "Frontend Engineer",
       totalExperience: "4 năm",
       keySkills: ["React", "TypeScript"],
+      workCompanies: ["FPT Software"],
       workHighlights: ["Phát triển dashboard nội bộ."],
       education: ["Đại học Công nghệ"],
       languages: ["Tiếng Việt", "Tiếng Anh"],
@@ -155,6 +156,7 @@ describe("GroqAiProvider", () => {
     })).resolves.toMatchObject({
       overview: "Frontend Engineer có kinh nghiệm xây dựng ứng dụng web.",
       keySkills: ["React", "TypeScript"],
+      workCompanies: ["FPT Software"],
       workHighlights: ["Phát triển dashboard nội bộ."],
     });
     expect(mockCreate.mock.calls[0][0].messages[1].content).toContain("Đây KHÔNG phải phân tích match");

@@ -4,8 +4,9 @@ import { ConfigService } from "@nestjs/config";
 import { lockCandidateContacts, normalizeEmail, normalizePhone } from "../candidates/candidate-contact.util";
 import { JobsService } from "../jobs/jobs.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { CV_SUMMARY_PROMPT_VERSION } from "./ai.prompt";
 import { parseCvProfileFromText } from "./parse-cv-profile";
-import { AI_PROVIDER, type AiProvider } from "./ai.types";
+import { AI_PROVIDER, type AiProvider, type CvSummary } from "./ai.types";
 import { CvTextExtractorService } from "./cv-text-extractor.service";
 import { prepareCvTextForAi } from "./cv-text-cleaner";
 
@@ -69,18 +70,19 @@ export class TalentPoolProcessingService {
 
       let extractedFullName = regex.fullName;
       if (this.aiEnabled) {
+        const aiReadyCv = prepareCvTextForAi(extracted.text, MAX_AI_CV_CHARACTERS);
+        structuredData.aiInput = {
+          sourceCharacters: aiReadyCv.sourceCharacters,
+          cleanedCharacters: aiReadyCv.cleanedCharacters,
+          redactionCount: aiReadyCv.redactionCount,
+          truncated: aiReadyCv.truncated,
+        };
+
         try {
-          const aiReadyCv = prepareCvTextForAi(extracted.text, MAX_AI_CV_CHARACTERS);
           const profile = await this.aiProvider.extractProfile({
             cvText: aiReadyCv.text,
             fileName: entry.file.originalName,
           });
-          structuredData.aiInput = {
-            sourceCharacters: aiReadyCv.sourceCharacters,
-            cleanedCharacters: aiReadyCv.cleanedCharacters,
-            redactionCount: aiReadyCv.redactionCount,
-            truncated: aiReadyCv.truncated,
-          };
           if (profile.fullName?.trim()) {
             extractedFullName = profile.fullName.trim();
             structuredData.fullName = extractedFullName;
@@ -99,6 +101,15 @@ export class TalentPoolProcessingService {
           structuredData.aiEnriched = true;
         } catch {
           structuredData.aiEnriched = false;
+        }
+
+        try {
+          structuredData.cvSummary = sanitizeCvSummary(await this.aiProvider.summarizeCv({
+            cvText: aiReadyCv.text,
+          }));
+          structuredData.cvSummaryPromptVersion = CV_SUMMARY_PROMPT_VERSION;
+        } catch {
+          structuredData.cvSummaryUnavailable = true;
         }
       }
 
@@ -308,4 +319,39 @@ export class TalentPoolProcessingService {
     });
     return target.id;
   }
+}
+
+function sanitizeCvSummary(summary: CvSummary): Prisma.InputJsonObject {
+  return {
+    overview: sanitizeSummaryText(summary.overview),
+    currentTitle: sanitizeNullableSummaryText(summary.currentTitle),
+    totalExperience: sanitizeNullableSummaryText(summary.totalExperience),
+    keySkills: sanitizeSummaryList(summary.keySkills, 12),
+    workCompanies: sanitizeSummaryList(summary.workCompanies, 8),
+    workHighlights: sanitizeSummaryList(summary.workHighlights, 6),
+    education: sanitizeSummaryList(summary.education, 4),
+    languages: sanitizeSummaryList(summary.languages, 6),
+    notesForTa: sanitizeSummaryList(summary.notesForTa, 5),
+  };
+}
+
+function sanitizeSummaryList(values: string[], maxItems: number) {
+  return values
+    .map(sanitizeSummaryText)
+    .filter(Boolean)
+    .slice(0, maxItems);
+}
+
+function sanitizeNullableSummaryText(value: string | null) {
+  const sanitized = value ? sanitizeSummaryText(value) : "";
+  return sanitized || null;
+}
+
+function sanitizeSummaryText(value: string) {
+  return value
+    .replace(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/giu, "[email đã ẩn]")
+    .replace(/https?:\/\/[^\s)"'<>]+/giu, "[url đã ẩn]")
+    .replace(/\+?\d[\d\s.\-()]{7,}\d/gu, "[số điện thoại đã ẩn]")
+    .replace(/\s+/gu, " ")
+    .trim();
 }

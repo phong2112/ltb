@@ -29,6 +29,7 @@ export type CvSummary = {
   currentTitle: string | null;
   totalExperience: string | null;
   keySkills: string[];
+  workCompanies: string[];
   workHighlights: string[];
   education: string[];
   languages: string[];

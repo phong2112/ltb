@@ -69,6 +69,7 @@ describe("AiService", () => {
         currentTitle: "Frontend Engineer",
         totalExperience: "5 năm",
         keySkills: ["React"],
+        workCompanies: [],
         workHighlights: ["Xây dựng sản phẩm web bằng React."],
         education: [],
         languages: [],
@@ -125,6 +126,7 @@ describe("AiService", () => {
           cvSummary: expect.objectContaining({
             overview: "Frontend Engineer có kinh nghiệm React.",
             keySkills: ["React"],
+            workCompanies: [],
           }),
         }),
       }),

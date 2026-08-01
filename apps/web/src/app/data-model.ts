@@ -355,6 +355,7 @@ function parseCvSummary(value: unknown): Candidate["cvSummary"] {
     currentTitle: typeof record.currentTitle === "string" && record.currentTitle.trim() ? record.currentTitle.trim() : null,
     totalExperience: typeof record.totalExperience === "string" && record.totalExperience.trim() ? record.totalExperience.trim() : null,
     keySkills: toStringArray(record.keySkills),
+    workCompanies: toStringArray(record.workCompanies ?? record.companies ?? record.employers),
     workHighlights: toStringArray(record.workHighlights),
     education: toStringArray(record.education),
     languages: toStringArray(record.languages),

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
   AlertTriangle,
   Briefcase,
+  Building2,
   Calendar,
   Check,
   CheckCircle,
@@ -407,6 +408,7 @@ export default function CandidateDetail() {
 
 function CvSummarySection({ application }: { application: ReturnType<typeof useData>["candidates"][number] }) {
   const summary = application.cvSummary;
+  const workCompanies = summary ? getWorkCompanies(summary) : [];
 
   return (
     <section className="rounded-2xl border border-border/80 bg-white p-5 shadow-[0_10px_30px_rgba(120,70,86,0.04)]">
@@ -424,18 +426,35 @@ function CvSummarySection({ application }: { application: ReturnType<typeof useD
       </div>
 
       {summary && (
-        <div className="mt-5 grid gap-4 lg:grid-cols-2">
-          <CvSummaryList icon={<Sparkles size={14} />} title="Kỹ năng chính" items={summary.keySkills} inline />
-          <CvSummaryList icon={<Briefcase size={14} />} title="Kinh nghiệm nổi bật" items={summary.workHighlights} />
-          <CvSummaryList icon={<GraduationCap size={14} />} title="Học vấn" items={summary.education} />
-          <CvSummaryList icon={<Languages size={14} />} title="Ngôn ngữ" items={summary.languages} inline />
-          <div className="lg:col-span-2">
+        <div className="mt-5 space-y-4">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <CvSummaryList icon={<Sparkles size={14} />} title="Kỹ năng chính" items={summary.keySkills} inline />
             <CvSummaryList icon={<NotebookPen size={14} />} title="Ghi chú nhanh cho TA" items={summary.notesForTa} />
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid gap-4">
+              <CvSummaryList icon={<GraduationCap size={14} />} title="Học vấn" items={summary.education} />
+              <CvSummaryList icon={<Languages size={14} />} title="Ngôn ngữ" items={summary.languages} inline />
+              <CvSummaryList icon={<Building2 size={14} />} title="Các công ty đã làm việc" items={workCompanies} inline />
+            </div>
+            <CvSummaryList icon={<Briefcase size={14} />} title="Kinh nghiệm nổi bật" items={summary.workHighlights} />
           </div>
         </div>
       )}
     </section>
   );
+}
+
+function getWorkCompanies(summary: NonNullable<ReturnType<typeof useData>["candidates"][number]["cvSummary"]>) {
+  const explicitCompanies = summary.workCompanies?.filter(Boolean) ?? [];
+  if (explicitCompanies.length > 0) return Array.from(new Set(explicitCompanies));
+
+  const companyPattern = /(?:\bat\b|\b@|\btại\b|\bở\b)\s+([^,.;|()]+(?:\s+(?:JSC|LLC|Ltd|Limited|Inc|Corp|Corporation|Company|Co\.?|Group|Bank|University|FPT|VNPT|Viettel|Synology|QNAP))?)/iu;
+  const companies = summary.workHighlights
+    .map(item => item.match(companyPattern)?.[1]?.trim())
+    .filter((company): company is string => Boolean(company));
+
+  return Array.from(new Set(companies));
 }
 
 function SummaryPill({ label }: { label: string }) {

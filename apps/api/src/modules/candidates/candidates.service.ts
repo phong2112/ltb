@@ -482,6 +482,7 @@ function readCvSummary(metadata: Record<string, unknown> | undefined) {
     currentTitle: typeof summary.currentTitle === "string" ? summary.currentTitle : null,
     totalExperience: typeof summary.totalExperience === "string" ? summary.totalExperience : null,
     keySkills: readStringList(summary.keySkills),
+    workCompanies: readStringList(summary.workCompanies),
     workHighlights: readStringList(summary.workHighlights),
     education: readStringList(summary.education),
     languages: readStringList(summary.languages),

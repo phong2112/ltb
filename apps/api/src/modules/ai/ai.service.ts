@@ -357,6 +357,7 @@ function sanitizeCvSummary(summary: CvSummary): Prisma.InputJsonObject {
     currentTitle: sanitizeNullableSummaryText(summary.currentTitle),
     totalExperience: sanitizeNullableSummaryText(summary.totalExperience),
     keySkills: sanitizeSummaryList(summary.keySkills, 12),
+    workCompanies: sanitizeSummaryList(summary.workCompanies, 8),
     workHighlights: sanitizeSummaryList(summary.workHighlights, 6),
     education: sanitizeSummaryList(summary.education, 4),
     languages: sanitizeSummaryList(summary.languages, 6),
