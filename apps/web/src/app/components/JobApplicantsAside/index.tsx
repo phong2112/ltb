@@ -1,0 +1,75 @@
+import { useEffect, useMemo, useState } from "react";
+import { useData } from "@/app/data";
+import { useLanguage } from "@/app/services/i18n-service";
+import ListPagination from "../ListPagination";
+import { ApplicantList, ApplicantSearch, ApplicantsEmptyState, ApplicantsHeader } from "./components";
+import { APPLICANTS_PER_PAGE } from "./constants";
+import type { JobApplicantsAsideProps } from "./types";
+import { filterApplicants, getSortedJobCandidates, paginateApplicants } from "./utils";
+
+export default function JobApplicantsAside({ jobId }: JobApplicantsAsideProps) {
+  const { candidates } = useData();
+  const { language, t } = useLanguage();
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+
+  const jobCandidates = useMemo(
+    () => getSortedJobCandidates(candidates, jobId),
+    [candidates, jobId],
+  );
+  const filteredCandidates = useMemo(
+    () => filterApplicants(jobCandidates, search),
+    [jobCandidates, search],
+  );
+  const { activePage, visibleCandidates } = paginateApplicants(filteredCandidates, page, APPLICANTS_PER_PAGE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [jobId, search]);
+
+  return (
+    <aside className="self-start overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_10px_30px_rgba(120,70,86,0.06)] xl:sticky xl:top-20 xl:col-start-2 xl:row-start-1 xl:row-span-2">
+      <ApplicantsHeader count={jobCandidates.length} subtitle={t("admin.applications")} title={t("admin.jobApplicants")} />
+
+      {jobCandidates.length > 0 ? (
+        <>
+          <ApplicantSearch
+            clearLabel={t("common.clearFilters")}
+            countLabel={t("admin.jobApplicantsCount")}
+            filteredCount={filteredCandidates.length}
+            placeholder={t("admin.searchJobApplicants")}
+            search={search}
+            totalCount={jobCandidates.length}
+            onChange={setSearch}
+          />
+
+          {visibleCandidates.length > 0 ? (
+            <ApplicantList candidates={visibleCandidates} language={language} />
+          ) : (
+            <ApplicantsEmptyState
+              clearLabel={t("common.clearFilters")}
+              mode="no-results"
+              title={t("admin.noMatchingJobApplicants")}
+              onClearSearch={() => setSearch("")}
+            />
+          )}
+
+          <ListPagination
+            currentPage={activePage}
+            pageSize={APPLICANTS_PER_PAGE}
+            totalItems={filteredCandidates.length}
+            onPageChange={setPage}
+          />
+        </>
+      ) : (
+        <ApplicantsEmptyState
+          clearLabel={t("common.clearFilters")}
+          hint={t("admin.noJobApplicantsHint")}
+          mode="no-applicants"
+          title={t("admin.noJobApplicants")}
+        />
+      )}
+    </aside>
+  );
+}
+

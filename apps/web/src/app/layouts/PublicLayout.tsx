@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { LogIn, Menu, X } from "lucide-react";
-import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
-import portraitImg from "@/imports/image.png";
-import { useLanguage, type Language } from "@/app/i18n";
+import { ImageWithFallback } from "@/app/components/ImageFallBack";
+import { useLanguage, type Language } from "@/app/services/i18n-service";
+
+const portraitImg = "/images/luong-thi-bich.png";
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   const loc = useLocation();

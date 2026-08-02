@@ -246,7 +246,7 @@ Scanned PDFs without a usable text layer and uploaded JPG/PNG CVs are processed 
 
 The processing pipeline first persists extracted CV text, then enqueues a separate AI matching job. Extraction concurrency and Groq request concurrency are configured independently with `CV_EXTRACTION_CONCURRENCY` and `AI_MATCH_CONCURRENCY`.
 
-The OCR worker is reused and serialized across requests, hybrid PDFs are compared by completeness and text quality, oversized PDFs process their first configured pages, and low-confidence OCR is flagged for manual review. Stored extraction text is kept for audit; a separate normalized, PII-reduced, bounded payload is sent to AI. See the score/confidence semantics and fictional-fixture harness in [docs/cv-pipeline-evaluation.md](docs/cv-pipeline-evaluation.md).
+The OCR worker is reused and serialized across requests, hybrid PDFs are compared by completeness and text quality, oversized PDFs process their first configured pages, and low-confidence OCR is flagged for manual review. Stored extraction text is kept for audit; a separate normalized, PII-reduced, bounded payload is sent to AI.
 
 ## Architecture Notes
 

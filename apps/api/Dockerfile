@@ -13,6 +13,7 @@ RUN pnpm install --frozen-lockfile
 FROM deps AS build
 COPY . .
 RUN pnpm --filter @hr-copilot/db prisma generate
+RUN pnpm --filter @hr-copilot/shared build
 RUN pnpm --filter @hr-copilot/api build
 
 FROM base AS runner

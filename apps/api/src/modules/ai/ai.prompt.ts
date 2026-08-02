@@ -1,7 +1,6 @@
 import type { AnalyzeMatchInput, ExtractProfileInput, SummarizeCvInput } from "./ai.types";
 
 export const MATCH_PROMPT_VERSION = "cv-jd-match-v6";
-export const EXTRACT_PROFILE_PROMPT_VERSION = "cv-profile-extract-v2";
 export const CV_SUMMARY_PROMPT_VERSION = "cv-summary-v1";
 
 export function buildExtractProfilePrompt(input: ExtractProfileInput) {

@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { applicationAreas, maxScreeningAnswerLength } from "@hr-copilot/shared";
 import { plainToInstance, Transform, Type } from "class-transformer";
 import {
   ArrayMaxSize,
@@ -14,7 +15,6 @@ import {
   ValidateNested,
 } from "class-validator";
 
-const APPLICATION_AREAS = ["Hà Nội", "Đà Nẵng", "Hải Phòng", "Quảng Ninh", "TP Hồ Chí Minh", "Remote"] as const;
 type DtoConstructor<T extends object> = new () => T;
 
 function ParseJsonArray<T extends object>(dtoClass: DtoConstructor<T>) {
@@ -46,10 +46,10 @@ export class ApplicationQuestionAnswerDto {
   @IsNotEmpty()
   questionId!: string;
 
-  @ApiPropertyOptional({ example: "I have 4 years of React and TypeScript experience.", maxLength: 1000 })
+  @ApiPropertyOptional({ example: "I have 4 years of React and TypeScript experience.", maxLength: maxScreeningAnswerLength })
   @TrimOptionalString()
   @IsString()
-  @MaxLength(1000)
+  @MaxLength(maxScreeningAnswerLength)
   @IsOptional()
   answer?: string;
 }
@@ -76,11 +76,11 @@ export class CreateApplicationDto {
   @Matches(/^(?=(?:\D*\d){8,15}\D*$)\+?[\d\s().-]+$/)
   phone!: string;
 
-  @ApiProperty({ example: "Hà Nội", enum: APPLICATION_AREAS })
+  @ApiProperty({ example: "Hà Nội", enum: applicationAreas })
   @Transform(({ value }) => typeof value === "string" ? value.trim() : value)
   @IsString()
   @IsNotEmpty()
-  @IsIn(APPLICATION_AREAS)
+  @IsIn(applicationAreas)
   applicationArea!: string;
 
   @ApiPropertyOptional({ example: "https://www.linkedin.com/in/candidate" })

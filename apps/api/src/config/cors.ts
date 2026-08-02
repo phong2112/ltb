@@ -74,8 +74,3 @@ function wildcardOriginToRegExp(value: string) {
 
   return new RegExp(`^${escaped}$`);
 }
-
-export const corsTestInternals = {
-  createCorsMatcher,
-  isAllowedCorsOrigin,
-};

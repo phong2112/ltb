@@ -258,7 +258,7 @@ Swagger API documentation is available at `/docs` when enabled. It is enabled by
 
 Render requires `GROQ_API_KEY` only on the backend service; never expose it through frontend variables. `CV_EXTRACTION_CONCURRENCY` controls text extraction and local Tesseract OCR, while `AI_MATCH_CONCURRENCY` independently limits requests sent to Groq. Keep both at `1` until deployed CPU, memory, account limits, and CV sizes have been benchmarked. `OCR_MIN_CONFIDENCE` only flags low-quality OCR for manual review; it does not block processing. CV text is sensitive personal data, so keep provider keys private and avoid logging prompts or extracted text.
 
-The `/health` response includes process-lifetime completion and final-failure counters for both AI queues. Durable failed analyses remain queryable from `CvParseResult.status=FAILED`; see [CV pipeline evaluation](cv-pipeline-evaluation.md) for the evaluation command and investigation query.
+The `/health` response includes process-lifetime completion and final-failure counters for both AI queues. Durable failed analyses remain queryable from `CvParseResult.status=FAILED` for operational investigation.
 
 Admin login uses a short-lived JWT access token stored in an `httpOnly` cookie named `access_token` and a longer-lived refresh token stored in an `httpOnly` cookie named `refresh_token`. The frontend calls `/auth/refresh` when an admin request returns `401`. If the Vercel frontend and API are on different HTTPS domains, use `AUTH_COOKIE_SECURE=true` and `AUTH_COOKIE_SAMESITE=none`; keep `JWT_ACCESS_TOKEN_SECRET` and `JWT_REFRESH_TOKEN_SECRET` private and never expose them as frontend variables.
 

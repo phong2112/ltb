@@ -1,4 +1,7 @@
+import type { CvSummary } from "@hr-copilot/shared";
+
 export const AI_PROVIDER = Symbol("AI_PROVIDER");
+export type { CvSummary } from "@hr-copilot/shared";
 
 export type MatchCriterion = {
   id: string;
@@ -22,18 +25,6 @@ export type CriterionEvaluation = {
 export type ProviderMatchAnalysis = {
   summary: string;
   evaluations: CriterionEvaluation[];
-};
-
-export type CvSummary = {
-  overview: string;
-  currentTitle: string | null;
-  totalExperience: string | null;
-  keySkills: string[];
-  workCompanies: string[];
-  workHighlights: string[];
-  education: string[];
-  languages: string[];
-  notesForTa: string[];
 };
 
 export type AnalyzeMatchInput = {

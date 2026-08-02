@@ -1,8 +1,8 @@
 import { RouterProvider } from "react-router";
-import { router } from "@/app/routes";
+import { router } from "@/app/routers";
 import { DataProvider } from "@/app/data";
-import { LanguageProvider } from "@/app/i18n";
-import { Toaster } from "@/app/components/ui/sonner";
+import { LanguageProvider } from "@/app/services/i18n-service";
+import { Toaster } from "@/app/components/Common/sonner";
 
 export default function App() {
   return (

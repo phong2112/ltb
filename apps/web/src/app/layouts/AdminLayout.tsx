@@ -5,8 +5,8 @@ import {
   LogOut, ChevronRight, Settings, Languages, ArrowLeft, Menu, X
 } from "lucide-react";
 import { useData } from "@/app/data";
-import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
-import { useLanguage, type Language } from "@/app/i18n";
+import { ImageWithFallback } from "@/app/components/ImageFallBack";
+import { useLanguage, type Language } from "@/app/services/i18n-service";
 import CandidateChatWidget from "@/app/components/CandidateChatWidget";
 
 const logoImg = "/images/bich-candy-logo.jpg";

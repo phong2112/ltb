@@ -1,5 +1,6 @@
 import { JobStatus } from "@prisma/client";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { applicationAreas, jobEmploymentOptions, jobLevelOptions, jobLogoOptions } from "@hr-copilot/shared";
 import { Transform, Type } from "class-transformer";
 import sanitizeHtml, { type IOptions } from "sanitize-html";
 import {
@@ -22,10 +23,6 @@ import {
   type ValidationOptions,
 } from "class-validator";
 
-const JOB_EMPLOYMENT_OPTIONS = ["Full-time", "Hybrid", "Remote", "Part-time"] as const;
-const JOB_LEVEL_OPTIONS = ["Intern", "Junior", "Mid-level", "Senior", "Manager", "Director"] as const;
-const JOB_LOCATION_OPTIONS = ["Hà Nội", "Đà Nẵng", "Hải Phòng", "Quảng Ninh", "TP Hồ Chí Minh", "Remote"] as const;
-const JOB_LOGO_OPTIONS = ["🌸", "🌹", "🌷", "🍑", "💻", "📊", "🎨", "🌿", "⭐", "🦋"] as const;
 const TEXT_PATTERN = /^[\p{L}\p{N}\s.,'’()&/+:#-]+$/u;
 const TAG_PATTERN = /^[\p{L}\p{N}\s+#./-]+$/u;
 const SALARY_PATTERN = /^\d{1,3}(,\d{3})*(\s*-\s*\d{1,3}(,\d{3})*)?\s+(VND|USD)$/i;
@@ -215,27 +212,27 @@ export class CreateJobDto {
   })
   department?: string;
 
-  @ApiProperty({ enum: JOB_LOCATION_OPTIONS, example: ["Hà Nội", "Remote"], isArray: true, minItems: 1, maxItems: JOB_LOCATION_OPTIONS.length })
+  @ApiProperty({ enum: applicationAreas, example: ["Hà Nội", "Remote"], isArray: true, minItems: 1, maxItems: applicationAreas.length })
   @NormalizeLocations()
   @IsArray()
   @ArrayMinSize(1)
-  @ArrayMaxSize(JOB_LOCATION_OPTIONS.length)
+  @ArrayMaxSize(applicationAreas.length)
   @IsString({ each: true })
-  @IsIn(JOB_LOCATION_OPTIONS, { each: true })
+  @IsIn(applicationAreas, { each: true })
   locations!: string[];
 
-  @ApiProperty({ enum: JOB_EMPLOYMENT_OPTIONS, example: "Full-time" })
+  @ApiProperty({ enum: jobEmploymentOptions, example: "Full-time" })
   @Trim()
   @IsString()
   @IsNotEmpty()
-  @IsIn(JOB_EMPLOYMENT_OPTIONS)
+  @IsIn(jobEmploymentOptions)
   employment!: string;
 
-  @ApiProperty({ enum: JOB_LEVEL_OPTIONS, example: "Mid-level" })
+  @ApiProperty({ enum: jobLevelOptions, example: "Mid-level" })
   @Trim()
   @IsString()
   @IsNotEmpty()
-  @IsIn(JOB_LEVEL_OPTIONS)
+  @IsIn(jobLevelOptions)
   level!: string;
 
   @ApiPropertyOptional({ example: "20,000,000 - 30,000,000 VND", maxLength: 40, nullable: true })
@@ -319,11 +316,11 @@ export class CreateJobDto {
   @IsOptional()
   urgent?: boolean;
 
-  @ApiPropertyOptional({ enum: JOB_LOGO_OPTIONS, example: "💻" })
+  @ApiPropertyOptional({ enum: jobLogoOptions, example: "💻" })
   @OptionalTrim()
   @IsString()
   @IsOptional()
-  @IsIn(JOB_LOGO_OPTIONS)
+  @IsIn(jobLogoOptions)
   logo?: string;
 
   @ApiPropertyOptional({

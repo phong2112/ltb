@@ -7,6 +7,13 @@ import { PDFParse } from "pdf-parse";
 import { createWorker, OEM, type Worker } from "tesseract.js";
 
 const OCR_LANGUAGES = ["vie", "eng"] as const;
+type OcrLanguage = (typeof OCR_LANGUAGES)[number];
+
+const OCR_LANGUAGE_PACKAGE_JSON: Record<OcrLanguage, string> = {
+  vie: require.resolve("@tesseract.js-data/vie/package.json"),
+  eng: require.resolve("@tesseract.js-data/eng/package.json"),
+};
+
 const OCR_PDF_SCALE = 2;
 const OCR_PDF_HARD_PAGE_LIMIT = 30;
 
@@ -168,7 +175,7 @@ async function prepareOcrLanguageDirectory() {
 
   await Promise.all(OCR_LANGUAGES.map(async (code) => {
     const packageRoot = dirname(
-      require.resolve(`@tesseract.js-data/${code}/package.json`),
+      OCR_LANGUAGE_PACKAGE_JSON[code],
     );
     await copyFile(
       join(packageRoot, "4.0.0_best_int", `${code}.traineddata.gz`),
