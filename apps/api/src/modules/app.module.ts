@@ -1,14 +1,14 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import { validateEnv } from "../config/env.validation";
-import { ApplicationsModule } from "./applications/applications.module";
-import { AuthModule } from "./auth/auth.module";
-import { CandidatesModule } from "./candidates/candidates.module";
-import { HealthModule } from "./health/health.module";
-import { JobsModule } from "./jobs/jobs.module";
-import { PrismaModule } from "./prisma/prisma.module";
-import { TalentPoolModule } from "./talent-pool/talent-pool.module";
-import { TemplatesModule } from "./templates/templates.module";
+import { validateEnv } from "../utils/env";
+import { ApplicationsModule } from "./applications";
+import { AuthModule } from "./auth";
+import { CandidatesModule } from "./candidates";
+import { HealthModule } from "./health";
+import { JobsModule } from "./jobs";
+import { PrismaModule } from "./prisma";
+import { TalentPoolModule } from "./talent-pool";
+import { TemplatesModule } from "./templates";
 
 @Module({
   imports: [

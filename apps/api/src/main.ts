@@ -2,11 +2,11 @@ import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import helmet from "helmet";
-import { createCorsOriginOptions } from "./config/cors";
-import { setupSwagger } from "./config/swagger";
-import { VietnameseExceptionFilter } from "./config/vietnamese-exception.filter";
-import { createVietnameseValidationPipe } from "./config/vietnamese-validation.pipe";
 import { AppModule } from "./modules/app.module";
+import { createCorsOriginOptions } from "./utils/cors";
+import { VietnameseExceptionFilter } from "./utils/filters";
+import { createVietnameseValidationPipe } from "./utils/pipes";
+import { setupSwagger } from "./utils/swagger";
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);

@@ -20,13 +20,11 @@ Use a container host or server for the Docker stack pieces that need long-runnin
 
 Do not deploy PostgreSQL, Redis, or persistent upload volumes as Vercel frontend output.
 
-The current free-MVP backend target is an Oracle Cloud Ampere A1 VM running the
-API behind Caddy. Follow [Oracle Cloud A1 API Deployment](./oracle-a1-deployment.md)
-for VM creation, environment setup, cutover, and rollback. Keep the Render
-instructions below only as a temporary fallback until the OCI deployment is
-verified.
+The current free-MVP backend target is Render running the API as a Docker web
+service. Keep PostgreSQL on Neon, Redis on a managed Redis provider, CV objects
+in private storage, and the frontend on Vercel.
 
-## Legacy Render + Neon Quick Deploy
+## Render + Neon Quick Deploy
 
 This repository includes `render.yaml` for deploying only the NestJS API to Render as a Docker web service. PostgreSQL remains external on Neon.
 

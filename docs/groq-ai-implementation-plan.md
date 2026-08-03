@@ -158,20 +158,20 @@ If the implementation chooses to avoid new statuses, simplify service code accor
 Create:
 
 ```text
-apps/api/src/modules/ai/ai.module.ts
-apps/api/src/modules/ai/ai.service.ts
-apps/api/src/modules/ai/ai.types.ts
-apps/api/src/modules/ai/ai.prompt.ts
-apps/api/src/modules/ai/groq-ai.provider.ts
-apps/api/src/modules/ai/match-scoring.ts
-apps/api/src/modules/ai/cv-text-extractor.service.ts
-apps/api/src/modules/ai/cv-ocr.service.ts
+apps/api/src/modules/ai/index.ts
+apps/api/src/modules/ai/processing/index.service.ts
+apps/api/src/models/ai/index.ts
+apps/api/src/modules/ai/prompts/index.ts
+apps/api/src/modules/ai/providers/groq/index.ts
+apps/api/src/modules/ai/matching/scoring/index.ts
+apps/api/src/modules/ai/cv/extractor/index.service.ts
+apps/api/src/modules/ai/cv/ocr/index.service.ts
 ```
 
 Optional queue:
 
 ```text
-apps/api/src/modules/ai/ai-queue.service.ts
+apps/api/src/modules/ai/queue/index.service.ts
 ```
 
 Reference source:
@@ -253,11 +253,11 @@ const matchAnalysisSchema = z.object({
 
 ## Application Submit Integration
 
-Update `apps/api/src/modules/applications/applications.module.ts`:
+Update `apps/api/src/modules/applications/index.ts`:
 
 - Import `AiModule`.
 
-Update `apps/api/src/modules/applications/applications.service.ts`:
+Update `apps/api/src/modules/applications/service/index.service.ts`:
 
 - Inject queue or AI service.
 - After application and CV file are persisted, create/upsert `CvParseResult`.

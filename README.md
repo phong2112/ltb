@@ -161,14 +161,14 @@ Stop the stack:
 pnpm docker:down
 ```
 
-## Deploying The API To Oracle A1
+## Deploying The API To Render
 
-The production frontend remains on Vercel. Deploy only the NestJS API to an OCI
-Ampere A1 VM behind Caddy, while keeping Neon, managed Redis, Groq, R2, and
-Vercel Blob external.
+The production frontend remains on Vercel. Deploy only the NestJS API to Render
+using `render.yaml`, while keeping Neon, managed Redis, Groq, R2, and Vercel
+Blob external.
 
-See [docs/oracle-a1-deployment.md](docs/oracle-a1-deployment.md) for the VM,
-DNS, secrets, SMTP verification, deploy, cutover, and rollback procedure.
+See [docs/deployment.md](docs/deployment.md) for environment setup, deploy,
+smoke test, and rollback notes.
 
 ## Mock Data
 
