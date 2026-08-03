@@ -1,29 +1,67 @@
-import { useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import { ApiRequestError, apiRequest } from "@/app/services/api-service";
-import { DataContext } from "./context";
-import { SAVED_JOBS_STORAGE_KEY, readSavedJobIds } from "./saved-jobs";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  ApiRequestError,
+  createJobRequest,
+  deleteCandidateRequest,
+  getAdminCandidates,
+  getAdminJobs,
+  getApplicationAnalysis,
+  getAuthSession,
+  getPublicJobs,
+  loginRequest,
+  logoutRequest,
+  retryApplicationAnalysis,
+  sendCandidateMessageRequest,
+  submitApplication,
+  updateCandidateApplication,
+  updateJobRequest,
+} from "@/app/apis/requests";
+import { SAVED_JOBS_STORAGE_KEY, readSavedJobIds } from "@/app/services/saved-jobs.service";
 import {
   mapApplicationAnalysis,
   mapCandidateMessage,
   mapCandidateProfile,
   toApiApplicationStatus,
-  type ApiApplicationAnalysis,
-  type ApiCandidateMessage,
-  type ApiCandidateProfile,
+  type AiAnalysisStatus,
   type Candidate,
   type CandidateMessageChannel,
   type CandidateProfile,
   type CandidateStatus,
   type NewCandidate,
 } from "./candidates";
-import { type ApiAuthSession, type LoginResult } from "./auth";
+import { type LoginResult } from "./auth";
 import {
   mapJob,
-  toJobPayload,
-  type ApiJob,
   type Job,
   type JobInput,
 } from "./jobs";
+
+export type DataCtx = {
+  jobs: Job[];
+  candidateProfiles: CandidateProfile[];
+  candidates: Candidate[];
+  isAdminLoggedIn: boolean;
+  isAuthReady: boolean;
+  isLoading: boolean;
+  error: string;
+  savedJobIds: string[];
+  reloadPublicJobs: () => Promise<void>;
+  reloadAdminData: (status?: CandidateStatus) => Promise<void>;
+  refreshCandidateAnalysis: (applicationId: string) => Promise<AiAnalysisStatus>;
+  retryCandidateAnalysis: (applicationId: string) => Promise<AiAnalysisStatus>;
+  addJob: (j: JobInput) => Promise<void>;
+  updateJob: (id: string, patch: Partial<Job>) => Promise<void>;
+  addCandidate: (c: NewCandidate) => Promise<void>;
+  updateCandidate: (id: string, patch: Partial<Candidate>) => Promise<void>;
+  deleteCandidate: (id: string) => Promise<void>;
+  sendCandidateMessage: (applicationId: string, channel: CandidateMessageChannel, content: string) => Promise<void>;
+  isJobSaved: (id: string) => boolean;
+  toggleSavedJob: (id: string) => boolean;
+  login: (email: string, password: string) => Promise<LoginResult>;
+  logout: () => Promise<void>;
+};
+
+const DataContext = createContext<DataCtx>(null!);
 
 export type {
   Candidate,
@@ -49,7 +87,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
 
     try {
-      const data = await apiRequest<ApiJob[]>("/jobs/public");
+      const data = await getPublicJobs();
       setJobs(data.map(mapJob));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không tải được dữ liệu việc làm");
@@ -66,8 +104,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const apiStatus = toApiApplicationStatus(status);
       const query = apiStatus ? `?status=${encodeURIComponent(apiStatus)}` : "";
       const [adminJobs, adminCandidates] = await Promise.all([
-        apiRequest<ApiJob[]>("/admin/jobs"),
-        apiRequest<ApiCandidateProfile[]>(`/admin/candidates${query}`),
+        getAdminJobs(),
+        getAdminCandidates(query),
       ]);
       const profiles = adminCandidates.map(mapCandidateProfile);
       setJobs(adminJobs.map(mapJob));
@@ -96,9 +134,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshCandidateAnalysis = useCallback(async (applicationId: string) => {
-    const analysis = await apiRequest<ApiApplicationAnalysis>(
-      `/admin/candidates/applications/${applicationId}/analysis`,
-    );
+    const analysis = await getApplicationAnalysis(applicationId);
     const patch = mapApplicationAnalysis(analysis);
 
     if (patch.aiStatus === "pending") return patch.aiStatus;
@@ -109,17 +145,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [patchCandidateAnalysis]);
 
   const retryCandidateAnalysis = useCallback(async (applicationId: string) => {
-    const analysis = await apiRequest<ApiApplicationAnalysis>(
-      `/admin/candidates/applications/${applicationId}/ai/retry`,
-      {
-        method: "POST",
-        notification: {
-          loading: "Đang chạy lại phân tích AI...",
-          success: "Đã đưa hồ sơ vào hàng đợi AI",
-          error: "Không thể chạy lại phân tích AI",
-        },
-      },
-    );
+    const analysis = await retryApplicationAnalysis(applicationId);
     const patch = mapApplicationAnalysis(analysis);
 
     patchCandidateAnalysis(applicationId, patch);
@@ -133,7 +159,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function loadAuthSession() {
       try {
-        await apiRequest<ApiAuthSession>("/auth/me");
+        await getAuthSession();
         setIsAdminLoggedIn(true);
       } catch {
         setIsAdminLoggedIn(false);
@@ -158,61 +184,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [savedJobIds]);
 
   const addJob = async (job: JobInput) => {
-    await apiRequest<ApiJob>("/admin/jobs", {
-      method: "POST",
-      body: JSON.stringify(toJobPayload(job)),
-      notification: {
-        loading: "Đang tạo vị trí tuyển dụng...",
-        success: "Đã tạo vị trí tuyển dụng",
-        error: "Không thể tạo vị trí tuyển dụng",
-      },
-    });
+    await createJobRequest(job);
     await reloadAdminData();
   };
 
   const updateJob = async (id: string, patch: Partial<Job>) => {
-    await apiRequest<ApiJob>(`/admin/jobs/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(toJobPayload(patch)),
-      notification: {
-        loading: "Đang cập nhật vị trí...",
-        success: "Đã cập nhật vị trí tuyển dụng",
-        error: "Không thể cập nhật vị trí tuyển dụng",
-      },
-    });
+    await updateJobRequest(id, patch);
     await reloadAdminData();
   };
 
   const addCandidate = async (candidate: NewCandidate) => {
-    const form = new FormData();
-    form.set("jobId", candidate.jobId);
-    form.set("fullName", candidate.name);
-    form.set("email", candidate.email);
-    form.set("phone", candidate.phone);
-    form.set("applicationArea", candidate.applicationArea);
-    form.set("consentAccepted", "true");
-
-    if (candidate.note.trim()) {
-      form.set("screeningAnswers", candidate.note.trim());
-    }
-
-    if (candidate.questionAnswers?.length) {
-      form.set("questionAnswers", JSON.stringify(candidate.questionAnswers));
-    }
-
-    if (candidate.cvFile) {
-      form.set("cv", candidate.cvFile);
-    }
-
-    await apiRequest("/applications", {
-      method: "POST",
-      body: form,
-      notification: {
-        loading: "Đang gửi hồ sơ ứng tuyển...",
-        success: "Hồ sơ đã được gửi thành công",
-        error: "Không thể gửi hồ sơ ứng tuyển",
-      },
-    });
+    await submitApplication(candidate);
     await reloadPublicJobs();
   };
 
@@ -234,40 +216,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
       body.followUpAt = patch.followUpDate || null;
     }
 
-    await apiRequest(`/admin/candidates/applications/${current.applicationId}`, {
-      method: "PATCH",
-      body: JSON.stringify(body),
-      notification: {
-        loading: "Đang cập nhật ứng viên...",
-        success: "Đã cập nhật thông tin ứng viên",
-        error: "Không thể cập nhật ứng viên",
-      },
-    });
+    await updateCandidateApplication(current.applicationId, body);
     await reloadAdminData();
   };
 
   const deleteCandidate = async (id: string) => {
-    await apiRequest(`/admin/candidates/${id}`, {
-      method: "DELETE",
-      notification: {
-        loading: "Đang xóa ứng viên...",
-        success: "Đã xóa ứng viên",
-        error: "Không thể xóa ứng viên",
-      },
-    });
+    await deleteCandidateRequest(id);
     await reloadAdminData();
   };
 
   const sendCandidateMessage = async (applicationId: string, channel: CandidateMessageChannel, content: string) => {
-    const message = await apiRequest<ApiCandidateMessage>(`/admin/candidates/applications/${applicationId}/messages`, {
-      method: "POST",
-      body: JSON.stringify({ channel, content }),
-      notification: {
-        loading: "Đang gửi tin nhắn...",
-        success: "Tin nhắn đã được gửi",
-        error: "Không thể gửi tin nhắn",
-      },
-    });
+    const message = await sendCandidateMessageRequest(applicationId, channel, content);
 
     setCandidates(current =>
       current.map(candidate =>
@@ -304,15 +263,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<LoginResult> => {
     try {
-      await apiRequest<ApiAuthSession>("/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-        notification: {
-          loading: "Đang đăng nhập...",
-          success: "Đăng nhập thành công",
-          error: "Không thể đăng nhập",
-        },
-      });
+      await loginRequest(email, password);
       setIsAdminLoggedIn(true);
       await reloadAdminData();
       return { ok: true };
@@ -328,14 +279,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    await apiRequest("/auth/logout", {
-      method: "POST",
-      notification: {
-        loading: "Đang đăng xuất...",
-        success: "Đã đăng xuất",
-        error: "Không thể kết nối máy chủ khi đăng xuất",
-      },
-    }).catch(() => undefined);
+    await logoutRequest().catch(() => undefined);
     setIsAdminLoggedIn(false);
     setCandidateProfiles([]);
     setCandidates([]);

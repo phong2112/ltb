@@ -23,6 +23,7 @@ import { translateJobLevel, translateJobStatus, translateJobType, useLanguage } 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/app/components/Common/dropdown-menu";
 import RichTextContent from "@/app/components/RichTextContent";
 import JobApplicantsAside from "@/app/components/JobApplicantsAside";
+import ScrollToTopButton from "@/app/components/ScrollToTopButton";
 import AdminLayout from "@/app/layouts/AdminLayout";
 import { JOB_STATUS_CONFIG, URGENT_BADGE_CLASS } from "@/app/utils/configs/status-config";
 
@@ -91,7 +92,7 @@ export default function AdminJobDetail() {
     <AdminLayout>
       <div className="w-full max-w-[1560px]">
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <header className="min-w-0 rounded-2xl border border-border/80 bg-white px-3.5 py-3.5 shadow-[0_10px_30px_rgba(120,70,86,0.06)] sm:px-5 sm:py-4 lg:sticky lg:top-20 lg:z-20">
+          <header className="min-w-0 rounded-2xl border border-border/80 bg-white px-3.5 py-3.5 shadow-[0_10px_30px_rgba(120,70,86,0.06)] sm:px-5 sm:py-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div className="min-w-0">
                 <Link to="/admin/jobs" className="mb-1.5 inline-flex cursor-pointer items-center gap-1 text-xs font-bold text-muted-foreground transition-colors hover:text-primary">
@@ -208,6 +209,7 @@ export default function AdminJobDetail() {
           </div>
         </div>
       </div>
+      <ScrollToTopButton />
     </AdminLayout>
   );
 }

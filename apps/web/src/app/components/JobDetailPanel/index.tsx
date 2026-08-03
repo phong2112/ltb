@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useData } from "@/app/data";
 import { useLanguage } from "@/app/services/i18n-service";
-import { notificationService } from "@/app/services/notification-service";
+import { notificationService } from "@/app/services/notification.service";
 import { JobActions, JobDetailContent, JobPanelHeader } from "./components";
 import type { JobDetailPanelProps } from "./types";
 

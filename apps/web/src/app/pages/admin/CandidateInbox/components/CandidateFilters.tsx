@@ -38,10 +38,12 @@ export function CandidateFilters({
   onSortOrderChange,
   onStatusFilterChange,
 }: CandidateFiltersProps) {
+  const selectClass = "h-11 min-w-0 rounded-xl border border-border bg-white px-3 text-sm font-bold text-foreground outline-none transition-colors focus:border-primary focus:ring-3 focus:ring-primary/10";
+
   return (
-    <div className="mb-4 overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_10px_30px_rgba(120,70,86,0.05)]">
-      <div className="grid gap-3 p-3 sm:p-4 lg:grid-cols-[minmax(280px,0.95fr)_minmax(0,1.35fr)] lg:items-start xl:grid-cols-[minmax(320px,0.8fr)_minmax(0,1.4fr)]">
-        <label className="flex h-11 min-w-0 items-center gap-2 rounded-xl border border-border bg-background px-3 text-sm text-foreground focus-within:border-primary/50 focus-within:ring-3 focus-within:ring-primary/10">
+    <div className="mb-4 rounded-2xl border border-border/80 bg-white p-3 shadow-[0_10px_30px_rgba(120,70,86,0.05)] sm:p-4">
+      <div className="grid gap-3 xl:grid-cols-[minmax(300px,0.95fr)_minmax(0,1.65fr)_auto] xl:items-center">
+        <label className="flex h-11 min-w-0 items-center gap-2 rounded-xl border border-border bg-background px-3 text-sm text-foreground transition-colors focus-within:border-primary/50 focus-within:ring-3 focus-within:ring-primary/10">
           <Search size={15} className="flex-none text-muted-foreground" />
           <input
             value={search}
@@ -61,52 +63,45 @@ export function CandidateFilters({
           )}
         </label>
 
-        <div className="min-w-0 space-y-3">
-          <div className="flex flex-wrap gap-1.5">
+        <div className="grid min-w-0 gap-2 sm:grid-cols-3">
+          <select
+            value={statusFilter}
+            onChange={event => onStatusFilterChange(event.target.value as CandidateStatus | "all")}
+            className={selectClass}
+            aria-label={t("admin.status")}
+          >
             {STATUS_OPTS.map(status => (
-              <button
-                key={status}
-                type="button"
-                onClick={() => onStatusFilterChange(status)}
-                className={`inline-flex h-9 items-center rounded-full border px-3 text-xs font-black transition-all ${
-                  statusFilter === status
-                    ? "border-primary bg-primary text-white shadow-sm"
-                    : "border-border bg-white text-muted-foreground hover:border-primary/50 hover:bg-pink-50 hover:text-primary"
-                }`}
-              >
+              <option key={status} value={status}>
                 {translateCandidateStatus(status, language)}
-              </button>
+              </option>
             ))}
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(160px,220px)_auto] sm:items-center">
-            <select
-              value={jobFilter}
-              onChange={event => onJobFilterChange(event.target.value)}
-              className="h-10 min-w-0 rounded-xl border border-border bg-white px-3 text-sm font-bold text-foreground outline-none transition-colors focus:border-primary"
-            >
-              <option value="all">{t("admin.allPositions")}</option>
-              {jobs.map(job => (
-                <option key={job.id} value={job.id}>{job.title}</option>
-              ))}
-            </select>
-            <select
-              value={sortOrder}
-              onChange={event => onSortOrderChange(event.target.value as SortOrder)}
-              className="h-10 min-w-0 rounded-xl border border-border bg-white px-3 text-sm font-bold text-foreground outline-none transition-colors focus:border-primary"
-              aria-label={t("admin.sortCandidates")}
-            >
-              <option value={SORT_NEWEST}>{t("admin.sortNewest")}</option>
-              <option value={SORT_OLDEST}>{t("admin.sortOldest")}</option>
-              <option value={SORT_NAME_ASC}>{t("admin.sortNameAsc")}</option>
-            </select>
-            <span className="rounded-full bg-secondary px-3 py-1.5 text-center text-xs font-black text-primary sm:text-right">
-              {filteredCount} {t("jobs.resultCount")}
-            </span>
-          </div>
+          </select>
+          <select
+            value={jobFilter}
+            onChange={event => onJobFilterChange(event.target.value)}
+            className={selectClass}
+          >
+            <option value="all">{t("admin.allPositions")}</option>
+            {jobs.map(job => (
+              <option key={job.id} value={job.id}>{job.title}</option>
+            ))}
+          </select>
+          <select
+            value={sortOrder}
+            onChange={event => onSortOrderChange(event.target.value as SortOrder)}
+            className={selectClass}
+            aria-label={t("admin.sortCandidates")}
+          >
+            <option value={SORT_NEWEST}>{t("admin.sortNewest")}</option>
+            <option value={SORT_OLDEST}>{t("admin.sortOldest")}</option>
+            <option value={SORT_NAME_ASC}>{t("admin.sortNameAsc")}</option>
+          </select>
         </div>
+
+        <span className="flex h-11 items-center justify-center rounded-xl bg-secondary px-4 text-center text-xs font-black text-primary xl:min-w-28">
+          {filteredCount} {t("jobs.resultCount")}
+        </span>
       </div>
     </div>
   );
 }
-

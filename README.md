@@ -29,7 +29,7 @@ Implemented:
 - NestJS API in `apps/api`.
 - Prisma schema in `packages/db`.
 - Shared types in `packages/shared`.
-- Docker Compose with Nginx, web, API, PostgreSQL, Redis, and optional Groq AI matching.
+- Docker Compose dev stack with Nginx, web, API, PostgreSQL, Redis, and optional Groq AI matching.
 - Nginx reverse proxy for same-domain routing.
 - Basic Auth protection for `/admin` and `/api/admin`.
 - Swagger API documentation for local/API development.
@@ -132,9 +132,9 @@ Reset development containers and volumes:
 ./run.sh reset
 ```
 
-## Running With Docker
+## Running The API With Docker
 
-Start the full stack:
+Start the production-style API stack:
 
 ```bash
 pnpm docker:up
@@ -143,8 +143,11 @@ pnpm docker:up
 Open:
 
 ```text
-http://localhost:8080
+http://localhost:4000/health
 ```
+
+Set `WEB_ORIGIN` to your Vercel frontend origin when running this API stack
+outside local checks.
 
 Default protected TA credential for local/demo Docker:
 

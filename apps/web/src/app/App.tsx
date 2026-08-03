@@ -1,12 +1,34 @@
+import { useEffect, useState } from "react";
 import { RouterProvider } from "react-router";
 import { router } from "@/app/routers";
 import { DataProvider } from "@/app/data";
 import { LanguageProvider } from "@/app/services/i18n-service";
 import { Toaster } from "@/app/components/Common/sonner";
+import AppIntro from "@/app/components/AppIntro";
+
+const INTRO_DURATION_MS = 1350;
+const REDUCED_MOTION_INTRO_DURATION_MS = 500;
 
 export default function App() {
+  const [showIntro, setShowIntro] = useState(true);
+
+  useEffect(() => {
+    if (!showIntro) return;
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const timer = window.setTimeout(
+      () => {
+        setShowIntro(false);
+      },
+      prefersReducedMotion ? REDUCED_MOTION_INTRO_DURATION_MS : INTRO_DURATION_MS,
+    );
+
+    return () => window.clearTimeout(timer);
+  }, [showIntro]);
+
   return (
     <LanguageProvider>
+      {showIntro && <AppIntro />}
       <DataProvider>
         <RouterProvider router={router} />
       </DataProvider>

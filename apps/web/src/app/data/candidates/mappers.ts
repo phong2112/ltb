@@ -1,5 +1,5 @@
 import type { ApplicationStatus as ApiApplicationStatus } from "@hr-copilot/shared";
-import { API_BASE } from "@/app/services/api-service";
+import { API_BASE } from "@/app/apis/requests";
 import type { CandidateStatus } from "@/app/utils/configs/status-config";
 import type {
   AiAnalysisStatus,
@@ -265,4 +265,3 @@ function parseScreeningAnswers(value: unknown) {
       : [];
   });
 }
-

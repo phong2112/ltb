@@ -6,14 +6,13 @@ import { useData, type CandidateStatus } from "@/app/data";
 import { useLanguage } from "@/app/services/i18n-service";
 import ListPagination from "@/app/components/ListPagination";
 import AdminLayout from "@/app/layouts/AdminLayout";
-import { notificationService } from "@/app/services/notification-service";
+import { notificationService } from "@/app/services/notification.service";
 import {
   deleteTalentPoolEntry,
   listTalentPool,
-  type TalentPoolListItem,
-  type TalentPoolUploadResult,
   uploadTalentPoolFiles,
-} from "@/app/services/talent-pool-service";
+} from "@/app/apis/requests";
+import type { TalentPoolListItem, TalentPoolUploadResult } from "@/app/apis/models";
 import {
   AlertDialog,
   AlertDialogAction,

@@ -33,6 +33,7 @@ import {
   InfoItem,
   SectionHeading,
 } from "@/app/components/CandidateDetailSections";
+import ScrollToTopButton from "@/app/components/ScrollToTopButton";
 import { useData } from "@/app/data";
 import { translateCandidateStatus, useLanguage } from "@/app/services/i18n-service";
 import AdminLayout from "@/app/layouts/AdminLayout";
@@ -199,7 +200,7 @@ export default function CandidateDetail() {
   return (
     <AdminLayout>
       <div className="w-full max-w-[1560px] space-y-4">
-        <header className="overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_10px_30px_rgba(120,70,86,0.06)] lg:sticky lg:top-16 lg:z-20">
+        <header className="overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_10px_30px_rgba(120,70,86,0.06)]">
           <div className="flex flex-col gap-3 px-3.5 py-3.5 sm:px-5 sm:py-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex min-w-0 items-start gap-3 sm:gap-4">
               <div className="flex size-11 flex-none items-center justify-center rounded-xl bg-primary/10 text-sm font-black text-primary sm:size-12">
@@ -381,11 +382,12 @@ export default function CandidateDetail() {
             </section>
           </main>
 
-          <aside className="min-w-0 xl:sticky xl:top-36">
+          <aside className="min-w-0 xl:sticky xl:top-20">
             <CvPreviewPanel candidate={application} t={t} />
           </aside>
         </div>
       </div>
+      <ScrollToTopButton />
       <AlertDialog open={deleteOpen} onOpenChange={open => { if (!isDeleting) setDeleteOpen(open); }}>
         <AlertDialogContent>
           <AlertDialogHeader>

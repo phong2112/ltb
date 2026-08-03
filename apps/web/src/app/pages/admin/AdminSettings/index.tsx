@@ -4,7 +4,7 @@ import { Bell, Briefcase, Languages, Mail, Save, ShieldCheck, SlidersHorizontal,
 import AdminLayout from "@/app/layouts/AdminLayout";
 import { useLanguage, type Language } from "@/app/services/i18n-service";
 import { Switch } from "@/app/components/Common/switch";
-import { notificationService } from "@/app/services/notification-service";
+import { notificationService } from "@/app/services/notification.service";
 
 type WorkspaceSettings = {
   defaultView: "candidates" | "jobs";

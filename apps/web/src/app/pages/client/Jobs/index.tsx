@@ -4,13 +4,14 @@ import { Filter, Heart, List, Search } from "lucide-react";
 import { useData } from "@/app/data";
 import { translateJobLevel, translateJobType, useLanguage } from "@/app/services/i18n-service";
 import PublicLayout from "@/app/layouts/PublicLayout";
-import { notificationService } from "@/app/services/notification-service";
+import { notificationService } from "@/app/services/notification.service";
 import JobDetailPanel from "@/app/components/JobDetailPanel";
 import PublicJobCard from "@/app/components/PublicJobCard";
 
 const ALL_FILTER = "all";
 const TYPE_FILTERS = [ALL_FILTER, "Full-time", "Hybrid", "Remote"];
 const LEVEL_FILTERS = [ALL_FILTER, "Mid-level", "Senior", "Manager"];
+const PUBLIC_HEADER_SCROLL_OFFSET = 80;
 
 export default function Jobs() {
   const { jobs, savedJobIds, toggleSavedJob } = useData();
@@ -41,26 +42,40 @@ export default function Jobs() {
   useEffect(() => {
     if (!selectedJobId || selectedJob?.id !== selectedJobId) return;
 
+    let innerFrame = 0;
     const frame = window.requestAnimationFrame(() => {
-      if (skipNextCardScrollRef.current === selectedJobId) {
-        skipNextCardScrollRef.current = null;
+      innerFrame = window.requestAnimationFrame(() => {
+        if (skipNextCardScrollRef.current === selectedJobId) {
+          skipNextCardScrollRef.current = null;
+          focusedJobIdRef.current = selectedJobId;
+          return;
+        }
+
+        const selectedCard = document.getElementById(`job-card-${selectedJobId}`);
+        if (!selectedCard) return;
+
+        const behavior = focusedJobIdRef.current === selectedJobId ? "auto" : "smooth";
+        if (window.matchMedia("(max-width: 1023px)").matches) {
+          window.scrollTo({
+            top: Math.max(0, selectedCard.getBoundingClientRect().top + window.scrollY - PUBLIC_HEADER_SCROLL_OFFSET),
+            behavior,
+          });
+        } else {
+          selectedCard.scrollIntoView({
+            behavior,
+            block: "center",
+            inline: "nearest",
+          });
+        }
+        selectedCard.focus({ preventScroll: true });
         focusedJobIdRef.current = selectedJobId;
-        return;
-      }
-
-      const selectedCard = document.getElementById(`job-card-${selectedJobId}`);
-      if (!selectedCard) return;
-
-      selectedCard.scrollIntoView({
-        behavior: focusedJobIdRef.current === selectedJobId ? "auto" : "smooth",
-        block: "center",
-        inline: "nearest",
       });
-      selectedCard.focus({ preventScroll: true });
-      focusedJobIdRef.current = selectedJobId;
     });
 
-    return () => window.cancelAnimationFrame(frame);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.cancelAnimationFrame(innerFrame);
+    };
   }, [filtered.length, selectedJob?.id, selectedJobId]);
 
   const setJobView = (view: "all" | "saved") => {

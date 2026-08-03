@@ -32,15 +32,15 @@ import {
 import type { ApiJob, CvSummary } from "@/app/data";
 import { useLanguage } from "@/app/services/i18n-service";
 import AdminLayout from "@/app/layouts/AdminLayout";
-import { API_BASE, apiRequest } from "@/app/services/api-service";
-import { notificationService } from "@/app/services/notification-service";
+import { API_BASE, getAdminJobs } from "@/app/apis/requests";
+import { notificationService } from "@/app/services/notification.service";
 import {
   deleteTalentPoolEntry,
   getTalentPoolEntry,
   promoteTalentPoolEntry,
-  type TalentPoolEntry,
   updateTalentPoolEntry,
-} from "@/app/services/talent-pool-service";
+} from "@/app/apis/requests";
+import type { TalentPoolEntry } from "@/app/apis/models";
 import { TalentPoolStatusBadge } from "@/app/components/TalentPoolStatusBadge";
 
 type ProfileForm = {
@@ -73,7 +73,7 @@ export default function TalentPoolDetail() {
     if (!id) return;
     let cancelled = false;
     setIsLoading(true);
-    Promise.all([getTalentPoolEntry(id), apiRequest<ApiJob[]>("/admin/jobs")])
+    Promise.all([getTalentPoolEntry(id), getAdminJobs()])
       .then(([loadedEntry, loadedJobs]) => {
         if (cancelled) return;
         setEntry(loadedEntry);

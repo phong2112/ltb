@@ -16,7 +16,7 @@ export function CvDocumentPreview({
   const previewUrl = isPdf ? withPdfPreviewOptions(cvUrl) : cvUrl;
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_12px_40px_rgba(83,45,58,0.04)] xl:flex xl:h-[calc(100vh-10.5rem)] xl:flex-col">
+    <section className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_12px_40px_rgba(83,45,58,0.04)] xl:flex xl:h-[calc(100vh-6rem)] xl:min-h-[32rem] xl:flex-col">
       <div className="flex items-start justify-between gap-3 p-5">
         <div className="min-w-0">
           <div className="flex items-center gap-2">

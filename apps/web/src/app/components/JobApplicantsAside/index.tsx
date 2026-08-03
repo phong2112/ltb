@@ -28,7 +28,7 @@ export default function JobApplicantsAside({ jobId }: JobApplicantsAsideProps) {
   }, [jobId, search]);
 
   return (
-    <aside className="self-start overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_10px_30px_rgba(120,70,86,0.06)] xl:sticky xl:top-20 xl:col-start-2 xl:row-start-1 xl:row-span-2">
+    <aside className="self-start overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_10px_30px_rgba(120,70,86,0.06)] xl:sticky xl:top-20 xl:col-start-2 xl:row-start-1 xl:row-span-2 xl:max-h-[calc(100vh-6rem)]">
       <ApplicantsHeader count={jobCandidates.length} subtitle={t("admin.applications")} title={t("admin.jobApplicants")} />
 
       {jobCandidates.length > 0 ? (
@@ -72,4 +72,3 @@ export default function JobApplicantsAside({ jobId }: JobApplicantsAsideProps) {
     </aside>
   );
 }
-

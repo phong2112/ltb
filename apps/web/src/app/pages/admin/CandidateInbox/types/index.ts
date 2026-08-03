@@ -1,5 +1,5 @@
 import type { CandidateProfile, CandidateStatus } from "@/app/data";
-import type { TalentPoolListItem } from "@/app/services/talent-pool-service";
+import type { TalentPoolListItem } from "@/app/apis/models";
 import {
   BULK_UPLOAD_MODE,
   PER_FILE_UPLOAD_MODE,
@@ -26,4 +26,3 @@ export type UnifiedCandidateRow = {
   candidate?: CandidateProfile;
   poolEntry?: TalentPoolListItem;
 };
-

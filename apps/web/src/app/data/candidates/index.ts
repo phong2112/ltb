@@ -1,4 +1,5 @@
 export type {
+  AiAnalysisStatus,
   ApiApplicationAnalysis,
   ApiCandidateMessage,
   ApiCandidateProfile,

@@ -8,7 +8,6 @@ import { contactConfig } from "@/app/utils/configs/contact-config";
 
 const logoImg = "/images/bich-candy-logo.jpg";
 const SETTINGS_STORAGE_KEY = "hr-copilot-admin-settings";
-const LOCAL_ADMIN_PASSWORD = "demo123";
 const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"]);
 
 function getDefaultAdminPath() {
@@ -33,7 +32,7 @@ export default function AdminLogin() {
   const navigate = useNavigate();
   const shouldPrefillCredentials = shouldPrefillLocalCredentials();
   const [email, setEmail] = useState<string>(shouldPrefillCredentials ? contactConfig.email : "");
-  const [password, setPassword] = useState(shouldPrefillCredentials ? LOCAL_ADMIN_PASSWORD : "");
+  const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);

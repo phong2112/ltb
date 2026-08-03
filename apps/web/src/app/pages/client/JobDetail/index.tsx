@@ -4,7 +4,7 @@ import { useData } from "@/app/data";
 import { translateJobLevel, translateJobType, useLanguage } from "@/app/services/i18n-service";
 import PublicLayout from "@/app/layouts/PublicLayout";
 import RichTextContent from "@/app/components/RichTextContent";
-import { notificationService } from "@/app/services/notification-service";
+import { notificationService } from "@/app/services/notification.service";
 import { URGENT_BADGE_CLASS } from "@/app/utils/configs/status-config";
 import ApplicationDialog from "@/app/components/ApplicationDialog";
 

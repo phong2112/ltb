@@ -29,7 +29,7 @@ const AdminSettings = lazy(() => import("@/app/pages/admin/AdminSettings"));
 const Terms = lazy(() => import("@/app/pages/client/Terms"));
 const Privacy = lazy(() => import("@/app/pages/client/Privacy"));
 
-function RequireAdmin({ children }: { children: ReactNode }) {
+function RequireAdmin({ children }: { children?: ReactNode }) {
   const { isAdminLoggedIn, isAuthReady } = useData();
   if (!isAuthReady)
     return (
@@ -37,7 +37,7 @@ function RequireAdmin({ children }: { children: ReactNode }) {
         Đang kiểm tra phiên đăng nhập...
       </div>
     );
-  return isAdminLoggedIn ? children : <Navigate to="/admin" replace />;
+  return isAdminLoggedIn ? (children ?? <Outlet />) : <Navigate to="/admin" replace />;
 }
 
 function RouteLayout() {
@@ -62,7 +62,14 @@ export const router = createBrowserRouter([
     Component: RouteLayout,
     children: [
       { path: "/", Component: Home },
-      { path: "/jobs", Component: Jobs },
+      {
+        path: "/jobs",
+        children: [
+          { index: true, Component: Jobs },
+          { path: ":id", Component: JobDetail },
+          { path: ":id/apply", Component: Apply },
+        ],
+      },
       {
         path: "/saved-jobs",
         element: <Navigate to="/jobs?view=saved" replace />,
@@ -71,113 +78,35 @@ export const router = createBrowserRouter([
       { path: "/contact", Component: Contact },
       { path: "/terms", Component: Terms },
       { path: "/privacy", Component: Privacy },
-      { path: "/jobs/:id", Component: JobDetail },
-      { path: "/jobs/:id/apply", Component: Apply },
-      { path: "/apply/success", Component: ApplySuccess },
-      { path: "/admin", Component: AdminLogin },
       {
-        path: "/admin/dashboard",
-        element: (
-          <RequireAdmin>
-            <AdminDashboard />
-          </RequireAdmin>
-        ),
+        path: "/apply",
+        children: [
+          { path: "success", Component: ApplySuccess },
+        ],
       },
       {
-        path: "/admin/jobs",
-        element: (
-          <RequireAdmin>
-            <AdminJobs />
-          </RequireAdmin>
-        ),
-      },
-      {
-        path: "/admin/jobs/new",
-        element: (
-          <RequireAdmin>
-            <CreateEditJob />
-          </RequireAdmin>
-        ),
-      },
-      {
-        path: "/admin/jobs/:id",
-        element: (
-          <RequireAdmin>
-            <AdminJobDetail />
-          </RequireAdmin>
-        ),
-      },
-      {
-        path: "/admin/jobs/:id/edit",
-        element: (
-          <RequireAdmin>
-            <CreateEditJob />
-          </RequireAdmin>
-        ),
-      },
-      {
-        path: "/admin/candidates",
-        element: (
-          <RequireAdmin>
-            <CandidateInbox />
-          </RequireAdmin>
-        ),
-      },
-      {
-        path: "/admin/candidates/:id",
-        element: (
-          <RequireAdmin>
-            <CandidateDetail />
-          </RequireAdmin>
-        ),
-      },
-      {
-        path: "/admin/talent-pool",
-        element: (
-          <RequireAdmin>
-            <Navigate to="/admin/candidates" replace />
-          </RequireAdmin>
-        ),
-      },
-      {
-        path: "/admin/talent-pool/:id",
-        element: (
-          <RequireAdmin>
-            <TalentPoolDetail />
-          </RequireAdmin>
-        ),
-      },
-      {
-        path: "/admin/chats",
-        element: (
-          <RequireAdmin>
-            <CandidateChats />
-          </RequireAdmin>
-        ),
-      },
-      {
-        path: "/admin/follow-up",
-        element: (
-          <RequireAdmin>
-            <FollowUp />
-          </RequireAdmin>
-        ),
-      },
-      {
-        path: "/admin/templates",
-        element: (
-          <RequireAdmin>
-            <MessageTemplates />
-          </RequireAdmin>
-        ),
-      },
-      {
-        path: "/admin/settings",
-        element: (
-          <RequireAdmin>
-            <AdminSettings />
-          </RequireAdmin>
-        ),
+        path: "/admin",
+        children: [
+          { index: true, Component: AdminLogin },
+          {
+            element: <RequireAdmin />,
+            children: [
+              { path: "dashboard", Component: AdminDashboard },
+              { path: "jobs", Component: AdminJobs },
+              { path: "jobs/new", Component: CreateEditJob },
+              { path: "jobs/:id", Component: AdminJobDetail },
+              { path: "jobs/:id/edit", Component: CreateEditJob },
+              { path: "candidates", Component: CandidateInbox },
+              { path: "candidates/:id", Component: CandidateDetail },
+              { path: "talent-pool", element: <Navigate to="/admin/candidates" replace /> },
+              { path: "talent-pool/:id", Component: TalentPoolDetail },
+              { path: "chats", Component: CandidateChats },
+              { path: "follow-up", Component: FollowUp },
+              { path: "templates", Component: MessageTemplates },
+              { path: "settings", Component: AdminSettings },
+            ],
+          },
+        ],
       },
       { path: "*", Component: () => <Navigate to="/" replace /> },
     ],

@@ -13,41 +13,20 @@ import {
 } from "@/app/components/Common/alert-dialog";
 import AdminLayout from "@/app/layouts/AdminLayout";
 import { useLanguage } from "@/app/services/i18n-service";
-import { apiRequest } from "@/app/services/api-service";
-import { notificationService } from "@/app/services/notification-service";
+import {
+  createAdminTemplate,
+  deleteAdminTemplate,
+  fetchAdminTemplates,
+  updateAdminTemplate,
+} from "@/app/apis/requests";
+import { notificationService } from "@/app/services/notification.service";
+import type { ApiTemplate } from "@/app/apis/models";
 
-type ApiTemplate = { id: string; name: string; channel: string; content: string };
 type Template = { id: string; icon: ReactNode; title: string; channel: string; body: string };
 type TemplateForm = { name: string; channel: string; content: string };
 
 const CHANNELS = ["Zalo", "Messenger", "LinkedIn", "Email"];
 const EMPTY_FORM: TemplateForm = { name: "", channel: "Zalo", content: "" };
-
-function templatePath(templateId?: string) {
-  return `/admin/templates${templateId ? `/${encodeURIComponent(templateId)}` : ""}`;
-}
-
-function fetchAdminTemplates() {
-  return apiRequest<ApiTemplate[]>(templatePath());
-}
-
-function createAdminTemplate(form: TemplateForm) {
-  return apiRequest<ApiTemplate>(templatePath(), {
-    method: "POST",
-    body: JSON.stringify(form),
-  });
-}
-
-function updateAdminTemplate(id: string, form: TemplateForm) {
-  return apiRequest<ApiTemplate>(templatePath(id), {
-    method: "PATCH",
-    body: JSON.stringify(form),
-  });
-}
-
-async function deleteAdminTemplate(id: string) {
-  await apiRequest<void>(templatePath(id), { method: "DELETE" });
-}
 
 export default function MessageTemplates() {
   const { t } = useLanguage();

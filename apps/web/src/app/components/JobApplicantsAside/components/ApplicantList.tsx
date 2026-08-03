@@ -6,7 +6,7 @@ import type { ApplicantListProps } from "../types";
 
 export function ApplicantList({ candidates, language }: ApplicantListProps) {
   return (
-    <div className="max-h-[min(560px,calc(100vh-290px))] divide-y divide-border overflow-y-auto">
+    <div className="max-h-[clamp(16rem,calc(100vh-22rem),35rem)] divide-y divide-border overflow-y-auto">
       {candidates.map((candidate) => (
         <Link
           key={candidate.applicationId}
@@ -34,4 +34,3 @@ export function ApplicantList({ candidates, language }: ApplicantListProps) {
     </div>
   );
 }
-

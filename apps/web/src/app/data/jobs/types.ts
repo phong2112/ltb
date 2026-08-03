@@ -1,7 +1,8 @@
-import type { JobStatus as ApiJobStatus } from "@hr-copilot/shared";
 import type { JobStatus } from "@/app/utils/configs/status-config";
+import type { ApiJob } from "@/app/apis/models";
 
 export type { JobStatus } from "@/app/utils/configs/status-config";
+export type { ApiJob };
 
 export type JobQuestion = {
   id: string;
@@ -32,35 +33,3 @@ export type Job = {
 };
 
 export type JobInput = Omit<Job, "id" | "posted" | "applicants" | "location">;
-
-export type ApiJob = {
-  id: string;
-  title: string;
-  company?: string | null;
-  department?: string | null;
-  locations?: string[] | null;
-  location?: string | null;
-  employment?: string | null;
-  level?: string | null;
-  salaryRange?: string | null;
-  tags?: string[] | null;
-  description: string;
-  requirements: string;
-  benefits?: string | null;
-  status: ApiJobStatus;
-  urgent?: boolean | null;
-  logo?: string | null;
-  questions?:
-    | {
-        id: string;
-        label?: string | null;
-        required?: boolean | null;
-        sortOrder?: number | null;
-      }[]
-    | null;
-  createdAt?: string;
-  _count?: {
-    applications?: number;
-  };
-};
-
