@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
-import { normalizeRichText, sanitizeRichText } from "@/app/utils/rich-text";
+import { normalizeRichText, sanitizeRichText } from "@/app/utils/helpers/rich-text";
 import { EditorToolbar } from "./components";
 import type { RichTextEditorProps } from "./types";
 import { isEditorUsable } from "./utils";
@@ -45,4 +45,3 @@ export default function RichTextEditor({ value, onChange, label, placeholder, in
     </div>
   );
 }
-

@@ -61,6 +61,7 @@ run_verify() {
   fi
 
   echo "Verifying frontend..."
+  pnpm --filter @hr-copilot/shared build
   pnpm --filter @hr-copilot/web lint
   pnpm --filter @hr-copilot/web build
 }

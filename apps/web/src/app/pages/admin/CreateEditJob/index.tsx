@@ -12,7 +12,7 @@ import {
 import { translateJobLevel, translateJobType, useLanguage } from "@/app/services/i18n-service";
 import JobApplicantsAside from "@/app/components/JobApplicantsAside";
 import AdminLayout from "@/app/layouts/AdminLayout";
-import { getMeaningfulRichTextLength as getMeaningfulTextLength } from "@/app/utils/rich-text";
+import { getMeaningfulRichTextLength as getMeaningfulTextLength } from "@/app/utils/helpers/rich-text";
 import { CreateEditJobHeader, FormField, JobQuestionSection } from "./components";
 import {
   EMPTY_JOB_FORM,

@@ -19,6 +19,6 @@ docker/nginx/.htpasswd
 *.png
 
 
-# Cloudflare Wrangler - local state and temp builds
-apps/keep-alive-worker/.wrangler/ 
-apps/keep-alive-worker/tmp/
+# Cloudflare Wrangler local state and temp builds
+.wrangler/
+**/.wrangler/

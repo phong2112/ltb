@@ -1,5 +1,5 @@
 import type { Job } from "@/app/data";
-import { getMeaningfulRichTextLength as getMeaningfulTextLength } from "@/app/utils/rich-text";
+import { getMeaningfulRichTextLength as getMeaningfulTextLength } from "@/app/utils/helpers/rich-text";
 import {
   JOB_LEVELS,
   JOB_LOCATIONS,

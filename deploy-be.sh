@@ -56,7 +56,8 @@ run_verify() {
   fi
 
   echo "Verifying backend..."
-  pnpm --filter @hr-copilot/db prisma validate
+  pnpm --filter @hr-copilot/db build
+  pnpm --filter @hr-copilot/shared build
   pnpm --filter @hr-copilot/api lint
   pnpm --filter @hr-copilot/api build
 }

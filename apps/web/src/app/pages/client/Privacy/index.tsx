@@ -4,7 +4,7 @@ import { ChevronLeft, Database, Eye, Mail, Shield, Trash2, UserCheck } from "luc
 import { contactConfig } from "@/app/utils/configs/contact-config";
 import { useLanguage } from "@/app/services/i18n-service";
 import PublicLayout from "@/app/layouts/PublicLayout";
-import { renderLegalBody } from "../legal-renderer";
+import { renderLegalBody } from "@/app/utils/helpers/legal-renderer";
 import { PRIVACY_CONTENT, type HighlightKey } from "./constants";
 
 const HIGHLIGHT_ICONS: Record<HighlightKey, ReactNode> = {

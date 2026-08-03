@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { ChevronLeft, FileText } from "lucide-react";
 import { useLanguage } from "@/app/services/i18n-service";
 import PublicLayout from "@/app/layouts/PublicLayout";
-import { renderLegalBody } from "../legal-renderer";
+import { renderLegalBody } from "@/app/utils/helpers/legal-renderer";
 import { TERMS_CONTENT } from "./constants";
 
 export default function Terms() {
