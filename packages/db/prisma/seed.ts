@@ -446,7 +446,7 @@ const candidates = [
     cvUrl: "https://drive.google.com/file/d/example1",
     notes: "Từng làm tại Grab Design team 3 năm, rất hứng thú với vị trí này.",
     jobSlug: "senior-product-designer",
-    status: ApplicationStatus.REVIEWING,
+    status: ApplicationStatus.VIEWED,
     appliedAt: "2026-07-07",
     followUpAt: "2026-07-12",
     score: 92,
@@ -567,7 +567,7 @@ const candidates = [
     cvUrl: "https://drive.google.com/file/d/example6",
     notes: "Backend engineer từng làm payment gateway, có kinh nghiệm NestJS và PostgreSQL.",
     jobSlug: "backend-engineer-nodejs",
-    status: ApplicationStatus.REVIEWING,
+    status: ApplicationStatus.VIEWED,
     appliedAt: "2026-07-09",
     followUpAt: "2026-07-15",
     score: 88,
@@ -621,7 +621,7 @@ const candidates = [
     cvUrl: "https://drive.google.com/file/d/example8",
     notes: "Product Manager có kinh nghiệm growth funnel ở e-commerce.",
     jobSlug: "product-manager",
-    status: ApplicationStatus.SCREENING,
+    status: ApplicationStatus.VIEWED,
     appliedAt: "2026-07-10",
     followUpAt: "2026-07-17",
     score: 84,
@@ -935,7 +935,7 @@ async function main() {
       },
     });
 
-    if (candidateData.followUpAt && candidateData.status !== ApplicationStatus.REJECTED && candidateData.status !== ApplicationStatus.OFFER) {
+    if (candidateData.followUpAt && candidateData.status !== ApplicationStatus.REJECTED && candidateData.status !== ApplicationStatus.OFFER && candidateData.status !== ApplicationStatus.OFFER_CLOSED) {
       await prisma.followUpTask.create({
         data: {
           applicationId: application.id,

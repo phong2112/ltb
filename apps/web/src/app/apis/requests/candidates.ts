@@ -32,15 +32,18 @@ export function retryApplicationAnalysis(applicationId: string) {
 export function updateCandidateApplication(
   applicationId: string,
   body: { status?: string; followUpAt?: string | null; note?: string },
+  options: { silent?: boolean } = {},
 ) {
   return apiRequest(`/admin/candidates/applications/${applicationId}`, {
     method: "PATCH",
     body: JSON.stringify(body),
-    notification: {
-      loading: "Đang cập nhật ứng viên...",
-      success: "Đã cập nhật thông tin ứng viên",
-      error: "Không thể cập nhật ứng viên",
-    },
+    notification: options.silent
+      ? undefined
+      : {
+          loading: "Đang cập nhật ứng viên...",
+          success: "Đã cập nhật thông tin ứng viên",
+          error: "Không thể cập nhật ứng viên",
+        },
   });
 }
 
@@ -70,4 +73,3 @@ export function sendCandidateMessageRequest(
     },
   });
 }
-

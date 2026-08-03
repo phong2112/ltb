@@ -439,12 +439,12 @@
   "candidateStatuses": {
     "all": "All",
     "new": "New",
-    "reviewing": "Reviewing",
+    "viewed": "Viewed",
     "contacted": "Contacted",
     "replied": "Replied",
-    "screening": "Screening",
     "interview": "Interview",
     "offer": "Offer",
+    "offer_closed": "Offer closed",
     "rejected": "Rejected",
     "talent_pool": "Talent pool"
   },

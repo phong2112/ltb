@@ -17,12 +17,12 @@ import type {
 
 const API_TO_CANDIDATE_STATUS: Record<ApiApplicationStatus, CandidateStatus> = {
   NEW: "new",
-  REVIEWING: "reviewing",
+  VIEWED: "viewed",
   CONTACTED: "contacted",
   REPLIED: "replied",
-  SCREENING: "screening",
   INTERVIEW: "interview",
   OFFER: "offer",
+  OFFER_CLOSED: "offer_closed",
   REJECTED: "rejected",
   TALENT_POOL: "talent_pool",
 };
@@ -35,12 +35,12 @@ export function toApiApplicationStatus(status?: CandidateStatus): ApiApplication
   if (!status) return undefined;
   const statusMap: Record<CandidateStatus, ApiApplicationStatus> = {
     new: "NEW",
-    reviewing: "REVIEWING",
+    viewed: "VIEWED",
     contacted: "CONTACTED",
     replied: "REPLIED",
-    screening: "SCREENING",
     interview: "INTERVIEW",
     offer: "OFFER",
+    offer_closed: "OFFER_CLOSED",
     rejected: "REJECTED",
     talent_pool: "TALENT_POOL",
   };

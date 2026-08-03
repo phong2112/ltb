@@ -439,12 +439,12 @@
   "candidateStatuses": {
     "all": "Tất cả",
     "new": "Mới",
-    "reviewing": "Đang xem",
+    "viewed": "Đã xem",
     "contacted": "Đã liên hệ",
     "replied": "Đã phản hồi",
-    "screening": "Sàng lọc",
     "interview": "Phỏng vấn",
     "offer": "Đã gửi offer",
+    "offer_closed": "Chốt offer",
     "rejected": "Từ chối",
     "talent_pool": "Talent pool"
   },

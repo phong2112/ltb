@@ -6,7 +6,7 @@ import type { Response } from "express";
 import { ACCESS_TOKEN_SECURITY_NAME } from "../../../utils/swagger";
 import { JwtAuthGuard } from "../../auth/guards/index.guard";
 import { CreateCandidateMessageDto } from "../dto/message/index.dto";
-import { UpdateApplicationStatusDto } from "../dto/status/index.dto";
+import { normalizeApplicationStatusInput, UpdateApplicationStatusDto } from "../dto/status/index.dto";
 import { CandidatesService } from "../service/index.service";
 
 @ApiTags("Candidates")
@@ -27,7 +27,7 @@ export class CandidatesController {
   @ApiQuery({
     name: "status",
     required: false,
-    enum: ["NEW", "REVIEWING", "CONTACTED", "REPLIED", "SCREENING", "INTERVIEW", "OFFER", "REJECTED", "TALENT_POOL"],
+    enum: Object.values(ApplicationStatus),
     description: "Filter by application status (e.g. TALENT_POOL for the talent pool).",
   })
   @Get()
@@ -152,10 +152,11 @@ function getFrameAncestors(webOrigin?: string) {
   return Array.from(new Set(["'self'", "http://localhost:3000", "http://localhost:8080", webOrigin].filter(Boolean))).join(" ");
 }
 
-function parseApplicationStatus(status?: string): ApplicationStatus | undefined {
+export function parseApplicationStatus(status?: string): ApplicationStatus | undefined {
   if (!status) return undefined;
-  if (Object.values(ApplicationStatus).includes(status as ApplicationStatus)) {
-    return status as ApplicationStatus;
+  const normalized = normalizeApplicationStatusInput(status);
+  if (Object.values(ApplicationStatus).includes(normalized as ApplicationStatus)) {
+    return normalized as ApplicationStatus;
   }
 
   throw new BadRequestException("Trạng thái hồ sơ không nằm trong danh sách cho phép.");

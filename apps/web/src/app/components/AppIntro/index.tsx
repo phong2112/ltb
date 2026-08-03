@@ -1,58 +1,80 @@
-import { BriefcaseBusiness, Sparkles } from "lucide-react";
 import { ImageWithFallback } from "@/app/components/ImageFallBack";
 
-const portraitImg = "/images/luong-thi-bich.png";
+const logoImg = "/images/bich-candy-logo.jpg";
+
+const particles = [
+  { left: "15%", top: "25%", delay: "0ms" },
+  { left: "80%", top: "15%", delay: "320ms" },
+  { left: "60%", top: "70%", delay: "620ms" },
+  { left: "30%", top: "75%", delay: "180ms" },
+  { left: "90%", top: "55%", delay: "520ms" },
+  { left: "10%", top: "60%", delay: "820ms" },
+  { left: "50%", top: "10%", delay: "260ms" },
+  { left: "72%", top: "88%", delay: "980ms" },
+];
 
 export default function AppIntro() {
   return (
-    <div className="fixed inset-0 z-[9999] flex min-h-dvh items-center justify-center overflow-hidden bg-[#fff7fa] px-5 text-foreground">
-      <div className="absolute inset-0 bg-[linear-gradient(135deg,#fff7fa_0%,#fde8ef_42%,#f9d6e2_100%)]" />
-      <div className="absolute inset-x-0 top-0 h-28 bg-white/55" />
-      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-white/70 to-transparent" />
+    <div className="fixed inset-0 z-[9999] flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-background px-6 text-foreground">
+      <div className="absolute inset-0 bg-[linear-gradient(145deg,var(--background)_0%,var(--secondary)_45%,var(--muted)_100%)]" />
+      <div className="absolute -left-20 -top-20 size-80 rounded-full bg-[radial-gradient(circle,var(--accent)_0%,transparent_70%)] opacity-40 animate-[intro-blob_6s_ease-in-out_infinite]" />
+      <div className="absolute -bottom-24 -right-16 h-96 w-96 rounded-full bg-[radial-gradient(circle,var(--primary)_0%,transparent_70%)] opacity-20 animate-[intro-blob_7.5s_ease-in-out_infinite_300ms]" />
+      <div className="absolute -right-32 top-1/2 size-64 rounded-full bg-[radial-gradient(circle,var(--muted)_0%,transparent_70%)] opacity-55 animate-[intro-blob_6.8s_ease-in-out_infinite_160ms]" />
 
-      <div className="relative grid w-full max-w-5xl items-center gap-8 md:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="min-w-0">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-pink-200 bg-white/70 px-3 py-1.5 text-xs font-black text-primary shadow-sm">
-            <Sparkles size={13} />
-            TA Copilot
-          </div>
+      {particles.map((particle) => (
+        <span
+          key={`${particle.left}-${particle.top}`}
+          className="absolute size-1.5 rounded-full bg-accent/70 animate-[intro-particle_2.5s_ease-out_infinite]"
+          style={{
+            left: particle.left,
+            top: particle.top,
+            animationDelay: particle.delay,
+          }}
+        />
+      ))}
 
-          <h1
-            className="max-w-2xl text-[2.45rem] font-black leading-[1.05] text-foreground min-[420px]:text-5xl md:text-6xl"
-            style={{ fontFamily: "'Playfair Display', serif" }}
-          >
-            Lường Bích
-          </h1>
-          <p className="mt-3 max-w-xl text-sm font-semibold leading-6 text-muted-foreground sm:text-base">
-            Kết nối ứng viên với cơ hội phù hợp, gọn gàng hơn cho ứng tuyển và rõ ràng hơn cho tuyển dụng.
-          </p>
-
-          <div className="mt-7 max-w-md overflow-hidden rounded-full border border-pink-200 bg-white/75 p-1 shadow-sm">
-            <div className="h-2.5 origin-left animate-[intro-progress_1.35s_ease-out_forwards] rounded-full bg-primary" />
-          </div>
-
-          <div className="mt-5 flex items-center gap-3 text-xs font-bold text-muted-foreground">
-            <span className="inline-flex size-9 items-center justify-center rounded-xl border border-pink-200 bg-white text-primary shadow-sm">
-              <BriefcaseBusiness size={17} />
-            </span>
-            Đang chuẩn bị không gian tuyển dụng...
-          </div>
-        </div>
-
-        <div className="hidden justify-end md:flex">
-          <div className="relative h-80 w-80 overflow-hidden rounded-[2rem] border border-white/80 bg-white shadow-[0_24px_70px_rgba(200,91,122,0.22)]">
+      <div className="relative z-10 flex flex-col items-center gap-8">
+        <div className="relative animate-[intro-logo-pop_600ms_cubic-bezier(0.34,1.56,0.64,1)_both]">
+          <div className="size-28 overflow-hidden rounded-full border-[3px] border-accent shadow-[0_20px_60px_rgba(200,91,122,0.27)]">
             <ImageWithFallback
-              src={portraitImg}
+              src={logoImg}
               alt="Lường Bích"
               className="h-full w-full object-cover object-top"
             />
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#2d1b22]/70 to-transparent p-5 pt-16 text-white">
-              <p className="text-xs font-bold uppercase">Career site</p>
-              <p className="mt-1 text-lg font-black" style={{ fontFamily: "'Playfair Display', serif" }}>
-                Thoughtful hiring
-              </p>
-            </div>
           </div>
+          <div className="absolute -inset-2.5 rounded-full border-2 border-accent/60 animate-[intro-orbit_8s_linear_infinite]">
+            <span className="absolute -top-1.5 left-1/2 size-3 -translate-x-1/2 rounded-full bg-primary shadow-[0_0_10px_var(--primary)]" />
+          </div>
+        </div>
+
+        <div className="animate-[intro-fade-up_700ms_ease-out_320ms_both] text-center">
+          <h1 className="text-4xl font-extrabold leading-tight text-foreground md:text-5xl">
+            Lường Bích
+          </h1>
+          <p className="mt-1 text-base font-semibold uppercase text-primary tracking-[0.2em]">
+            Tư Vấn Tuyển Dụng
+          </p>
+        </div>
+
+        <p className="max-w-xs animate-[intro-fade-up_700ms_ease-out_520ms_both] text-center text-sm leading-relaxed text-muted-foreground">
+          Nơi kết nối những ước mơ với cơ hội, hàng trăm việc làm chất lượng đang chờ bạn
+        </p>
+
+        <div className="flex animate-[intro-fade-up_500ms_ease-out_740ms_both] flex-col items-center gap-3">
+          <div className="h-1.5 w-64 overflow-hidden rounded-full bg-secondary">
+            <div className="h-full origin-left animate-[intro-progress_1.35s_ease-out_forwards] rounded-full bg-[linear-gradient(90deg,var(--primary)_0%,var(--accent)_100%)]" />
+          </div>
+          <p className="text-xs font-medium text-primary">Đang tải...</p>
+        </div>
+
+        <div className="mt-2 flex animate-[intro-fade-up_500ms_ease-out_900ms_both] gap-2">
+          {[0, 1, 2].map((dot) => (
+            <span
+              key={dot}
+              className="size-1.5 rounded-full bg-primary animate-[intro-dot_1.2s_ease-in-out_infinite]"
+              style={{ animationDelay: `${dot * 200}ms` }}
+            />
+          ))}
         </div>
       </div>
     </div>

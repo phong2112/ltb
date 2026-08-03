@@ -102,7 +102,7 @@ export default function AdminSettings() {
                   <select
                     value={settings.defaultView}
                     onChange={event => updateSetting("defaultView", event.target.value as WorkspaceSettings["defaultView"])}
-                    className="h-9 rounded-lg border border-border bg-white px-3 text-sm font-semibold text-foreground outline-none focus:border-primary"
+                    className="h-8 rounded-lg border border-border bg-white px-2.5 text-xs font-semibold text-foreground outline-none focus:border-primary"
                   >
                     <option value="candidates">{t("admin.candidatesNav")}</option>
                     <option value="jobs">{t("common.jobs")}</option>

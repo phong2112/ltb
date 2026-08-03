@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { Archive, CircleStop, Eye, Globe, Plus, RotateCcw, Search, Users } from "lucide-react";
+import { Archive, Briefcase, Building2, CircleStop, Eye, Globe, MapPin, Plus, RotateCcw, Search, Users } from "lucide-react";
 import { type JobStatus, useData } from "@/app/data";
 import { translateJobStatus, translateJobType, useLanguage } from "@/app/services/i18n-service";
 import ListPagination from "@/app/components/ListPagination";
@@ -50,19 +50,19 @@ export default function AdminJobs() {
 
   return (
     <AdminLayout>
-      <div className="mb-6 flex flex-col gap-3 min-[480px]:flex-row min-[480px]:items-center min-[480px]:justify-between">
+      <div className="mb-4 flex flex-col gap-3 min-[480px]:mb-6 min-[480px]:flex-row min-[480px]:items-center min-[480px]:justify-between">
         <div>
-          <h1 className="text-2xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{t("admin.jobsManagement")}</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">{counts.published} {t("admin.publishedCount")} · {counts.draft} {t("admin.draftCount")} · {counts.closed} {t("admin.closedCount")} · {counts.archived} {t("admin.archivedCount")}</p>
+          <h1 className="text-xl font-black text-foreground min-[480px]:text-2xl" style={{ fontFamily: "'Playfair Display', serif" }}>{t("admin.jobsManagement")}</h1>
+          <p className="mt-0.5 text-xs leading-5 text-muted-foreground min-[480px]:text-sm">{counts.published} {t("admin.publishedCount")} · {counts.draft} {t("admin.draftCount")} · {counts.closed} {t("admin.closedCount")} · {counts.archived} {t("admin.archivedCount")}</p>
         </div>
-        <Link to="/admin/jobs/new" className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-primary/90">
+        <Link to="/admin/jobs/new" className="flex h-10 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-sm transition-all hover:bg-primary/90">
           <Plus size={15} /> {t("admin.createJob")}
         </Link>
       </div>
 
       <div className="bg-white rounded-2xl border border-border overflow-hidden">
-        <div className="space-y-3 border-b border-border p-4">
-          <div className="flex flex-wrap gap-2">
+        <div className="space-y-3 border-b border-border p-3 sm:p-4">
+          <div className="scrollbar-horizontal -mx-3 flex gap-2 overflow-x-auto px-3 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
             {filterOptions.map(option => (
               <button
                 key={option.value}
@@ -70,7 +70,7 @@ export default function AdminJobs() {
                   setStatusFilter(option.value);
                   setCurrentPage(1);
                 }}
-                className={`rounded-full border px-3 py-1 text-xs font-bold transition-colors ${statusFilter === option.value ? "border-primary bg-primary text-white" : "border-border bg-white text-muted-foreground hover:border-primary hover:text-primary"}`}
+                className={`h-8 flex-none rounded-full border px-3 text-xs font-bold transition-colors ${statusFilter === option.value ? "border-primary bg-primary text-white" : "border-border bg-white text-muted-foreground hover:border-primary hover:text-primary"}`}
               >
                 {option.label}
               </button>
@@ -85,54 +85,66 @@ export default function AdminJobs() {
           </div>
         </div>
 
-        <div className="divide-y divide-border">
+        <div className="space-y-2 bg-background/35 p-2 sm:space-y-0 sm:divide-y sm:divide-border sm:bg-transparent sm:p-0">
           {paginatedJobs.map(job => (
-            <div key={job.id} className="flex flex-col items-stretch gap-3 p-3 transition-colors hover:bg-pink-50/50 sm:flex-row sm:items-center sm:gap-4 sm:p-4">
-              <Link to={`/admin/jobs/${job.id}`} className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:gap-4" aria-label={`${t("admin.viewJobDetail")}: ${job.title}`}>
-                <div className="w-10 h-10 rounded-xl bg-pink-50 border border-pink-100 flex items-center justify-center text-xl flex-shrink-0">{job.logo}</div>
+            <div key={job.id} className="rounded-xl border border-border bg-white p-3 transition-colors hover:bg-pink-50/50 sm:flex sm:flex-row sm:items-center sm:gap-4 sm:rounded-none sm:border-0 sm:p-4">
+              <Link to={`/admin/jobs/${job.id}`} className="flex min-w-0 flex-1 cursor-pointer items-start gap-3 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:items-center sm:gap-4" aria-label={`${t("admin.viewJobDetail")}: ${job.title}`}>
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-pink-100 bg-pink-50 text-xl">{job.logo}</div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-bold text-foreground text-sm truncate hover:text-primary">{job.title}</p>
+                  <div className="flex min-w-0 items-start justify-between gap-2 sm:flex-wrap sm:items-center sm:justify-start">
+                    <p className="min-w-0 text-base font-black leading-snug text-foreground hover:text-primary sm:max-w-[360px] sm:truncate sm:text-sm sm:font-bold">{job.title}</p>
                     <span className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold ${JOB_STATUS_CONFIG[job.status].badgeClass}`}>
                       {translateJobStatus(job.status, language)}
                     </span>
-                    {job.urgent && <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${URGENT_BADGE_CLASS}`}>🔥 {t("jobs.urgent")}</span>}
                   </div>
-                  <div className="mt-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden text-xs text-muted-foreground sm:gap-3">
-                    <span className="truncate">{job.company}</span>
-                    <span>·</span><span>{job.location}</span>
-                    <span>·</span><span>{translateJobType(job.type, language)}</span>
-                    <span className="ml-1 flex flex-shrink-0 items-center gap-1 sm:ml-2"><Users size={10} />{job.applicants} {t("common.candidates")}</span>
+                  {job.urgent && <span className={`mt-1.5 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold sm:mt-0 sm:hidden ${URGENT_BADGE_CLASS}`}>🔥 {t("jobs.urgent")}</span>}
+                  <div className="mt-3 grid min-w-0 gap-1.5 text-xs leading-5 text-muted-foreground min-[420px]:grid-cols-2 sm:mt-0.5 sm:flex sm:items-center sm:gap-3 sm:overflow-hidden">
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <Building2 size={12} className="flex-none text-primary/70 sm:hidden" />
+                      <span className="truncate">{job.company}</span>
+                    </span>
+                    <span className="hidden sm:inline">·</span>
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <MapPin size={12} className="flex-none text-primary/70 sm:hidden" />
+                      <span className="line-clamp-1 sm:truncate">{job.location}</span>
+                    </span>
+                    <span className="hidden sm:inline">·</span>
+                    <span className="flex items-center gap-1.5">
+                      <Briefcase size={12} className="flex-none text-primary/70 sm:hidden" />
+                      {translateJobType(job.type, language)}
+                    </span>
+                    <span className="flex items-center gap-1.5"><Users size={12} className="flex-none text-primary/70 sm:size-[10px] sm:text-current" />{job.applicants} {t("common.candidates")}</span>
+                    {job.urgent && <span className={`hidden rounded-full border px-2 py-0.5 text-[10px] font-bold sm:inline-flex ${URGENT_BADGE_CLASS}`}>🔥 {t("jobs.urgent")}</span>}
                   </div>
                 </div>
               </Link>
-              <div className="flex flex-shrink-0 items-center justify-end gap-1 border-t border-border pt-2 sm:border-0 sm:pt-0">
+              <div className="mt-3 flex flex-shrink-0 items-center justify-end gap-1 rounded-lg bg-background/70 p-1 sm:mt-0 sm:border-0 sm:bg-transparent sm:p-0">
                 {job.status === "archived" ? (
-                  <button disabled className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground/40" title={t("admin.restoreBeforePublishing")}>
+                  <button disabled className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground/40" title={t("admin.restoreBeforePublishing")}>
                     <Globe size={15} />
                   </button>
                 ) : (
                   <button
                     onClick={() => togglePublishedStatus(job)}
                     title={job.status === "published" ? t("admin.closeJob") : t("common.publish")}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors hover:bg-pink-50 ${job.status === "published" ? "text-emerald-600 hover:text-emerald-700" : "text-muted-foreground hover:text-foreground"}`}
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-pink-50 ${job.status === "published" ? "text-emerald-600 hover:text-emerald-700" : "text-muted-foreground hover:text-foreground"}`}
                   >
                     {job.status === "published" ? <CircleStop size={15} /> : <Globe size={15} />}
                   </button>
                 )}
                 {job.status === "published" ? (
-                  <Link to={`/jobs/${job.id}`} target="_blank" className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-pink-50 transition-colors" title={t("admin.viewPublic")}>
+                  <Link to={`/jobs/${job.id}`} target="_blank" className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-pink-50 hover:text-primary" title={t("admin.viewPublic")}>
                     <Eye size={15} />
                   </Link>
                 ) : (
-                  <button disabled className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground/40" title={t("admin.publicViewUnavailable")}>
+                  <button disabled className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground/40" title={t("admin.publicViewUnavailable")}>
                     <Eye size={15} />
                   </button>
                 )}
                 {job.status === "archived" ? (
                   <button
                     onClick={() => updateJobStatus(job.id, "closed")}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-amber-700 hover:bg-amber-50 transition-colors"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-amber-50 hover:text-amber-700"
                     title={t("admin.restoreJob")}
                   >
                     <RotateCcw size={15} />
@@ -140,7 +152,7 @@ export default function AdminJobs() {
                 ) : (
                   <button
                     onClick={() => updateJobStatus(job.id, "archived")}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-slate-700 hover:bg-slate-50 transition-colors"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-50 hover:text-slate-700"
                     title={t("admin.archiveJob")}
                   >
                     <Archive size={15} />

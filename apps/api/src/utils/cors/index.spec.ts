@@ -5,17 +5,17 @@ describe("createCorsOriginOptions", () => {
   it("allows the primary web origin", () => {
     const origin = createCorsOriginOptions(
       new ConfigService({
-        WEB_ORIGIN: "https://ltb-smoky.vercel.app",
+        WEB_ORIGIN: "https://ltb-careers.vercel.app",
       }),
     );
 
-    expect(resolveOrigin(origin, "https://ltb-smoky.vercel.app")).toBe(true);
+    expect(resolveOrigin(origin, "https://ltb-careers.vercel.app")).toBe(true);
   });
 
   it("allows comma-separated extra origins and simple wildcard hosts", () => {
     const origin = createCorsOriginOptions(
       new ConfigService({
-        WEB_ORIGIN: "https://ltb-smoky.vercel.app",
+        WEB_ORIGIN: "https://ltb-careers.vercel.app",
         WEB_ORIGINS:
           "https://admin.example.com, https://ltb-*-flywithmarthphams-projects.vercel.app",
       }),
@@ -33,7 +33,7 @@ describe("createCorsOriginOptions", () => {
   it("rejects origins outside the allowlist", () => {
     const origin = createCorsOriginOptions(
       new ConfigService({
-        WEB_ORIGIN: "https://ltb-smoky.vercel.app",
+        WEB_ORIGIN: "https://ltb-careers.vercel.app",
       }),
     );
 
@@ -43,7 +43,7 @@ describe("createCorsOriginOptions", () => {
   it("allows requests without a browser origin header", () => {
     const origin = createCorsOriginOptions(
       new ConfigService({
-        WEB_ORIGIN: "https://ltb-smoky.vercel.app",
+        WEB_ORIGIN: "https://ltb-careers.vercel.app",
       }),
     );
 

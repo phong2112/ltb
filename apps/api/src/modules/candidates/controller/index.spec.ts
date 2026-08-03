@@ -3,7 +3,7 @@ jest.mock("sanitize-html", () => ({
   default: (value: string) => value.replace(/<[^>]+>/g, ""),
 }));
 
-import { buildInlineContentDisposition } from "./index.controller";
+import { buildInlineContentDisposition, parseApplicationStatus } from "./index.controller";
 
 describe("CandidatesController helpers", () => {
   it("builds a Content-Disposition header that supports Vietnamese filenames", () => {
@@ -18,5 +18,11 @@ describe("CandidatesController helpers", () => {
     const header = buildInlineContentDisposition('bad"name\\with\r\nbreak.pdf');
 
     expect(header).toContain('filename="bad_name_with__break.pdf"');
+  });
+
+  it("normalizes stale or lowercase application status filters", () => {
+    expect(parseApplicationStatus("offer_closed")).toBe("OFFER_CLOSED");
+    expect(parseApplicationStatus("screening")).toBe("VIEWED");
+    expect(parseApplicationStatus("REVIEWING")).toBe("VIEWED");
   });
 });

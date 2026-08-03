@@ -16,12 +16,12 @@ enum JobStatus {
 
 enum ApplicationStatus {
   NEW
-  REVIEWING
+  VIEWED
   CONTACTED
   REPLIED
-  SCREENING
   INTERVIEW
   OFFER
+  OFFER_CLOSED
   REJECTED
   TALENT_POOL
 }

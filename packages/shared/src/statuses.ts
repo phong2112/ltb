@@ -3,12 +3,12 @@ export type JobStatus = (typeof jobStatuses)[number];
 
 export const applicationStatuses = [
   "NEW",
-  "REVIEWING",
+  "VIEWED",
   "CONTACTED",
   "REPLIED",
-  "SCREENING",
   "INTERVIEW",
   "OFFER",
+  "OFFER_CLOSED",
   "REJECTED",
   "TALENT_POOL",
 ] as const;

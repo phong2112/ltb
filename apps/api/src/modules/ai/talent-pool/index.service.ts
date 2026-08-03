@@ -194,7 +194,7 @@ export class TalentPoolProcessingService {
             submittedPhone: phone,
             normalizedEmail,
             normalizedPhone,
-            status: ApplicationStatus.REVIEWING,
+            status: ApplicationStatus.VIEWED,
             consentAccepted: false,
             answers: { source: "talent_pool", talentPoolEntryId: entry.id },
           },

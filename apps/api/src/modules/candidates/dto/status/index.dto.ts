@@ -1,9 +1,11 @@
 import { ApplicationStatus } from "@prisma/client";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { Transform } from "class-transformer";
 import { IsDateString, IsEnum, IsOptional, IsString } from "class-validator";
 
 export class UpdateApplicationStatusDto {
-  @ApiPropertyOptional({ enum: ApplicationStatus, enumName: "ApplicationStatus", example: ApplicationStatus.REVIEWING })
+  @ApiPropertyOptional({ enum: ApplicationStatus, enumName: "ApplicationStatus", example: ApplicationStatus.VIEWED })
+  @Transform(({ value }) => normalizeApplicationStatusInput(value))
   @IsEnum(ApplicationStatus)
   @IsOptional()
   status?: ApplicationStatus;
@@ -17,4 +19,20 @@ export class UpdateApplicationStatusDto {
   @IsString()
   @IsOptional()
   note?: string;
+}
+
+const LEGACY_APPLICATION_STATUS_MAP: Record<string, ApplicationStatus> = {
+  REVIEWING: ApplicationStatus.VIEWED,
+  SCREENING: ApplicationStatus.VIEWED,
+};
+
+export function normalizeApplicationStatusInput(value: unknown) {
+  if (typeof value !== "string") return value;
+
+  const normalized = value.trim().toUpperCase();
+  const apiStatus = normalized.replace(/-/g, "_");
+  const legacyStatus = LEGACY_APPLICATION_STATUS_MAP[apiStatus];
+  if (legacyStatus) return legacyStatus;
+
+  return apiStatus;
 }

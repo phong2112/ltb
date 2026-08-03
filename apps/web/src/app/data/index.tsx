@@ -216,7 +216,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
       body.followUpAt = patch.followUpDate || null;
     }
 
-    await updateCandidateApplication(current.applicationId, body);
+    const silentViewedUpdate =
+      current.status === "new" &&
+      patch.status === "viewed" &&
+      patch.hrNote === undefined &&
+      patch.followUpDate === undefined;
+
+    await updateCandidateApplication(current.applicationId, body, {
+      silent: silentViewedUpdate,
+    });
     await reloadAdminData();
   };
 

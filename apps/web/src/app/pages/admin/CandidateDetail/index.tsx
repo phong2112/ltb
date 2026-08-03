@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
   AlertTriangle,
@@ -71,6 +71,7 @@ export default function CandidateDetail() {
   const [error, setError] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const autoViewedApplicationId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!selectedApplication) return;
@@ -86,6 +87,17 @@ export default function CandidateDetail() {
     }, 5_000);
     return () => window.clearInterval(interval);
   }, [selectedApplication?.aiStatus, selectedApplication?.applicationId, refreshCandidateAnalysis]);
+
+  useEffect(() => {
+    if (!selectedApplication || selectedApplication.status !== "new") return;
+    if (autoViewedApplicationId.current === selectedApplication.applicationId) return;
+
+    autoViewedApplicationId.current = selectedApplication.applicationId;
+    void updateCandidate(selectedApplication.id, { status: "viewed" }).catch(markViewedError => {
+      autoViewedApplicationId.current = null;
+      setError(markViewedError instanceof Error ? markViewedError.message : "Không cập nhật được trạng thái đã xem");
+    });
+  }, [selectedApplication, updateCandidate]);
 
   if (!candidate && isLoading) {
     return (
@@ -527,7 +539,12 @@ function ApplicationHistory({ applications, selectedId, onSelect, title }: {
         {applications.map(application => (
           <button key={application.id} type="button" onClick={() => onSelect(application.id)} aria-pressed={application.id === selectedId} className={`grid min-w-56 flex-shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border px-3 py-2 text-left transition-all ${application.id === selectedId ? "border-primary/30 bg-primary/5 text-foreground shadow-sm" : "border-border/70 bg-white text-muted-foreground hover:border-primary/30 hover:text-foreground"}`}>
             <span className="min-w-0">
-              <span className="block truncate text-xs font-black">{application.jobTitle}</span>
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="truncate text-xs font-black">{application.jobTitle}</span>
+                {application.status === "new" && (
+                  <span className="size-1.5 flex-none rounded-full bg-blue-500 ring-4 ring-blue-50" />
+                )}
+              </span>
               <span className="mt-0.5 block text-[10px] font-semibold">{application.appliedAt || "—"}</span>
             </span>
             <span className="rounded-full bg-white px-2 py-1 text-[11px] font-black text-primary ring-1 ring-border">
