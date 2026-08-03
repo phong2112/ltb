@@ -193,9 +193,26 @@ export class AiService {
       criteria,
       [application.submittedFullName],
     );
-    const cvSummary = sanitizeCvSummary(await this.provider.summarizeCv({
-      cvText: aiReadyCv.text,
-    }));
+    const extractionMetadata = asInputJsonObject(application.cvParseResult?.structuredData);
+    let cvSummary = readStoredCvSummary(extractionMetadata.cvSummary);
+
+    if (!cvSummary) {
+      cvSummary = sanitizeCvSummary(await this.provider.summarizeCv({
+        cvText: aiReadyCv.text,
+      }));
+
+      await this.prisma.cvParseResult.update({
+        where: { applicationId },
+        data: {
+          structuredData: {
+            ...extractionMetadata,
+            cvSummary,
+            cvSummaryPromptVersion: CV_SUMMARY_PROMPT_VERSION,
+          },
+        },
+      });
+    }
+
     const analysis = await this.provider.analyzeMatch({
       jobTitle: application.job.title,
       jobDescription: htmlToPlainText(application.job.description).slice(0, MAX_JOB_DESCRIPTION_CHARACTERS),
@@ -210,7 +227,6 @@ export class AiService {
     const score = calculateMatchScore(criteria, normalizedEvaluations);
     const potentialScore = calculatePotentialMatchScore(criteria, normalizedEvaluations);
     const evidenceCoverage = calculateConfidence(criteria, normalizedEvaluations);
-    const extractionMetadata = asInputJsonObject(application.cvParseResult?.structuredData);
     const lowConfidenceOcr = extractionMetadata.lowConfidenceOcr === true;
     const confidence = adjustConfidence(evidenceCoverage, extractionMetadata, aiReadyCv.truncated);
     const insights = buildGroundedMatchInsights(criteria, normalizedEvaluations);
@@ -403,6 +419,12 @@ function htmlToPlainText(value: string) {
 function asInputJsonObject(value: Prisma.JsonValue | null | undefined): Prisma.InputJsonObject {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   return value as Prisma.InputJsonObject;
+}
+
+function readStoredCvSummary(value: Prisma.InputJsonValue | null | undefined): Prisma.InputJsonObject | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const summary = value as Prisma.InputJsonObject;
+  return typeof summary.overview === "string" && summary.overview.trim() ? summary : undefined;
 }
 
 function readParser(value: Prisma.InputJsonValue | null | undefined): ExtractedCvText["parser"] | undefined {

@@ -7,6 +7,7 @@ import type { ConfigService } from "@nestjs/config";
 import type { Job } from "bullmq";
 import type { AiService } from "../processing/index.service";
 import type { TalentPoolProcessingService } from "../talent-pool/index.service";
+import { QuotaExceededError } from "../providers/groq";
 import { AiQueueService } from "./index.service";
 
 type ProcessingJob = Job<{ applicationId: string; runId?: string }>;
@@ -144,6 +145,38 @@ describe("AiQueueService", () => {
     );
 
     expect(aiService.analyzeApplication).toHaveBeenCalledWith("application-2");
+  });
+
+  it("throws quota errors so BullMQ retries the match job instead of completing it", async () => {
+    const quotaError = new QuotaExceededError(60_000);
+    const aiService = createAiService();
+    aiService.analyzeApplication.mockRejectedValue(quotaError);
+    const service = new AiQueueService(
+      createConfig({ AI_PROVIDER: "groq", AI_JOB_ATTEMPTS: 2 }),
+      aiService as unknown as AiService,
+      createPoolProcessingService() as unknown as TalentPoolProcessingService,
+    );
+
+    await expect(
+      (service as unknown as QueueServiceInternals).processMatchJob(createJob("application-quota", 0, 2)),
+    ).rejects.toBe(quotaError);
+    expect(aiService.markFailed).not.toHaveBeenCalled();
+  });
+
+  it("marks the analysis failed when quota is still exhausted on the final attempt", async () => {
+    const quotaError = new QuotaExceededError(60_000);
+    const aiService = createAiService();
+    aiService.analyzeApplication.mockRejectedValue(quotaError);
+    const service = new AiQueueService(
+      createConfig({ AI_PROVIDER: "groq", AI_JOB_ATTEMPTS: 2 }),
+      aiService as unknown as AiService,
+      createPoolProcessingService() as unknown as TalentPoolProcessingService,
+    );
+
+    await expect(
+      (service as unknown as QueueServiceInternals).processMatchJob(createJob("application-quota", 1, 2)),
+    ).rejects.toBe(quotaError);
+    expect(aiService.markFailed).toHaveBeenCalledWith("application-quota", quotaError, "analysis");
   });
 
   it("persists a failed status only after the final extraction attempt", async () => {

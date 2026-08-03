@@ -131,11 +131,67 @@ describe("AiService", () => {
         }),
       }),
     }));
-    expect(cvParseUpdate.mock.calls.map(([input]) => input.data.status)).toEqual([
+    expect(cvParseUpdate.mock.calls.map(([input]) => input.data.status).filter(Boolean)).toEqual([
       "EXTRACTING",
       "EXTRACTED",
       "ANALYZING",
       "COMPLETED",
     ]);
+  });
+
+  it("persists the CV summary before match analysis so a provider failure does not lose it", async () => {
+    const application = {
+      id: "application-summary",
+      candidateId: "candidate-1",
+      jobId: "job-1",
+      submittedFullName: "Nguyen Van Candidate",
+      job: {
+        title: "Backend Engineer",
+        description: "Build APIs",
+        requirements: "- Node.js bắt buộc",
+      },
+      cvParseResult: {
+        candidateFileId: "file-1",
+        extractedText: "Backend Engineer with Node.js experience.",
+        structuredData: { parser: "pdf-parse" },
+      },
+    };
+    const cvParseUpdate = jest.fn().mockResolvedValue({});
+    const prisma = {
+      application: { findUnique: jest.fn().mockResolvedValue(application) },
+      cvParseResult: { update: cvParseUpdate },
+    };
+    const provider: AiProvider = {
+      name: "mock",
+      model: "mock-model",
+      analyzeMatch: jest.fn().mockRejectedValue(new Error("quota exceeded")),
+      summarizeCv: jest.fn().mockResolvedValue({
+        overview: "Backend Engineer có kinh nghiệm Node.js.",
+        currentTitle: "Backend Engineer",
+        totalExperience: "3 năm",
+        keySkills: ["Node.js"],
+        workCompanies: [],
+        workHighlights: [],
+        education: [],
+        languages: [],
+        notesForTa: [],
+      }),
+      extractProfile: jest.fn(),
+    };
+    const service = new AiService(
+      prisma as unknown as PrismaService,
+      {} as CvTextExtractorService,
+      provider,
+    );
+
+    await expect(service.analyzeApplication("application-summary")).rejects.toThrow("quota exceeded");
+
+    expect(cvParseUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        structuredData: expect.objectContaining({
+          cvSummary: expect.objectContaining({ overview: "Backend Engineer có kinh nghiệm Node.js." }),
+        }),
+      }),
+    }));
   });
 });

@@ -178,9 +178,13 @@ export class AiQueueService implements OnModuleInit, OnModuleDestroy {
       await this.aiService.extractApplicationCv(job.data.applicationId);
     } catch (error) {
       if (this.isQuotaError(error)) {
-        this.logger.warn(`Quota exceeded, re-enqueue extraction for application ${job.data.applicationId}`);
-        await this.reEnqueueWithDelay(this.extractionQueue!, job, error);
-        return;
+        if (isFinalAttempt(job)) {
+          this.logger.warn(`Quota remained exceeded on the final extraction attempt for application ${job.data.applicationId}`);
+          await this.aiService.markFailed(job.data.applicationId, error, "extraction");
+        } else {
+          this.logger.warn(`Quota exceeded, BullMQ will retry extraction for application ${job.data.applicationId}`);
+        }
+        throw error;
       }
       if (isFinalAttempt(job)) {
         await this.aiService.markFailed(job.data.applicationId, error, "extraction");
@@ -205,9 +209,13 @@ export class AiQueueService implements OnModuleInit, OnModuleDestroy {
       await this.aiService.analyzeApplication(job.data.applicationId);
     } catch (error) {
       if (this.isQuotaError(error)) {
-        this.logger.warn(`Quota exceeded, re-enqueue match for application ${job.data.applicationId}`);
-        await this.reEnqueueWithDelay(this.matchQueue!, job, error);
-        return;
+        if (isFinalAttempt(job)) {
+          this.logger.warn(`Quota remained exceeded on the final match attempt for application ${job.data.applicationId}`);
+          await this.aiService.markFailed(job.data.applicationId, error, "analysis");
+        } else {
+          this.logger.warn(`Quota exceeded, BullMQ will retry match for application ${job.data.applicationId}`);
+        }
+        throw error;
       }
       if (isFinalAttempt(job)) {
         await this.aiService.markFailed(job.data.applicationId, error, "analysis");
@@ -236,25 +244,6 @@ export class AiQueueService implements OnModuleInit, OnModuleDestroy {
       );
       await this.enqueue(promoted.applicationId);
     }
-  }
-
-  private async reEnqueueWithDelay(
-    queue: Queue,
-    job: Job,
-    error: unknown,
-  ) {
-    const quotaError = this.asQuotaError(error);
-    const delayMs = quotaError ? Math.min(quotaError.retryAfterMs, 300_000) : 30_000;
-
-    await queue.add(
-      job.name,
-      job.data,
-      {
-        ...this.defaultJobOptions(),
-        delay: delayMs + jitterMs(),
-        jobId: job.id,
-      },
-    );
   }
 
   private isQuotaError(error: unknown): boolean {
@@ -367,10 +356,6 @@ function formatJobId(stage: "extract" | "match", applicationId: string, runId?: 
 
 function getFailureStage(error: Error, fallback: FailureStage) {
   return error instanceof AiQueueStageError ? error.stage : fallback;
-}
-
-function jitterMs(): number {
-  return Math.floor(Math.random() * 10_000);
 }
 
 function parseRedisConnection(value: string): ConnectionOptions {
