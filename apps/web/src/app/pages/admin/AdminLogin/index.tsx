@@ -69,9 +69,9 @@ export default function AdminLogin() {
         <div className="absolute -bottom-20 -right-20 w-96 h-96 rounded-full bg-white/10" />
         <div className="relative z-10">
           <div className="mb-4 h-14 w-14 overflow-hidden rounded-full border-2 border-white/70 bg-white">
-            <ImageWithFallback src={logoImg} alt="Bích Candy" className="h-full w-full object-cover object-[50%_58%]" />
+            <ImageWithFallback src={logoImg} alt="Lường Bích" className="h-full w-full object-cover object-[50%_58%]" />
           </div>
-          <h1 className="text-4xl font-black mb-3" style={{ fontFamily: "'Playfair Display', serif" }}>Bích Candy<br />{t("common.hrWorkspace")}</h1>
+          <h1 className="text-4xl font-black mb-3" style={{ fontFamily: "'Playfair Display', serif" }}>Lường Bích<br />{t("common.hrWorkspace")}</h1>
           <p className="text-white/80 text-sm leading-relaxed max-w-xs">
             {t("admin.workspaceIntro")}
           </p>
@@ -90,7 +90,7 @@ export default function AdminLogin() {
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
             <div className="mx-auto mb-3 h-14 w-14 overflow-hidden rounded-full border-2 border-primary/30 bg-pink-100">
-              <ImageWithFallback src={logoImg} alt="Bích Candy" className="h-full w-full object-cover object-[50%_58%]" />
+              <ImageWithFallback src={logoImg} alt="Lường Bích" className="h-full w-full object-cover object-[50%_58%]" />
             </div>
             <h2 className="text-2xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{t("admin.loginTitle")}</h2>
             <p className="text-muted-foreground text-sm mt-1">{t("admin.privateArea")}</p>

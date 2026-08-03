@@ -73,10 +73,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="p-5 border-b border-border">
           <div className="flex items-center gap-2.5">
             <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-full border-2 border-primary/30 bg-pink-100">
-              <ImageWithFallback src={logoImg} alt="Bích Candy" className="h-full w-full object-cover object-[50%_58%]" />
+              <ImageWithFallback src={logoImg} alt="Lường Bích" className="h-full w-full object-cover object-[50%_58%]" />
             </div>
             <div className="leading-none">
-              <div className="text-sm font-bold text-primary" style={{ fontFamily: "'Playfair Display', serif" }}>Bích Candy</div>
+              <div className="text-sm font-bold text-primary" style={{ fontFamily: "'Playfair Display', serif" }}>Lường Bích</div>
               <div className="text-[10px] text-muted-foreground font-semibold tracking-widest uppercase mt-0.5">{t("common.hrWorkspace")}</div>
             </div>
             <button type="button" onClick={() => setMobileMenuOpen(false)} className="ml-auto flex h-9 w-9 items-center justify-center rounded-xl border border-border text-muted-foreground lg:hidden" aria-label="Đóng menu">
@@ -145,7 +145,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             <span className="hidden text-xs font-semibold text-muted-foreground xl:inline">TA · Lường Bích</span>
             <div className="h-7 w-7 overflow-hidden rounded-full border border-primary/30 bg-pink-100">
-              <ImageWithFallback src={logoImg} alt="Bích Candy" className="h-full w-full object-cover object-[50%_58%]" />
+              <ImageWithFallback src={logoImg} alt="Lường Bích" className="h-full w-full object-cover object-[50%_58%]" />
             </div>
           </div>
         </header>
