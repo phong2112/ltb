@@ -74,7 +74,7 @@ export default function Contact() {
                     href={item.href}
                     copied={copiedKey === item.key}
                     copyLabel={copiedKey === item.key ? t("common.copied") : t("common.copy")}
-                    onCopy={() => copyContactValue(item.key, item.copyValue)}
+                    onCopy={item.copyValue ? () => copyContactValue(item.key, item.copyValue) : undefined}
                   />
                 ))}
               </div>
@@ -153,7 +153,7 @@ function ContactItem({
   href?: string;
   copied: boolean;
   copyLabel: string;
-  onCopy: () => void;
+  onCopy?: () => void;
 }) {
   const details = (
     <>
@@ -179,9 +179,10 @@ function ContactItem({
       <button
         type="button"
         onClick={onCopy}
+        disabled={!onCopy}
         title={copyLabel}
         aria-label={`${copyLabel}: ${body}`}
-        className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border bg-white transition-colors ${copied ? "border-emerald-200 text-emerald-600" : "border-pink-100 text-muted-foreground hover:border-primary hover:text-primary"}`}
+        className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border bg-white transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${copied ? "border-emerald-200 text-emerald-600" : "border-pink-100 text-muted-foreground hover:border-primary hover:text-primary"}`}
       >
         {copied ? <Check size={15} /> : <Copy size={15} />}
       </button>

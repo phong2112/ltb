@@ -123,7 +123,7 @@ export default function Home() {
             <PublicJobCard key={job.id} job={job} />
           ))}
         </div>
-        <div className="mt-5 flex justify-end">
+        <div className="mt-5 flex justify-end md:hidden">
           <Link to="/jobs" className="inline-flex h-10 w-full items-center justify-center gap-1 rounded-xl border border-pink-200 bg-white px-4 text-sm font-bold text-primary transition-colors hover:border-primary sm:w-auto">
             {t("home.ctaJobs")} <ArrowRight size={14} />
           </Link>
