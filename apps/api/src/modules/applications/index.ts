@@ -7,6 +7,8 @@ import { FilesModule } from "../files";
 import { JobsModule } from "../jobs";
 import { NotificationsModule } from "../notifications";
 import { ApplicationsController } from "./controller/index.controller";
+import { ApplicationCvPreviewAiService } from "./cv-preview/ai.service";
+import { ApplicationCvPreviewService } from "./cv-preview/index.service";
 import { ApplicationsService } from "./service/index.service";
 import { createCvUploadOptions } from "./upload-options";
 
@@ -33,6 +35,6 @@ import { createCvUploadOptions } from "./upload-options";
     }),
   ],
   controllers: [ApplicationsController],
-  providers: [ApplicationsService],
+  providers: [ApplicationsService, ApplicationCvPreviewService, ApplicationCvPreviewAiService],
 })
 export class ApplicationsModule {}

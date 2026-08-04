@@ -43,12 +43,39 @@ export type ExtractProfileInput = {
   fileName: string;
 };
 
+export type ApplicationPreviewExtractionInput = {
+  cvText: string;
+  fileName: string;
+  allowedApplicationAreas: string[];
+};
+
 export type ExtractedProfile = {
   fullName: string | null;
   title: string | null;
   yearsExperience: number | null;
   skills: string[];
   languages: string[];
+};
+
+export type ApplicationPreviewFieldSource = "regex" | "ai" | "unknown";
+
+export type ApplicationPreviewExtraction = {
+  fullName: string | null;
+  email: string | null;
+  phone: string | null;
+  applicationArea: string | null;
+  confidence: {
+    fullName: number;
+    email: number;
+    phone: number;
+    applicationArea: number;
+  };
+  evidence: {
+    fullName: string | null;
+    email: string | null;
+    phone: string | null;
+    applicationArea: string | null;
+  };
 };
 
 export interface AiProvider {

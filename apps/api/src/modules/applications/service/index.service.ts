@@ -114,7 +114,9 @@ export class ApplicationsService {
             let candidateFileId: string | undefined;
 
             if (cv) {
-              const storedCv = await this.cvStorageService.storeCandidateCv(cv, candidate.id, application.id);
+              const storedCv = await this.cvStorageService.storeCandidateCv(cv, candidate.id, application.id, {
+                preferredFileBaseName: buildApplicationCvFileBaseName(job.title, submittedFullName, dto.applicationArea),
+              });
               storedCvPath = storedCv.path;
 
               const candidateFile = await tx.candidateFile.create({
@@ -332,6 +334,13 @@ function buildScreeningAnswerSnapshots(questions: JobQuestion[], answers: Questi
     answer: answerByQuestionId.get(question.id)?.trim() ?? "",
     a: answerByQuestionId.get(question.id)?.trim() ?? "",
   }));
+}
+
+function buildApplicationCvFileBaseName(jobTitle: string, candidateName: string, applicationArea: string) {
+  return [jobTitle, candidateName, applicationArea]
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join("_");
 }
 
 async function createWithContactRetry<T>(create: () => Promise<T>) {

@@ -11,7 +11,8 @@ import { CvOcrService } from "../ocr/index.service";
 export type CandidateFileForExtraction = {
   originalName: string;
   mimeType: string;
-  path: string;
+  path?: string;
+  buffer?: Buffer;
 };
 
 export type ExtractedCvText = {
@@ -39,9 +40,8 @@ export class CvTextExtractorService {
   ) {}
 
   async extract(file: CandidateFileForExtraction): Promise<ExtractedCvText> {
-    const opened = await this.cvStorageService.openCandidateCv(file.path, file.mimeType);
     const maxSizeMb = this.configService.get<number>("MAX_CV_FILE_SIZE_MB") ?? 10;
-    const buffer = await readStreamToBuffer(opened.stream, maxSizeMb * 1024 * 1024);
+    const buffer = file.buffer ?? await this.readStoredFile(file, maxSizeMb);
     const extension = extname(file.originalName).toLowerCase();
 
     let result: ExtractedCvText;
@@ -93,6 +93,15 @@ export class CvTextExtractorService {
       text: normalizedText,
       qualityScore: calculateTextQuality(normalizedText),
     };
+  }
+
+  private async readStoredFile(file: CandidateFileForExtraction, maxSizeMb: number) {
+    if (!file.path) {
+      throw new Error("CV path or buffer is required for extraction");
+    }
+
+    const opened = await this.cvStorageService.openCandidateCv(file.path, file.mimeType);
+    return readStreamToBuffer(opened.stream, maxSizeMb * 1024 * 1024);
   }
 
   private toOcrExtractedText(

@@ -17,6 +17,10 @@ export type StoredCvFile = {
   path: string;
 };
 
+export type StoreCvOptions = {
+  preferredFileBaseName?: string;
+};
+
 export type OpenedCvFile = {
   stream: Readable;
   contentType: string;
@@ -38,6 +42,10 @@ export type CvRelocationContext = {
 };
 
 type StorageDriver = "local" | "vercel-blob" | "r2";
+type StoredCvFileNames = {
+  originalName: string;
+  storedFileName: string;
+};
 
 /**
  * Identifies which owner a stored CV belongs to. The middle path segment differs
@@ -67,8 +75,13 @@ export class CvStorageService {
 
   constructor(private readonly configService: ConfigService) {}
 
-  async storeCandidateCv(file: Express.Multer.File, candidateId: string, applicationId: string): Promise<StoredCvFile> {
-    return this.storeCv(file, { kind: "application", candidateId, applicationId });
+  async storeCandidateCv(
+    file: Express.Multer.File,
+    candidateId: string,
+    applicationId: string,
+    options: StoreCvOptions = {},
+  ): Promise<StoredCvFile> {
+    return this.storeCv(file, { kind: "application", candidateId, applicationId }, options);
   }
 
   /** Store a CV that belongs to a talent pool entry rather than an application. */
@@ -76,19 +89,20 @@ export class CvStorageService {
     return this.storeCv(file, { kind: "pool", candidateId, talentPoolEntryId });
   }
 
-  private async storeCv(file: Express.Multer.File, scope: CvStorageScope): Promise<StoredCvFile> {
+  private async storeCv(file: Express.Multer.File, scope: CvStorageScope, options: StoreCvOptions = {}): Promise<StoredCvFile> {
     const driver = this.getStorageDriver();
     const segment = buildScopeSegment(scope);
+    const fileNames = buildStoredCvFileNames(file.originalname, options.preferredFileBaseName);
 
     if (driver === "r2") {
-      return this.storeInR2(file, segment);
+      return this.storeInR2(file, segment, fileNames);
     }
 
     if (driver === "local") {
-      return this.storeLocally(file, segment);
+      return this.storeLocally(file, segment, fileNames);
     }
 
-    return this.storeInVercelBlob(file, segment);
+    return this.storeInVercelBlob(file, segment, fileNames);
   }
 
   async openCandidateCv(path: string, fallbackMimeType: string): Promise<OpenedCvFile> {
@@ -193,8 +207,8 @@ export class CvStorageService {
     return "r2";
   }
 
-  private async storeInVercelBlob(file: Express.Multer.File, segment: string): Promise<StoredCvFile> {
-    const pathname = `cv/${segment}/${Date.now()}-${normalizeFilename(file.originalname)}`;
+  private async storeInVercelBlob(file: Express.Multer.File, segment: string, fileNames: StoredCvFileNames): Promise<StoredCvFile> {
+    const pathname = `cv/${segment}/${Date.now()}-${fileNames.storedFileName}`;
     const blob = await put(pathname, file.buffer, {
       access: "private",
       contentType: file.mimetype,
@@ -203,7 +217,7 @@ export class CvStorageService {
     });
 
     return {
-      originalName: file.originalname,
+      originalName: fileNames.originalName,
       storedName: blob.pathname,
       mimeType: file.mimetype,
       sizeBytes: file.size,
@@ -211,9 +225,9 @@ export class CvStorageService {
     };
   }
 
-  private async storeLocally(file: Express.Multer.File, segment: string): Promise<StoredCvFile> {
+  private async storeLocally(file: Express.Multer.File, segment: string, fileNames: StoredCvFileNames): Promise<StoredCvFile> {
     const uploadDir = this.configService.get<string>("UPLOAD_DIR") ?? "uploads";
-    const storedName = `${Date.now()}-${normalizeFilename(file.originalname)}`;
+    const storedName = `${Date.now()}-${fileNames.storedFileName}`;
     const directory = join(uploadDir, "cv", ...segment.split("/"));
     const path = join(directory, storedName);
 
@@ -221,7 +235,7 @@ export class CvStorageService {
     await writeFile(path, file.buffer);
 
     return {
-      originalName: file.originalname,
+      originalName: fileNames.originalName,
       storedName,
       mimeType: file.mimetype,
       sizeBytes: file.size,
@@ -229,9 +243,9 @@ export class CvStorageService {
     };
   }
 
-  private async storeInR2(file: Express.Multer.File, segment: string): Promise<StoredCvFile> {
+  private async storeInR2(file: Express.Multer.File, segment: string, fileNames: StoredCvFileNames): Promise<StoredCvFile> {
     const { bucket } = this.getR2Config();
-    const key = `cv/${segment}/${Date.now()}-${normalizeFilename(file.originalname)}`;
+    const key = `cv/${segment}/${Date.now()}-${fileNames.storedFileName}`;
 
     await this.getR2Client().send(new PutObjectCommand({
       Bucket: bucket,
@@ -241,7 +255,7 @@ export class CvStorageService {
     }));
 
     return {
-      originalName: file.originalname,
+      originalName: fileNames.originalName,
       storedName: key,
       mimeType: file.mimetype,
       sizeBytes: file.size,
@@ -348,12 +362,31 @@ function normalizeFilename(value: string) {
   const extension = extname(value).toLowerCase();
   const base = value
     .replace(extname(value), "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/gi, "d")
     .replace(/[^a-zA-Z0-9-_]/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(0, 80);
 
   return `${base || "cv"}${extension}`;
+}
+
+function buildStoredCvFileNames(originalName: string, preferredBaseName?: string): StoredCvFileNames {
+  if (!preferredBaseName?.trim()) {
+    return {
+      originalName,
+      storedFileName: normalizeFilename(originalName),
+    };
+  }
+
+  const extension = extname(originalName).toLowerCase();
+  const storedFileName = normalizeFilename(`${preferredBaseName}${extension}`);
+  return {
+    originalName: storedFileName,
+    storedFileName,
+  };
 }
 
 function isMissingFileError(error: unknown): error is NodeJS.ErrnoException {

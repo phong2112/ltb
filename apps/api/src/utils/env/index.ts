@@ -13,6 +13,7 @@ const integerVariables = [
   "JWT_ACCESS_TOKEN_TTL_SECONDS",
   "JWT_REFRESH_TOKEN_TTL_SECONDS",
   "GROQ_TIMEOUT_MS",
+  "GEMINI_TIMEOUT_MS",
   "AI_JOB_ATTEMPTS",
   "CV_EXTRACTION_CONCURRENCY",
   "AI_MATCH_CONCURRENCY",
@@ -156,6 +157,15 @@ export function validateEnv(config: Record<string, unknown>) {
         throw new Error(`${key} is required when AI_PROVIDER=groq`);
       }
     }
+  }
+
+  const previewAiProvider = String(config.PREVIEW_AI_PROVIDER || "disabled");
+  if (!["disabled", "gemini"].includes(previewAiProvider)) {
+    throw new Error("PREVIEW_AI_PROVIDER must be one of: disabled, gemini");
+  }
+
+  if (previewAiProvider === "gemini" && !hasValue(config.GEMINI_API_KEY)) {
+    throw new Error("GEMINI_API_KEY is required when PREVIEW_AI_PROVIDER=gemini");
   }
 
   return validated;

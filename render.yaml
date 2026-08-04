@@ -66,6 +66,16 @@ services:
         value: "llama-3.3-70b-versatile"
       - key: GROQ_TIMEOUT_MS
         value: "120000"
+      - key: PREVIEW_AI_PROVIDER
+        value: "gemini"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: "gemini-2.5-flash"
+      - key: GEMINI_BASE_URL
+        value: "https://generativelanguage.googleapis.com/v1beta"
+      - key: GEMINI_TIMEOUT_MS
+        value: "20000"
       - key: AI_JOB_ATTEMPTS
         value: "2"
       - key: CV_EXTRACTION_CONCURRENCY

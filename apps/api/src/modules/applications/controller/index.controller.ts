@@ -4,6 +4,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { ThrottlerGuard } from "@nestjs/throttler";
 import { ApiBadRequestResponse, ApiBody, ApiConflictResponse, ApiConsumes, ApiCreatedResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { hasAllowedFileSignature } from "../../files/signature";
+import { ApplicationCvPreviewService } from "../cv-preview/index.service";
 import { CreateApplicationDto } from "../dto/create/index.dto";
 import { ApplicationsService } from "../service/index.service";
 
@@ -13,8 +14,33 @@ import { ApplicationsService } from "../service/index.service";
 export class ApplicationsController {
   constructor(
     private readonly applicationsService: ApplicationsService,
+    private readonly cvPreviewService: ApplicationCvPreviewService,
     private readonly configService: ConfigService,
   ) {}
+
+  @ApiOperation({ summary: "Extract basic candidate details from an uploaded CV before application submission" })
+  @ApiConsumes("multipart/form-data")
+  @ApiBody({
+    schema: {
+      type: "object",
+      required: ["cv"],
+      properties: {
+        cv: {
+          type: "string",
+          format: "binary",
+          description: "CV file to parse for basic profile suggestions. Accepts PDF, DOC, DOCX, JPG, or PNG.",
+        },
+      },
+    },
+  })
+  @ApiBadRequestResponse({ description: "Invalid file type, missing file, unreadable CV, or file too large." })
+  @Post("cv-preview")
+  @UseInterceptors(FileInterceptor("cv"))
+  previewCv(@UploadedFile() cv?: Express.Multer.File, @Body("jobLocations") jobLocations?: string) {
+    return this.cvPreviewService.preview(cv, {
+      allowedApplicationAreas: parseJobLocations(jobLocations),
+    });
+  }
 
   @ApiOperation({ summary: "Submit a candidate application" })
   @ApiConsumes("multipart/form-data")
@@ -86,5 +112,18 @@ export class ApplicationsController {
     }
 
     return this.applicationsService.createApplication(dto, cv);
+  }
+}
+
+function parseJobLocations(value: string | undefined) {
+  if (!value) return undefined;
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === "string")
+      : undefined;
+  } catch {
+    return undefined;
   }
 }

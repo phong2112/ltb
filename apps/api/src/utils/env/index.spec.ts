@@ -139,4 +139,28 @@ describe("validateEnv", () => {
       GROQ_TIMEOUT_MS: "120000",
     })).not.toThrow();
   });
+
+  it("accepts disabled preview AI without Gemini credentials", () => {
+    expect(() => validateEnv({ ...requiredConfig, PREVIEW_AI_PROVIDER: "disabled" })).not.toThrow();
+  });
+
+  it("rejects unsupported preview AI providers", () => {
+    expect(() => validateEnv({ ...requiredConfig, PREVIEW_AI_PROVIDER: "local-ai" }))
+      .toThrow("PREVIEW_AI_PROVIDER must be one of: disabled, gemini");
+  });
+
+  it("requires Gemini credentials when preview AI is enabled", () => {
+    expect(() => validateEnv({ ...requiredConfig, PREVIEW_AI_PROVIDER: "gemini" }))
+      .toThrow("GEMINI_API_KEY is required when PREVIEW_AI_PROVIDER=gemini");
+  });
+
+  it("accepts valid Gemini preview AI settings", () => {
+    expect(() => validateEnv({
+      ...requiredConfig,
+      PREVIEW_AI_PROVIDER: "gemini",
+      GEMINI_API_KEY: "gemini-api-key",
+      GEMINI_MODEL: "gemini-2.5-flash",
+      GEMINI_TIMEOUT_MS: "20000",
+    })).not.toThrow();
+  });
 });

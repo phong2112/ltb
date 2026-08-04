@@ -91,6 +91,30 @@ describe("CvStorageService", () => {
     expect(service.isManagedStoragePath(stored.path)).toBe(true);
   });
 
+  it("uses the requested application CV file name when provided", async () => {
+    const service = new CvStorageService(createConfigService({
+      CV_STORAGE_DRIVER: "r2",
+      R2_ENDPOINT: "https://account-id.r2.cloudflarestorage.com",
+      R2_BUCKET: "candidate-cvs",
+      R2_ACCESS_KEY_ID: "access-key-id",
+      R2_SECRET_ACCESS_KEY: "secret-access-key",
+    }));
+    const file = {
+      originalname: "my uploaded cv.pdf",
+      mimetype: "application/pdf",
+      size: 4,
+      buffer: Buffer.from("%PDF"),
+    } as Express.Multer.File;
+
+    const stored = await service.storeCandidateCv(file, "candidate-1", "application-1", {
+      preferredFileBaseName: "Senior Frontend Developer_Nguyễn Văn A_Hà Nội",
+    });
+
+    expect(stored.originalName).toBe("Senior-Frontend-Developer_Nguyen-Van-A_Ha-Noi.pdf");
+    expect(stored.storedName).toMatch(/^cv\/candidate-1\/application-1\/\d+-Senior-Frontend-Developer_Nguyen-Van-A_Ha-Noi\.pdf$/);
+    expect(stored.path).toMatch(/^r2:\/\/candidate-cvs\/cv\/candidate-1\/application-1\/\d+-Senior-Frontend-Developer_Nguyen-Van-A_Ha-Noi\.pdf$/);
+  });
+
   it("treats legacy Vercel Blob paths and new R2 paths as managed storage paths", () => {
     const service = new CvStorageService(createConfigService({ CV_STORAGE_DRIVER: "r2" }));
 

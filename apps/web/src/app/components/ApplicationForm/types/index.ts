@@ -20,3 +20,9 @@ export type TextFieldName = "name" | "email" | "phone" | "applicationArea" | "no
 export type ScreeningQuestion = Job["questions"][number];
 export type FormErrors = Record<string, string>;
 export type Translate = ReturnType<typeof useLanguage>["t"];
+
+export type CvPreviewState = {
+  status: "idle" | "loading" | "applied" | "empty" | "failed";
+  appliedFields: TextFieldName[];
+  message?: string;
+};

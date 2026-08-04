@@ -7,7 +7,6 @@ import {
 import { useData } from "@/app/data";
 import { ImageWithFallback } from "@/app/components/ImageFallBack";
 import { useLanguage, type Language } from "@/app/services/i18n-service";
-import CandidateChatWidget from "@/app/components/CandidateChatWidget";
 
 const logoImg = "/images/bich-candy-logo.jpg";
 
@@ -17,7 +16,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { jobs, candidateProfiles, logout } = useData();
   const { language, setLanguage, t } = useLanguage();
   const languages: Language[] = ["vi", "en"];
-  const isChatRoute = loc.pathname === "/admin/chats" || loc.pathname.startsWith("/admin/chats/");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
@@ -151,7 +149,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
         <main className="min-w-0 flex-1 p-3 sm:p-4 lg:p-6">{children}</main>
       </div>
-      {!isChatRoute && <div className="hidden md:block"><CandidateChatWidget /></div>}
     </div>
   );
 }

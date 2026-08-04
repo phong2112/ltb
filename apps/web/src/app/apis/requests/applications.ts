@@ -1,6 +1,37 @@
 import type { NewCandidate } from "@/app/data/candidates";
 import { apiRequest } from "./client";
 
+export type ApplicationCvPreview = {
+  profile: {
+    fullName?: string;
+    title?: string;
+    email?: string;
+    phone?: string;
+    normalizedPhone?: string;
+    applicationArea?: string;
+    skills?: string[];
+    linkedinUrl?: string;
+    portfolioUrl?: string;
+  };
+  metadata: {
+    parser: string;
+    qualityScore?: number;
+    lowConfidenceOcr?: boolean;
+    profileSource?: string;
+  };
+};
+
+export function previewApplicationCv(file: File, jobLocations: string[]) {
+  const form = new FormData();
+  form.set("cv", file);
+  form.set("jobLocations", JSON.stringify(jobLocations));
+
+  return apiRequest<ApplicationCvPreview>("/applications/cv-preview", {
+    method: "POST",
+    body: form,
+  });
+}
+
 export function submitApplication(candidate: NewCandidate) {
   const form = new FormData();
   form.set("jobId", candidate.jobId);
@@ -32,4 +63,3 @@ export function submitApplication(candidate: NewCandidate) {
     },
   });
 }
-

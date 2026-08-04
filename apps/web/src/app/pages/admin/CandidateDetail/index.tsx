@@ -68,6 +68,7 @@ export default function CandidateDetail() {
   const [saved, setSaved] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [retryingAnalysis, setRetryingAnalysis] = useState(false);
+  const [copiedContactKey, setCopiedContactKey] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -167,6 +168,25 @@ export default function CandidateDetail() {
     }
   }
 
+  async function copyContactValue(key: string, value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = value;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
+
+    setCopiedContactKey(key);
+    window.setTimeout(() => setCopiedContactKey(current => (current === key ? null : current)), 1600);
+  }
+
   const scoreTone = application.aiStatus !== "completed"
     ? { text: "text-slate-600", soft: "bg-slate-50", border: "border-slate-200", bar: "bg-slate-400" }
     : application.aiScore >= 90
@@ -178,6 +198,8 @@ export default function CandidateDetail() {
           : { text: "text-red-700", soft: "bg-red-50", border: "border-red-200", bar: "bg-red-500" };
   const primaryEmail = candidate.email || application.email || "—";
   const primaryPhone = candidate.phone || application.phone || "—";
+  const emailCopyValue = primaryEmail === "—" ? undefined : primaryEmail;
+  const phoneCopyValue = primaryPhone === "—" ? undefined : primaryPhone;
   const scoreValue = Math.max(0, Math.min(application.aiScore, 100));
   const scoreLabel = application.aiStatus === "completed"
     ? `${application.aiScore}/100`
@@ -270,8 +292,24 @@ export default function CandidateDetail() {
                 </div>
               </div>
               <dl className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-2">
-                <InfoItem icon={<Mail size={14} />} label={t("common.email")} value={primaryEmail} />
-                <InfoItem icon={<Phone size={14} />} label={t("admin.phone")} value={primaryPhone} />
+                <InfoItem
+                  icon={<Mail size={14} />}
+                  label={t("common.email")}
+                  value={primaryEmail}
+                  copied={copiedContactKey === "email"}
+                  copyLabel={copiedContactKey === "email" ? t("common.copied") : t("admin.copyCandidateEmail")}
+                  copyValue={emailCopyValue}
+                  onCopy={emailCopyValue ? () => void copyContactValue("email", emailCopyValue) : undefined}
+                />
+                <InfoItem
+                  icon={<Phone size={14} />}
+                  label={t("admin.phone")}
+                  value={primaryPhone}
+                  copied={copiedContactKey === "phone"}
+                  copyLabel={copiedContactKey === "phone" ? t("common.copied") : t("common.copy")}
+                  copyValue={phoneCopyValue}
+                  onCopy={phoneCopyValue ? () => void copyContactValue("phone", phoneCopyValue) : undefined}
+                />
                 <InfoItem icon={<MapPin size={14} />} label={t("admin.applicationArea")} value={application.applicationArea || "—"} />
                 <InfoItem icon={<Briefcase size={14} />} label={t("admin.appliedRole")} value={application.jobTitle} />
               </dl>

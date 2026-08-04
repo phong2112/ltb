@@ -21,7 +21,6 @@ The product is not intended to be an enterprise ATS in the MVP. Keep implementat
 - Keep changes scoped to the requested feature or bug.
 - Do not add enterprise complexity unless the planning file has been updated to require it.
 - Do not silently change product scope.
-- Do not introduce scraping of LinkedIn, Facebook, ITviec, VietnamWorks, or Zalo.
 - Prefer official APIs and user-provided links/files.
 - Treat candidate data and CVs as sensitive personal data.
 

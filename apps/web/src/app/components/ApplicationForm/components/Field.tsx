@@ -15,7 +15,7 @@ export function Field({ label, id, error, children }: FieldProps) {
     <div>
       <label
         htmlFor={id}
-        className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-foreground"
+        className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-muted-foreground"
       >
         {visibleLabel}
         {required && <span className="ml-0.5 text-primary">*</span>}

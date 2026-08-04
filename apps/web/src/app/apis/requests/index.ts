@@ -18,7 +18,7 @@ export {
   sendCandidateMessageRequest,
   updateCandidateApplication,
 } from "./candidates";
-export { submitApplication } from "./applications";
+export { previewApplicationCv, submitApplication } from "./applications";
 export {
   deleteTalentPoolEntry,
   getTalentPoolEntry,
@@ -33,4 +33,3 @@ export {
   fetchAdminTemplates,
   updateAdminTemplate,
 } from "./templates";
-

@@ -1,8 +1,9 @@
 import { useId, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { previewApplicationCv } from "@/app/apis/requests";
 import { useData } from "@/app/data";
 import { useLanguage } from "@/app/services/i18n-service";
 import { initialForm } from "../constants";
-import type { ApplicationFormProps, FormErrors, FormState, ScreeningQuestion, TextFieldName } from "../types";
+import type { ApplicationFormProps, CvPreviewState, FormErrors, FormState, ScreeningQuestion, TextFieldName } from "../types";
 import { getScreeningAnswerError, validateCvFile } from ".";
 
 export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps, "job" | "onSuccess">) {
@@ -10,9 +11,15 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
   const { t } = useLanguage();
   const idPrefix = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [form, setForm] = useState<FormState>(initialForm);
+  const cvPreviewRequestId = useRef(0);
+  const formRef = useRef<FormState>(initialForm);
+  const [form, setFormState] = useState<FormState>(initialForm);
   const [questionAnswers, setQuestionAnswers] = useState<Record<string, string>>({});
   const [cvFile, setCvFile] = useState<File | null>(null);
+  const [cvPreview, setCvPreview] = useState<CvPreviewState>({
+    status: "idle",
+    appliedFields: [],
+  });
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -30,6 +37,16 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
   function updateTextField(name: TextFieldName, value: string) {
     setForm((current) => ({ ...current, [name]: value }));
     clearErrors(name);
+  }
+
+  function setForm(nextForm: FormState | ((current: FormState) => FormState)) {
+    setFormState((current) => {
+      const resolved = typeof nextForm === "function"
+        ? (nextForm as (current: FormState) => FormState)(current)
+        : nextForm;
+      formRef.current = resolved;
+      return resolved;
+    });
   }
 
   function updateQuestionAnswer(question: ScreeningQuestion, value: string) {
@@ -125,7 +142,9 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
 
   function handleCvFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
+    cvPreviewRequestId.current += 1;
     setCvFile(null);
+    setCvPreview({ status: "idle", appliedFields: [] });
     clearErrors("cv");
 
     if (!file) return;
@@ -138,17 +157,69 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
     }
 
     setCvFile(file);
+    void previewCvFile(file, cvPreviewRequestId.current);
   }
 
   function removeCvFile() {
+    cvPreviewRequestId.current += 1;
     setCvFile(null);
+    setCvPreview({ status: "idle", appliedFields: [] });
     if (fileInputRef.current) fileInputRef.current.value = "";
     clearErrors("cv");
+  }
+
+  async function previewCvFile(file: File, requestId: number) {
+    setCvPreview({ status: "loading", appliedFields: [] });
+
+    try {
+      const result = await previewApplicationCv(file, job.locations);
+      if (requestId !== cvPreviewRequestId.current) return;
+
+      const suggestions: Partial<Pick<FormState, "name" | "email" | "phone" | "applicationArea">> = {
+        ...(result.profile.fullName ? { name: result.profile.fullName } : {}),
+        ...(result.profile.email ? { email: result.profile.email } : {}),
+        ...(result.profile.phone ? { phone: result.profile.phone } : {}),
+        ...(result.profile.applicationArea && job.locations.includes(result.profile.applicationArea) ? { applicationArea: result.profile.applicationArea } : {}),
+      };
+      const appliedFields: TextFieldName[] = [];
+
+      const nextForm = { ...formRef.current };
+
+      for (const [name, value] of Object.entries(suggestions) as Array<[TextFieldName, string]>) {
+        if (!value.trim() || formRef.current[name].trim()) continue;
+        nextForm[name] = value;
+        appliedFields.push(name);
+      }
+
+      if (appliedFields.length) {
+        setForm(nextForm);
+        setErrors((previous) => {
+          const next = { ...previous };
+          appliedFields.forEach((field) => delete next[field]);
+          return next;
+        });
+      }
+
+      setCvPreview({
+        status: appliedFields.length ? "applied" : "empty",
+        appliedFields,
+      });
+    } catch {
+      if (requestId !== cvPreviewRequestId.current) return;
+      setCvPreview({
+        status: "failed",
+        appliedFields: [],
+      });
+    }
   }
 
   return {
     clearErrors,
     cvFile,
+    cvPreview,
+    autofillLoadingFields: cvPreview.status === "loading"
+      ? (["name", "email", "phone", "applicationArea"] satisfies TextFieldName[])
+      : [],
     errors,
     fieldId,
     fileInputRef,

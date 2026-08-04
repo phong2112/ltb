@@ -75,6 +75,7 @@ Implemented for local demo:
 
 - PDF, DOC, and DOCX text extraction, with local `vie+eng` OCR fallback for scanned PDFs and JPG/PNG CVs.
 - Groq provider using `llama-3.3-70b-versatile` by default.
+- Optional Gemini provider for public apply CV preview autofill, isolated from Groq matching queues.
 - Separate BullMQ extraction and AI matching queues backed by Redis.
 - Evidence-based comparison for each JD requirement.
 - Deterministic score calculation in application code.
@@ -90,6 +91,19 @@ Not implemented yet:
 - Copy-to-send actions.
 - Email sending.
 
+### Phase 7: Sourcing Campaigns
+
+Planned as a core product capability:
+
+- Generate sourcing briefs and Boolean search strings from JDs.
+- Import sourced candidates into Talent Pool from TA-provided links, CSV rows, and CV uploads.
+- Match sourced candidates against target jobs.
+- Rank candidates by fit, evidence confidence, source quality, and contact readiness.
+- Draft personalized outreach and follow-up messages.
+- Track sourcing campaign funnel metrics.
+
+Public web discovery must be narrow and auditable. Use official APIs where possible, respect robots.txt, rate limits, and source terms, do not bypass access controls, and make each source adapter explicitly configurable.
+
 ## Running Dev With One Command
 
 Start the full Docker development stack with hot reload:
@@ -99,6 +113,8 @@ CV_STORAGE_DRIVER=local ./run.sh
 ```
 
 AI matching is disabled by default for local development. Set `AI_PROVIDER=groq`, `GROQ_API_KEY`, and `REDIS_URL` when you want uploaded CVs to be analyzed by Groq.
+
+Public apply CV preview autofill can use Gemini without enabling Groq matching. Set `PREVIEW_AI_PROVIDER=gemini`, `GEMINI_API_KEY`, and optionally `GEMINI_MODEL`, `GEMINI_BASE_URL`, and `GEMINI_TIMEOUT_MS`. If Gemini is unavailable or over quota, the public form falls back to deterministic regex extraction and still lets candidates submit manually.
 
 Open:
 
@@ -233,7 +249,7 @@ postgresql://postgres:postgres@localhost:55432/hr_copilot?schema=public
 
 Redis host port is `56379`.
 
-Set `AI_PROVIDER=groq` and `GROQ_API_KEY` in the backend environment to enable cloud AI matching.
+Set `AI_PROVIDER=groq` and `GROQ_API_KEY` in the backend environment to enable cloud AI matching. Set `PREVIEW_AI_PROVIDER=gemini` and `GEMINI_API_KEY` only when you want pre-submit form autofill to use Gemini.
 
 ## Demo AI CV Matching
 
@@ -264,8 +280,11 @@ The API service is not exposed directly by Docker Compose. Public access should 
 
 ## Next Implementation Priorities
 
-1. Add real auth/session instead of Nginx Basic Auth for production.
-2. Add private object storage for CV files instead of local container volume.
-3. Add an admin retry action for failed AI jobs.
+1. Add sourcing campaign models, statuses, and campaign-to-job matching.
+2. Add `/admin/sourcing` for sourcing brief, import, ranking, and funnel tracking.
+3. Add manual and CSV import into Talent Pool.
 4. Add outreach templates and copy-to-send workflow.
-5. Add email notifications for new applications.
+5. Add real auth/session instead of Nginx Basic Auth for production.
+6. Add private object storage for CV files instead of local container volume.
+7. Add an admin retry action for failed AI jobs.
+8. Add email notifications for new applications.

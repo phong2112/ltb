@@ -13,7 +13,7 @@ type ConsentFieldProps = {
 
 export function ConsentField({ clearErrors, errors, fieldId, form, setForm, t }: ConsentFieldProps) {
   return (
-    <div className={`rounded-xl border p-3.5 transition-colors ${errors.agreed ? "border-red-300 bg-red-50/60" : "border-primary/15 bg-primary/[0.025] hover:border-primary/30"}`}>
+    <div className={`rounded-[12px] border p-3.5 transition-colors ${errors.agreed ? "border-red-300 bg-red-50/60" : "border-border/80 bg-white shadow-sm hover:border-primary/25"}`}>
       <div className="flex items-start gap-3">
         <input
           id={fieldId("agreed")}

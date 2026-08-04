@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
-import { Filter, Heart, List, Search } from "lucide-react";
+import { Filter, Heart, List, Search, Sparkles } from "lucide-react";
 import { useData } from "@/app/data";
 import { translateJobLevel, translateJobType, useLanguage } from "@/app/services/i18n-service";
 import PublicLayout from "@/app/layouts/PublicLayout";
@@ -141,20 +141,27 @@ export default function Jobs() {
       </div>
 
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
-        <div className="flex flex-wrap gap-2 mb-6 items-center">
-          <Filter size={13} className="text-muted-foreground" />
-          {TYPE_FILTERS.map(item => (
-            <button key={item} onClick={() => setTypeFilter(item)} className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${typeFilter === item ? "bg-primary text-white border-primary" : "bg-white border-border text-muted-foreground hover:border-primary hover:text-primary"}`}>
-              {item === ALL_FILTER ? t("common.all") : translateJobType(item, language)}
-            </button>
-          ))}
-          <div className="w-px h-4 bg-border hidden md:block" />
-          {LEVEL_FILTERS.map(item => (
-            <button key={item} onClick={() => setLevelFilter(item)} className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${levelFilter === item ? "bg-primary text-white border-primary" : "bg-white border-border text-muted-foreground hover:border-primary hover:text-primary"}`}>
-              {item === ALL_FILTER ? t("common.all") : translateJobLevel(item, language)}
-            </button>
-          ))}
-          <span className="w-full text-xs text-muted-foreground sm:ml-auto sm:w-auto">{filtered.length} {t("jobs.resultCount")}</span>
+        <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-border bg-white/80 p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="inline-flex h-8 w-8 flex-none items-center justify-center rounded-full bg-pink-50 text-primary">
+              <Filter size={14} />
+            </span>
+            {TYPE_FILTERS.map(item => (
+              <button key={item} onClick={() => setTypeFilter(item)} className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${typeFilter === item ? "border-primary bg-primary text-white shadow-sm" : "border-border bg-white text-muted-foreground hover:border-primary/60 hover:text-primary"}`}>
+                {item === ALL_FILTER ? t("common.all") : translateJobType(item, language)}
+              </button>
+            ))}
+            <div className="mx-1 hidden h-5 w-px bg-border md:block" />
+            {LEVEL_FILTERS.map(item => (
+              <button key={item} onClick={() => setLevelFilter(item)} className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${levelFilter === item ? "border-primary bg-primary text-white shadow-sm" : "border-border bg-white text-muted-foreground hover:border-primary/60 hover:text-primary"}`}>
+                {item === ALL_FILTER ? t("common.all") : translateJobLevel(item, language)}
+              </button>
+            ))}
+          </div>
+          <span className="inline-flex w-fit flex-none items-center gap-1.5 rounded-full border border-pink-100 bg-pink-50 px-3 py-1.5 text-xs font-bold text-primary">
+            <Sparkles size={13} />
+            {filtered.length} {t("jobs.resultCount")}
+          </span>
         </div>
 
         {showSaved && savedJobs.length === 0 ? (
