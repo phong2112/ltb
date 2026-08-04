@@ -1,5 +1,5 @@
 import type { ChangeEvent, RefObject } from "react";
-import { FileText, UploadCloud, X } from "lucide-react";
+import { FileText, Sparkles, UploadCloud, X } from "lucide-react";
 import { cvAcceptAttribute } from "@hr-copilot/shared";
 import type { CvPreviewState, Translate } from "../types";
 import { formatFileSize } from "../utils";
@@ -60,6 +60,11 @@ export function CvUploadField({
           </span>
         </span>
       </label>
+
+      <p className="mt-2 flex items-start gap-2 rounded-[10px] bg-pink-50/70 px-3 py-2 text-[11px] font-semibold leading-5 text-primary">
+        <Sparkles size={14} className="mt-0.5 flex-none" aria-hidden="true" />
+        <span>{t("apply.cvAutofillHint")}</span>
+      </p>
 
       {cvFile && (
         <div className="mt-2 flex items-center justify-between gap-3 rounded-[10px] border border-border/80 bg-white px-3 py-2 shadow-sm">
