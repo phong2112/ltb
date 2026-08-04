@@ -12,6 +12,7 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
   const idPrefix = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cvPreviewRequestId = useRef(0);
+  const cvAutofilledValuesRef = useRef<Partial<Record<TextFieldName, string>>>({});
   const formRef = useRef<FormState>(initialForm);
   const [form, setFormState] = useState<FormState>(initialForm);
   const [questionAnswers, setQuestionAnswers] = useState<Record<string, string>>({});
@@ -35,6 +36,7 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
   }
 
   function updateTextField(name: TextFieldName, value: string) {
+    delete cvAutofilledValuesRef.current[name];
     setForm((current) => ({ ...current, [name]: value }));
     clearErrors(name);
   }
@@ -143,6 +145,7 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
   function handleCvFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
     cvPreviewRequestId.current += 1;
+    clearPreviousCvAutofill();
     setCvFile(null);
     setCvPreview({ status: "idle", appliedFields: [] });
     clearErrors("cv");
@@ -162,6 +165,7 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
 
   function removeCvFile() {
     cvPreviewRequestId.current += 1;
+    clearPreviousCvAutofill();
     setCvFile(null);
     setCvPreview({ status: "idle", appliedFields: [] });
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -182,6 +186,7 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
         ...(result.profile.applicationArea && job.locations.includes(result.profile.applicationArea) ? { applicationArea: result.profile.applicationArea } : {}),
       };
       const appliedFields: TextFieldName[] = [];
+      const autofilledValues: Partial<Record<TextFieldName, string>> = {};
 
       const nextForm = { ...formRef.current };
 
@@ -189,9 +194,11 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
         if (!value.trim() || formRef.current[name].trim()) continue;
         nextForm[name] = value;
         appliedFields.push(name);
+        autofilledValues[name] = value;
       }
 
       if (appliedFields.length) {
+        cvAutofilledValuesRef.current = autofilledValues;
         setForm(nextForm);
         setErrors((previous) => {
           const next = { ...previous };
@@ -210,6 +217,25 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
         status: "failed",
         appliedFields: [],
       });
+    }
+  }
+
+  function clearPreviousCvAutofill() {
+    const autofilledValues = cvAutofilledValuesRef.current;
+    const nextForm = { ...formRef.current };
+    let changed = false;
+
+    for (const [name, value] of Object.entries(autofilledValues) as Array<[TextFieldName, string]>) {
+      if (nextForm[name] !== value) continue;
+      nextForm[name] = "";
+      changed = true;
+    }
+
+    cvAutofilledValuesRef.current = {};
+
+    if (changed) {
+      formRef.current = nextForm;
+      setFormState(nextForm);
     }
   }
 
