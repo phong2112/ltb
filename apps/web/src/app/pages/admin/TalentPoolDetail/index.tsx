@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
   ArrowLeft,
   Briefcase,
@@ -42,6 +42,7 @@ import {
 } from "@/app/apis/requests";
 import type { TalentPoolEntry } from "@/app/apis/models";
 import { TalentPoolStatusBadge } from "@/app/components/TalentPoolStatusBadge";
+import { safeAdminReturnTo } from "@/app/utils/navigation";
 
 type ProfileForm = {
   fullName: string;
@@ -57,7 +58,9 @@ const EMPTY_FORM: ProfileForm = { fullName: "", email: "", phone: "", title: "",
 export default function TalentPoolDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { language, t } = useLanguage();
+  const returnTo = safeAdminReturnTo(searchParams.get("from"), "/admin/candidates");
   const [entry, setEntry] = useState<TalentPoolEntry | null>(null);
   const [jobs, setJobs] = useState<ApiJob[]>([]);
   const [form, setForm] = useState<ProfileForm>(EMPTY_FORM);
@@ -149,7 +152,7 @@ export default function TalentPoolDetail() {
     try {
       await deleteTalentPoolEntry(id);
       notificationService.success(t("talentPool.deleted"));
-      navigate("/admin/talent-pool", { replace: true });
+      navigate(returnTo, { replace: true });
     } catch (deleteError) {
       notificationService.error(deleteError, t("talentPool.deleteError"));
       setIsDeleting(false);
@@ -163,7 +166,7 @@ export default function TalentPoolDetail() {
   if (!entry) {
     return (
       <AdminLayout>
-        <div className="py-32 text-center"><p className="text-lg font-bold text-foreground">{error || t("talentPool.notFound")}</p><Link to="/admin/talent-pool" className="mt-3 inline-block text-sm font-bold text-primary underline">{t("common.backToList")}</Link></div>
+        <div className="py-32 text-center"><p className="text-lg font-bold text-foreground">{error || t("talentPool.notFound")}</p><Link to={returnTo} className="mt-3 inline-block text-sm font-bold text-primary underline">{t("common.backToList")}</Link></div>
       </AdminLayout>
     );
   }
@@ -178,7 +181,7 @@ export default function TalentPoolDetail() {
       <div className="mx-auto w-full max-w-[1500px] space-y-4">
         <header className="flex flex-col gap-4 rounded-xl border border-border bg-white p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
-            <Link to="/admin/talent-pool" className="mb-2 inline-flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-primary"><ArrowLeft size={13} /> {t("common.backToList")}</Link>
+            <Link to={returnTo} className="mb-2 inline-flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-primary"><ArrowLeft size={13} /> {t("common.backToList")}</Link>
             <div className="flex flex-wrap items-center gap-3"><h1 className="max-w-full truncate text-xl font-black text-foreground sm:text-2xl" style={{ fontFamily: "'Playfair Display', serif" }}>{displayName}</h1><TalentPoolStatusBadge status={entry.status} language={language} /></div>
             <p className="mt-1 text-xs text-muted-foreground">{entry.file?.originalName ?? "CV"} · {formatDate(entry.createdAt, language)}</p>
           </div>

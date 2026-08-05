@@ -33,3 +33,10 @@ export {
   fetchAdminTemplates,
   updateAdminTemplate,
 } from "./templates";
+export {
+  createSourcingCampaign,
+  getSourcingCampaign,
+  importSourcingProfiles,
+  listSourcingCampaigns,
+  updateSourcingProfileStatus,
+} from "./sourcing";

@@ -15,6 +15,8 @@ const FIELD_LABELS: Record<string, string> = {
   followUpAt: "Thời gian nhắc follow-up",
   fullName: "Họ và tên",
   jobId: "ID vị trí tuyển dụng",
+  urls: "Danh sách URL hồ sơ",
+  source: "Nguồn sourcing",
   label: "Câu hỏi",
   level: "Cấp bậc",
   linkedinUrl: "LinkedIn",

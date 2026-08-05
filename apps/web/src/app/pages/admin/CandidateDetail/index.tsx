@@ -52,6 +52,7 @@ import {
   CANDIDATE_WORKFLOW_STATUSES,
   type CandidateStatus,
 } from "@/app/utils/configs/status-config";
+import { safeAdminReturnTo } from "@/app/utils/navigation";
 
 export default function CandidateDetail() {
   const { id } = useParams();
@@ -61,6 +62,7 @@ export default function CandidateDetail() {
   const { language, t } = useLanguage();
   const candidate = candidateProfiles.find(profile => profile.id === id);
   const requestedApplicationId = searchParams.get("application");
+  const returnTo = safeAdminReturnTo(searchParams.get("from"), "/admin/candidates");
   const selectedApplication = candidate?.applications.find(application => application.id === requestedApplicationId)
     ?? candidate?.applications[0];
   const [note, setNote] = useState("");
@@ -113,7 +115,7 @@ export default function CandidateDetail() {
       <AdminLayout>
         <div className="py-32 text-center">
           <p className="text-xl font-bold">{t("admin.candidateNotFound")}</p>
-          <Link to="/admin/candidates" className="text-sm text-primary underline">{t("common.backToList")}</Link>
+          <Link to={returnTo} className="text-sm text-primary underline">{t("common.backToList")}</Link>
         </div>
       </AdminLayout>
     );
@@ -162,7 +164,7 @@ export default function CandidateDetail() {
     setIsDeleting(true);
     try {
       await deleteCandidate(candidate.id);
-      navigate("/admin/candidates", { replace: true });
+      navigate(returnTo, { replace: true });
     } finally {
       setIsDeleting(false);
     }
@@ -241,7 +243,7 @@ export default function CandidateDetail() {
                 {getInitials(candidate.name)}
               </div>
               <div className="min-w-0">
-                <Link to="/admin/candidates" className="mb-1 inline-flex items-center gap-1 text-xs font-bold text-muted-foreground transition-colors hover:text-primary">
+                <Link to={returnTo} className="mb-1 inline-flex items-center gap-1 text-xs font-bold text-muted-foreground transition-colors hover:text-primary">
                   <ChevronLeft size={14} /> {t("common.backToList")}
                 </Link>
                 <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
@@ -274,7 +276,11 @@ export default function CandidateDetail() {
           <ApplicationHistory
             applications={candidate.applications}
             selectedId={application.id}
-            onSelect={applicationId => setSearchParams({ application: applicationId }, { replace: true })}
+            onSelect={applicationId => {
+              const next = new URLSearchParams(searchParams);
+              next.set("application", applicationId);
+              setSearchParams(next, { replace: true });
+            }}
             title={t("admin.applicationHistory")}
           />
         )}

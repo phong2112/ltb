@@ -9,6 +9,7 @@ import { JobsModule } from "./jobs";
 import { PrismaModule } from "./prisma";
 import { TalentPoolModule } from "./talent-pool";
 import { TemplatesModule } from "./templates";
+import { SourcingModule } from "./sourcing";
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { TemplatesModule } from "./templates";
     CandidatesModule,
     TalentPoolModule,
     TemplatesModule,
+    SourcingModule,
   ],
 })
 export class AppModule {}

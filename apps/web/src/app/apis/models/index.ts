@@ -16,4 +16,11 @@ export type {
   TalentPoolUploadResult,
 } from "./talent-pool";
 export type { ApiTemplate, TemplateInput } from "./templates";
-
+export type {
+  SourcedProfile,
+  SourcingCampaign,
+  SourcingImportResult,
+  SourcingProfileStatus,
+  SourcingSearchQuery,
+  SourcingSource,
+} from "./sourcing";

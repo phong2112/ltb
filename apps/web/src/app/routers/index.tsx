@@ -26,6 +26,8 @@ const CandidateChats = lazy(() => import("@/app/pages/admin/CandidateChats"));
 const FollowUp = lazy(() => import("@/app/pages/admin/FollowUp"));
 const MessageTemplates = lazy(() => import("@/app/pages/admin/MessageTemplates"));
 const AdminSettings = lazy(() => import("@/app/pages/admin/AdminSettings"));
+const SourcingCampaigns = lazy(() => import("@/app/pages/admin/SourcingCampaigns"));
+const SourcingCampaignDetail = lazy(() => import("@/app/pages/admin/SourcingCampaignDetail"));
 const Terms = lazy(() => import("@/app/pages/client/Terms"));
 const Privacy = lazy(() => import("@/app/pages/client/Privacy"));
 
@@ -104,6 +106,8 @@ export const router = createBrowserRouter([
               { path: "follow-up", Component: FollowUp },
               { path: "templates", Component: MessageTemplates },
               { path: "settings", Component: AdminSettings },
+              { path: "sourcing", Component: SourcingCampaigns },
+              { path: "sourcing/:id", Component: SourcingCampaignDetail },
             ],
           },
         ],

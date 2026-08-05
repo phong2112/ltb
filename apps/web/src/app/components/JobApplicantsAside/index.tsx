@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation, useSearchParams } from "react-router";
 import { useData } from "@/app/data";
 import { useLanguage } from "@/app/services/i18n-service";
 import ListPagination from "../ListPagination";
@@ -10,8 +11,10 @@ import { filterApplicants, getSortedJobCandidates, paginateApplicants } from "./
 export default function JobApplicantsAside({ jobId }: JobApplicantsAsideProps) {
   const { candidates } = useData();
   const { language, t } = useLanguage();
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get("applicantQ") ?? "");
+  const [page, setPage] = useState(() => readPositivePage(searchParams, "applicantPage"));
 
   const jobCandidates = useMemo(
     () => getSortedJobCandidates(candidates, jobId),
@@ -26,6 +29,20 @@ export default function JobApplicantsAside({ jobId }: JobApplicantsAsideProps) {
   useEffect(() => {
     setPage(1);
   }, [jobId, search]);
+
+  useEffect(() => {
+    setSearch(searchParams.get("applicantQ") ?? "");
+    setPage(readPositivePage(searchParams, "applicantPage"));
+  }, [searchParams]);
+
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    setOptionalParam(next, "applicantQ", search.trim());
+    setOptionalParam(next, "applicantPage", page > 1 ? String(page) : "");
+    if (next.toString() !== searchParams.toString()) setSearchParams(next, { replace: true });
+  }, [page, search, searchParams, setSearchParams]);
+
+  const returnTo = `${location.pathname}${location.search}`;
 
   return (
     <aside className="self-start overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_10px_30px_rgba(120,70,86,0.06)] xl:sticky xl:top-20 xl:col-start-2 xl:row-start-1 xl:row-span-2 xl:max-h-[calc(100vh-6rem)]">
@@ -44,7 +61,7 @@ export default function JobApplicantsAside({ jobId }: JobApplicantsAsideProps) {
           />
 
           {visibleCandidates.length > 0 ? (
-            <ApplicantList candidates={visibleCandidates} language={language} />
+            <ApplicantList candidates={visibleCandidates} language={language} returnTo={returnTo} />
           ) : (
             <ApplicantsEmptyState
               clearLabel={t("common.clearFilters")}
@@ -71,4 +88,17 @@ export default function JobApplicantsAside({ jobId }: JobApplicantsAsideProps) {
       )}
     </aside>
   );
+}
+
+function readPositivePage(searchParams: URLSearchParams, key: string) {
+  const value = Number(searchParams.get(key));
+  return Number.isInteger(value) && value > 0 ? value : 1;
+}
+
+function setOptionalParam(params: URLSearchParams, key: string, value: string) {
+  if (value) {
+    params.set(key, value);
+  } else {
+    params.delete(key);
+  }
 }

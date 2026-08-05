@@ -1,5 +1,5 @@
 import type { CandidateStatus } from "@/app/data";
-import { SORT_NAME_ASC, SORT_OLDEST, STATUS_OPTS } from "../constants";
+import { SORT_NAME_ASC, SORT_NEWEST, SORT_OLDEST, STATUS_OPTS } from "../constants";
 import type { SortOrder, UnifiedCandidateRow } from "../types";
 
 export function readUrlStatus(searchParams: URLSearchParams): CandidateStatus | "all" {
@@ -8,6 +8,17 @@ export function readUrlStatus(searchParams: URLSearchParams): CandidateStatus | 
     return value as CandidateStatus | "all";
   }
   return "all";
+}
+
+export function readUrlSort(searchParams: URLSearchParams): SortOrder {
+  const value = searchParams.get("sort");
+  if (value === SORT_NEWEST || value === SORT_OLDEST || value === SORT_NAME_ASC) return value;
+  return SORT_NEWEST;
+}
+
+export function readUrlPage(searchParams: URLSearchParams) {
+  const value = Number(searchParams.get("page"));
+  return Number.isInteger(value) && value > 0 ? value : 1;
 }
 
 export function stringField(value: unknown) {
@@ -61,4 +72,3 @@ export function compareRows(left: UnifiedCandidateRow, right: UnifiedCandidateRo
 
   return byDate || left.name.localeCompare(right.name, language === "vi" ? "vi" : "en", { sensitivity: "base" });
 }
-

@@ -21,12 +21,24 @@ export default function Jobs() {
   const showSaved = params.get("view") === "saved";
   const selectedJobId = params.get("job");
   const [search, setSearch] = useState(query);
-  const [typeFilter, setTypeFilter] = useState(ALL_FILTER);
-  const [levelFilter, setLevelFilter] = useState(ALL_FILTER);
+  const [typeFilter, setTypeFilter] = useState(() => readFilter(params, "type", TYPE_FILTERS));
+  const [levelFilter, setLevelFilter] = useState(() => readFilter(params, "level", LEVEL_FILTERS));
   const focusedJobIdRef = useRef<string | null>(null);
   const skipNextCardScrollRef = useRef<string | null>(null);
 
-  useEffect(() => { setSearch(query); }, [query]);
+  useEffect(() => {
+    setSearch(query);
+    setTypeFilter(readFilter(params, "type", TYPE_FILTERS));
+    setLevelFilter(readFilter(params, "level", LEVEL_FILTERS));
+  }, [params, query]);
+
+  useEffect(() => {
+    const next = new URLSearchParams(params);
+    setOptionalParam(next, "q", search.trim());
+    setOptionalParam(next, "type", typeFilter === ALL_FILTER ? "" : typeFilter);
+    setOptionalParam(next, "level", levelFilter === ALL_FILTER ? "" : levelFilter);
+    if (next.toString() !== params.toString()) setParams(next, { replace: true, preventScrollReset: true });
+  }, [levelFilter, params, search, setParams, typeFilter]);
 
   const published = jobs.filter(j => j.status === "published");
   const savedJobs = published.filter(job => savedJobIds.includes(job.id));
@@ -203,4 +215,17 @@ export default function Jobs() {
       </div>
     </PublicLayout>
   );
+}
+
+function readFilter(searchParams: URLSearchParams, key: string, allowedValues: readonly string[]) {
+  const value = searchParams.get(key);
+  return value && allowedValues.includes(value) ? value : ALL_FILTER;
+}
+
+function setOptionalParam(params: URLSearchParams, key: string, value: string) {
+  if (value) {
+    params.set(key, value);
+  } else {
+    params.delete(key);
+  }
 }

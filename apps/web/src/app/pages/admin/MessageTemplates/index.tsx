@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { useSearchParams } from "react-router";
 import { CheckCircle, Copy, Mail, MessageSquare, PenLine, Plus, Trash2, Users, X, XCircle } from "lucide-react";
 import {
   AlertDialog,
@@ -30,10 +31,11 @@ const EMPTY_FORM: TemplateForm = { name: "", channel: "Zalo", content: "" };
 
 export default function MessageTemplates() {
   const { t } = useLanguage();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Template | null>(null);
-  const [channelFilter, setChannelFilter] = useState("all");
+  const [channelFilter, setChannelFilter] = useState(() => readChannelFilter(searchParams));
   const [error, setError] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -56,6 +58,20 @@ export default function MessageTemplates() {
 
     void loadTemplates();
   }, []);
+
+  useEffect(() => {
+    setChannelFilter(readChannelFilter(searchParams));
+  }, [searchParams]);
+
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    if (channelFilter === "all") {
+      next.delete("channel");
+    } else {
+      next.set("channel", channelFilter);
+    }
+    if (next.toString() !== searchParams.toString()) setSearchParams(next, { replace: true });
+  }, [channelFilter, searchParams, setSearchParams]);
 
   async function copy(template: Template) {
     try {
@@ -262,6 +278,11 @@ export default function MessageTemplates() {
       </AlertDialog>
     </AdminLayout>
   );
+}
+
+function readChannelFilter(searchParams: URLSearchParams) {
+  const value = searchParams.get("channel");
+  return value && CHANNELS.includes(value) ? value : "all";
 }
 
 function iconForTemplate(template: ApiTemplate) {

@@ -58,6 +58,19 @@ AI output remains assistive. The system should not automatically reject a candid
 
 ## Supported Source Types
 
+Source priority for the MVP:
+
+1. LinkedIn assisted search and TA-provided profile URLs.
+2. Existing Talent Pool entries.
+3. GitHub and public portfolios.
+4. Public web search.
+5. ITviec and VietnamWorks.
+6. Facebook public search.
+7. GitLab and Stack Overflow.
+8. CSV, referrals, and other manual sources.
+
+LinkedIn is visually and operationally the primary source. The MVP generates LinkedIn People Search and public X-Ray queries plus GitHub, portfolio/public web, ITviec, VietnamWorks, Facebook, GitLab, and Stack Overflow queries. It opens results in one click and imports profile URLs in bulk with source-specific URL normalization and campaign-level deduplication. Restricted or authenticated pages should use assisted search, TA-provided links, or approved official integrations.
+
 Initial source types:
 
 - TA manual entry.
@@ -65,6 +78,11 @@ Initial source types:
 - TA uploaded CV.
 - Public portfolio URL.
 - GitHub profile or repository URL.
+- ITviec public URL.
+- VietnamWorks public URL.
+- Facebook public profile URL.
+- GitLab profile URL.
+- Stack Overflow user URL.
 - Personal website.
 - Referral note.
 - Existing Talent Pool entry.

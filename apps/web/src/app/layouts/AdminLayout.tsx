@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import {
   LayoutDashboard, Briefcase, Users, Bell, MessageSquare,
-  LogOut, ChevronRight, Settings, Languages, ArrowLeft, Menu, X
+  LogOut, ChevronRight, Settings, Languages, ArrowLeft, Menu, X, Radar
 } from "lucide-react";
 import { useData } from "@/app/data";
 import { ImageWithFallback } from "@/app/components/ImageFallBack";
@@ -21,6 +21,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const navItems = [
     { to: "/admin/dashboard", icon: <LayoutDashboard size={17} />, label: t("common.dashboard") },
     { to: "/admin/jobs", icon: <Briefcase size={17} />, label: t("common.jobs") },
+    { to: "/admin/sourcing", icon: <Radar size={17} />, label: "Sourcing" },
     { to: "/admin/candidates", icon: <Users size={17} />, label: t("admin.candidatesNav") },
     { to: "/admin/chats", icon: <MessageSquare size={17} />, label: "Tin nhắn" },
     { to: "/admin/follow-up", icon: <Bell size={17} />, label: t("common.followUp") },
@@ -32,6 +33,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     admin: t("common.hrWorkspace"),
     dashboard: t("common.dashboard"),
     jobs: t("common.jobs"),
+    sourcing: "Sourcing",
     candidates: t("admin.candidatesNav"),
     "talent-pool": t("admin.candidatesNav"),
     chats: "Tin nhắn",

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useParams, useSearchParams } from "react-router";
 import {
   Archive,
   Briefcase,
@@ -26,6 +26,7 @@ import JobApplicantsAside from "@/app/components/JobApplicantsAside";
 import ScrollToTopButton from "@/app/components/ScrollToTopButton";
 import AdminLayout from "@/app/layouts/AdminLayout";
 import { JOB_STATUS_CONFIG, URGENT_BADGE_CLASS } from "@/app/utils/configs/status-config";
+import { safeAdminReturnTo } from "@/app/utils/navigation";
 
 const statusDotClass: Record<JobStatus, string> = {
   published: "bg-emerald-500",
@@ -54,8 +55,10 @@ function cleanLabel(label: string) {
 
 export default function AdminJobDetail() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const { jobs, isLoading, updateJob } = useData();
   const { language, t } = useLanguage();
+  const returnTo = safeAdminReturnTo(searchParams.get("from"), "/admin/jobs");
   const [updatingStatus, setUpdatingStatus] = useState<JobStatus | null>(null);
   const job = jobs.find(item => item.id === id);
 
@@ -81,7 +84,7 @@ export default function AdminJobDetail() {
       <AdminLayout>
         <div className="rounded-2xl border border-border bg-white p-10 text-center">
           <p className="mb-4 font-bold text-foreground">{t("admin.jobNotFound")}</p>
-          <Link to="/admin/jobs" className="font-semibold text-primary hover:underline">{t("common.backToList")}</Link>
+          <Link to={returnTo} className="font-semibold text-primary hover:underline">{t("common.backToList")}</Link>
         </div>
       </AdminLayout>
     );
@@ -95,7 +98,7 @@ export default function AdminJobDetail() {
           <header className="min-w-0 rounded-2xl border border-border/80 bg-white px-3.5 py-3.5 shadow-[0_10px_30px_rgba(120,70,86,0.06)] sm:px-5 sm:py-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div className="min-w-0">
-                <Link to="/admin/jobs" className="mb-1.5 inline-flex cursor-pointer items-center gap-1 text-xs font-bold text-muted-foreground transition-colors hover:text-primary">
+                <Link to={returnTo} className="mb-1.5 inline-flex cursor-pointer items-center gap-1 text-xs font-bold text-muted-foreground transition-colors hover:text-primary">
                   <ChevronLeft size={14} /> {t("common.backToList")}
                 </Link>
                 <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">

@@ -13,6 +13,7 @@ import {
   uploadTalentPoolFiles,
 } from "@/app/apis/requests";
 import type { TalentPoolListItem, TalentPoolUploadResult } from "@/app/apis/models";
+import { appendReturnTo } from "@/app/utils/navigation";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,6 +39,8 @@ import {
   fileKey,
   formatDate,
   groupFilesByTargetJob,
+  readUrlPage,
+  readUrlSort,
   readUrlStatus,
   stringField,
   stringList,
@@ -50,13 +53,13 @@ export default function CandidateInbox() {
   const [searchParams, setSearchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
   const [statusFilter, setStatusFilter] = useState<CandidateStatus | "all">(
     () => readUrlStatus(searchParams),
   );
-  const [jobFilter, setJobFilter] = useState("all");
-  const [sortOrder, setSortOrder] = useState<SortOrder>(SORT_NEWEST);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [jobFilter, setJobFilter] = useState(() => searchParams.get("job") || "all");
+  const [sortOrder, setSortOrder] = useState<SortOrder>(() => readUrlSort(searchParams));
+  const [currentPage, setCurrentPage] = useState(() => readUrlPage(searchParams));
   const [poolEntries, setPoolEntries] = useState<TalentPoolListItem[]>([]);
   const [talentPoolTotal, setTalentPoolTotal] = useState(0);
   const [files, setFiles] = useState<File[]>([]);
@@ -78,6 +81,7 @@ export default function CandidateInbox() {
 
   const rows: UnifiedCandidateRow[] = [];
   const applicationCandidateIds = new Set(candidateProfiles.map(candidate => candidate.id));
+  const returnTo = buildCandidatesReturnTo(search, statusFilter, jobFilter, sortOrder, currentPage);
 
   for (const candidate of candidateProfiles) {
     const matchingApplications = candidate.applications.filter(application =>
@@ -98,7 +102,7 @@ export default function CandidateInbox() {
       status: latestApplication.status,
       applicationsCount: candidate.applications.length,
       hasNew: candidate.applications.some(application => application.status === "new"),
-      href: `/admin/candidates/${candidate.id}?application=${latestApplication.applicationId}`,
+      href: appendReturnTo(`/admin/candidates/${candidate.id}?application=${latestApplication.applicationId}`, returnTo),
       candidate,
     });
   }
@@ -124,7 +128,7 @@ export default function CandidateInbox() {
       status: TALENT_POOL_STATUS,
       applicationsCount: 0,
       hasNew: false,
-      href: `/admin/talent-pool/${entry.id}`,
+      href: appendReturnTo(`/admin/talent-pool/${entry.id}`, returnTo),
       poolEntry: entry,
     });
   }
@@ -146,19 +150,22 @@ export default function CandidateInbox() {
   }, [totalPages]);
 
   useEffect(() => {
-    const q = new URLSearchParams(searchParams);
-    if (statusFilter === "all") {
-      q.delete("status");
-    } else {
-      q.set("status", statusFilter);
-    }
-    setSearchParams(q, { replace: true });
-  }, [statusFilter, setSearchParams, searchParams]);
+    setSearch(searchParams.get("q") ?? "");
+    setStatusFilter(readUrlStatus(searchParams));
+    setJobFilter(searchParams.get("job") || "all");
+    setSortOrder(readUrlSort(searchParams));
+    setCurrentPage(readUrlPage(searchParams));
+  }, [searchParams]);
 
   useEffect(() => {
-    const fromUrl = readUrlStatus(searchParams);
-    setStatusFilter(fromUrl);
-  }, [searchParams]);
+    const next = new URLSearchParams(searchParams);
+    setOptionalParam(next, "q", search.trim());
+    setOptionalParam(next, "status", statusFilter === "all" ? "" : statusFilter);
+    setOptionalParam(next, "job", jobFilter === "all" ? "" : jobFilter);
+    setOptionalParam(next, "sort", sortOrder === SORT_NEWEST ? "" : sortOrder);
+    setOptionalParam(next, "page", currentPage > 1 ? String(currentPage) : "");
+    if (next.toString() !== searchParams.toString()) setSearchParams(next, { replace: true });
+  }, [currentPage, jobFilter, search, searchParams, setSearchParams, sortOrder, statusFilter]);
 
   useEffect(() => {
     const status = readUrlStatus(searchParams);
@@ -445,4 +452,29 @@ export default function CandidateInbox() {
       </AlertDialog>
     </AdminLayout>
   );
+}
+
+function setOptionalParam(params: URLSearchParams, key: string, value: string) {
+  if (value) {
+    params.set(key, value);
+  } else {
+    params.delete(key);
+  }
+}
+
+function buildCandidatesReturnTo(
+  search: string,
+  statusFilter: CandidateStatus | "all",
+  jobFilter: string,
+  sortOrder: SortOrder,
+  page: number,
+) {
+  const params = new URLSearchParams();
+  setOptionalParam(params, "q", search.trim());
+  setOptionalParam(params, "status", statusFilter === "all" ? "" : statusFilter);
+  setOptionalParam(params, "job", jobFilter === "all" ? "" : jobFilter);
+  setOptionalParam(params, "sort", sortOrder === SORT_NEWEST ? "" : sortOrder);
+  setOptionalParam(params, "page", page > 1 ? String(page) : "");
+  const query = params.toString();
+  return query ? `/admin/candidates?${query}` : "/admin/candidates";
 }

@@ -8,5 +8,5 @@ export type JobApplicantsAsideProps = {
 export type ApplicantListProps = {
   candidates: Candidate[];
   language: Language;
+  returnTo: string;
 };
-

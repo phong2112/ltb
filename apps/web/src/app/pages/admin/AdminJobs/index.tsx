@@ -1,25 +1,30 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { Archive, Briefcase, Building2, CircleStop, Eye, Globe, MapPin, Plus, RotateCcw, Search, Users } from "lucide-react";
 import { type JobStatus, useData } from "@/app/data";
 import { translateJobStatus, translateJobType, useLanguage } from "@/app/services/i18n-service";
 import ListPagination from "@/app/components/ListPagination";
 import AdminLayout from "@/app/layouts/AdminLayout";
 import { JOB_STATUS_CONFIG, URGENT_BADGE_CLASS } from "@/app/utils/configs/status-config";
+import { appendReturnTo } from "@/app/utils/navigation";
 
 const ITEMS_PER_PAGE = 10;
+const JOB_STATUS_FILTERS = ["active", "published", "draft", "closed", "archived"] as const;
+type JobStatusFilter = JobStatus | "active";
 
 export default function AdminJobs() {
   const { jobs, updateJob } = useData();
   const { language, t } = useLanguage();
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<JobStatus | "active">("active");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
+  const [statusFilter, setStatusFilter] = useState<JobStatusFilter>(() => readJobStatusFilter(searchParams));
+  const [currentPage, setCurrentPage] = useState(() => readPositivePage(searchParams));
 
   const visibleJobs = jobs.filter(job => statusFilter === "active" ? job.status !== "archived" : job.status === statusFilter);
   const filtered = visibleJobs.filter(j => !search || j.title.toLowerCase().includes(search.toLowerCase()) || j.company.toLowerCase().includes(search.toLowerCase()));
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const activePage = Math.min(currentPage, totalPages);
+  const returnTo = buildJobsReturnTo(search, statusFilter, activePage);
   const paginatedJobs = filtered.slice((activePage - 1) * ITEMS_PER_PAGE, activePage * ITEMS_PER_PAGE);
   const counts = {
     published: jobs.filter(j => j.status === "published").length,
@@ -27,7 +32,7 @@ export default function AdminJobs() {
     closed: jobs.filter(j => j.status === "closed").length,
     archived: jobs.filter(j => j.status === "archived").length,
   };
-  const filterOptions: { value: JobStatus | "active"; label: string }[] = [
+  const filterOptions: { value: JobStatusFilter; label: string }[] = [
     { value: "active", label: t("admin.activeJobs") },
     { value: "published", label: translateJobStatus("published", language) },
     { value: "draft", label: translateJobStatus("draft", language) },
@@ -38,6 +43,20 @@ export default function AdminJobs() {
   useEffect(() => {
     setCurrentPage(page => Math.min(page, totalPages));
   }, [totalPages]);
+
+  useEffect(() => {
+    setSearch(searchParams.get("q") ?? "");
+    setStatusFilter(readJobStatusFilter(searchParams));
+    setCurrentPage(readPositivePage(searchParams));
+  }, [searchParams]);
+
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    setOptionalParam(next, "q", search.trim());
+    setOptionalParam(next, "status", statusFilter === "active" ? "" : statusFilter);
+    setOptionalParam(next, "page", currentPage > 1 ? String(currentPage) : "");
+    if (next.toString() !== searchParams.toString()) setSearchParams(next, { replace: true });
+  }, [currentPage, search, searchParams, setSearchParams, statusFilter]);
 
   const togglePublishedStatus = (job: { id: string; status: JobStatus }) => {
     const nextStatus: JobStatus = job.status === "published" ? "closed" : "published";
@@ -88,7 +107,7 @@ export default function AdminJobs() {
         <div className="space-y-2 bg-background/35 p-2 sm:space-y-0 sm:divide-y sm:divide-border sm:bg-transparent sm:p-0">
           {paginatedJobs.map(job => (
             <div key={job.id} className="rounded-xl border border-border bg-white p-3 transition-colors hover:bg-pink-50/50 sm:flex sm:flex-row sm:items-center sm:gap-4 sm:rounded-none sm:border-0 sm:p-4">
-              <Link to={`/admin/jobs/${job.id}`} className="flex min-w-0 flex-1 cursor-pointer items-start gap-3 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:items-center sm:gap-4" aria-label={`${t("admin.viewJobDetail")}: ${job.title}`}>
+              <Link to={appendReturnTo(`/admin/jobs/${job.id}`, returnTo)} className="flex min-w-0 flex-1 cursor-pointer items-start gap-3 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:items-center sm:gap-4" aria-label={`${t("admin.viewJobDetail")}: ${job.title}`}>
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-pink-100 bg-pink-50 text-xl">{job.logo}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex min-w-0 items-start justify-between gap-2 sm:flex-wrap sm:items-center sm:justify-start">
@@ -172,4 +191,31 @@ export default function AdminJobs() {
       </div>
     </AdminLayout>
   );
+}
+
+function readJobStatusFilter(searchParams: URLSearchParams): JobStatusFilter {
+  const value = searchParams.get("status");
+  return value && (JOB_STATUS_FILTERS as readonly string[]).includes(value) ? value as JobStatusFilter : "active";
+}
+
+function readPositivePage(searchParams: URLSearchParams) {
+  const page = Number(searchParams.get("page"));
+  return Number.isInteger(page) && page > 0 ? page : 1;
+}
+
+function setOptionalParam(params: URLSearchParams, key: string, value: string) {
+  if (value) {
+    params.set(key, value);
+  } else {
+    params.delete(key);
+  }
+}
+
+function buildJobsReturnTo(search: string, statusFilter: JobStatusFilter, page: number) {
+  const params = new URLSearchParams();
+  setOptionalParam(params, "q", search.trim());
+  setOptionalParam(params, "status", statusFilter === "active" ? "" : statusFilter);
+  setOptionalParam(params, "page", page > 1 ? String(page) : "");
+  const query = params.toString();
+  return query ? `/admin/jobs?${query}` : "/admin/jobs";
 }
