@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Injectable, Logger, NotFoundExc
 import { ApplicationStatus, CvParseStatus, FileKind, JobStatus, Prisma } from "@prisma/client";
 import { AiQueueService } from "../../ai/queue/index.service";
 import { CvStorageService } from "../../files/storage/index.service";
-import { lockCandidateContacts, normalizeEmail, normalizePhone } from "../../candidates/contact";
+import { lockCandidateContacts, normalizeEmail, normalizeLinkedinUrl, normalizePhone } from "../../candidates/contact";
 import { JobsService } from "../../jobs/service/index.service";
 import { EmailService } from "../../notifications/email/index.service";
 import { PrismaService } from "../../prisma";
@@ -37,6 +37,7 @@ export class ApplicationsService {
     const candidatePhone = dto.phone.trim();
     const submittedFullName = dto.fullName.trim();
     const submittedLinkedinUrl = dto.linkedinUrl?.trim() || undefined;
+    const normalizedLinkedinUrl = normalizeLinkedinUrl(submittedLinkedinUrl);
     const submittedPortfolioUrl = dto.portfolioUrl?.trim() || undefined;
     const coverNote = dto.screeningAnswers?.trim() || undefined;
     const screeningAnswers = buildScreeningAnswerSnapshots(job.questions, dto.questionAnswers ?? []);
@@ -48,11 +49,14 @@ export class ApplicationsService {
       created = await createWithContactRetry<CreatedApplication>(async () =>
         this.prisma.$transaction(
           async tx => {
-            await lockCandidateContacts(tx, normalizedEmail, normalizedPhone);
+            await lockCandidateContacts(tx, normalizedEmail, normalizedPhone, normalizedLinkedinUrl);
 
             const contactFilters: Prisma.CandidateWhereInput[] = [{ normalizedEmail }];
             if (normalizedPhone) {
               contactFilters.push({ normalizedPhone });
+            }
+            if (normalizedLinkedinUrl) {
+              contactFilters.push({ normalizedLinkedinUrl });
             }
 
             const contactMatches = await tx.candidate.findMany({
@@ -63,7 +67,7 @@ export class ApplicationsService {
             const existingCandidate = contactMatches[0];
 
             if (contactMatches.length > 1 && contactMatches[0].id !== contactMatches[1].id) {
-              throw new BadRequestException("Email và số điện thoại đang khớp với hai hồ sơ ứng viên khác nhau.");
+              throw new BadRequestException("Email, số điện thoại hoặc LinkedIn đang khớp với hai hồ sơ ứng viên khác nhau.");
             }
 
             const candidate =
@@ -76,16 +80,28 @@ export class ApplicationsService {
                   phone: candidatePhone,
                   normalizedPhone,
                   linkedinUrl: submittedLinkedinUrl,
+                  normalizedLinkedinUrl,
                   portfolioUrl: submittedPortfolioUrl,
                   source: "career_site",
                 },
               }));
+
+            if (existingCandidate && submittedLinkedinUrl && !existingCandidate.linkedinUrl) {
+              await tx.candidate.update({
+                where: { id: candidate.id },
+                data: {
+                  linkedinUrl: submittedLinkedinUrl,
+                  normalizedLinkedinUrl,
+                },
+              });
+            }
 
             await ensureCandidateHasNotApplied(tx, {
               candidateId: candidate.id,
               jobId: job.id,
               normalizedEmail,
               normalizedPhone,
+              normalizedLinkedinUrl,
             });
 
             const application = await tx.application.create({
@@ -99,6 +115,7 @@ export class ApplicationsService {
                 submittedPortfolioUrl,
                 normalizedEmail,
                 normalizedPhone,
+                normalizedLinkedinUrl,
                 salaryExpectation: dto.salaryExpectation,
                 noticePeriod: dto.noticePeriod,
                 coverNote,
@@ -303,6 +320,7 @@ type QuestionAnswerInput = {
 };
 
 const DUPLICATE_APPLICATION_MESSAGE = "Bạn đã ứng tuyển vị trí này bằng email hoặc số điện thoại này.";
+const DUPLICATE_APPLICATION_WITH_LINKEDIN_MESSAGE = "Bạn đã ứng tuyển vị trí này bằng email, số điện thoại hoặc LinkedIn này.";
 
 function buildScreeningAnswerSnapshots(questions: JobQuestion[], answers: QuestionAnswerInput[]) {
   const questionsById = new Map(questions.map(question => [question.id, question]));
@@ -373,6 +391,7 @@ async function ensureCandidateHasNotApplied(
     jobId: string;
     normalizedEmail: string;
     normalizedPhone?: string;
+    normalizedLinkedinUrl?: string;
   },
 ) {
   const duplicateFilters: Prisma.ApplicationWhereInput[] = [
@@ -382,6 +401,9 @@ async function ensureCandidateHasNotApplied(
 
   if (input.normalizedPhone) {
     duplicateFilters.push({ normalizedPhone: input.normalizedPhone });
+  }
+  if (input.normalizedLinkedinUrl) {
+    duplicateFilters.push({ normalizedLinkedinUrl: input.normalizedLinkedinUrl });
   }
 
   const existingApplication = await tx.application.findFirst({
@@ -393,7 +415,9 @@ async function ensureCandidateHasNotApplied(
   });
 
   if (existingApplication) {
-    throw new ConflictException(DUPLICATE_APPLICATION_MESSAGE);
+    throw new ConflictException(
+      input.normalizedLinkedinUrl ? DUPLICATE_APPLICATION_WITH_LINKEDIN_MESSAGE : DUPLICATE_APPLICATION_MESSAGE,
+    );
   }
 }
 
@@ -405,7 +429,10 @@ function isDuplicateApplicationError(error: unknown) {
   const target = getUniqueErrorTarget(error);
 
   return (
-    (target.includes("candidateId") && target.includes("jobId")) || (target.includes("jobId") && target.includes("normalizedEmail")) || (target.includes("jobId") && target.includes("normalizedPhone"))
+    (target.includes("candidateId") && target.includes("jobId")) ||
+    (target.includes("jobId") && target.includes("normalizedEmail")) ||
+    (target.includes("jobId") && target.includes("normalizedPhone")) ||
+    (target.includes("jobId") && target.includes("normalizedLinkedinUrl"))
   );
 }
 
@@ -419,8 +446,10 @@ function isCandidateContactUniqueError(error: unknown) {
   return (
     target.includes("Candidate_normalizedEmail_unique_not_null") ||
     target.includes("Candidate_normalizedPhone_unique_not_null") ||
+    target.includes("Candidate_normalizedLinkedinUrl_unique_not_null") ||
     (target.includes("Candidate") && target.includes("normalizedEmail")) ||
-    (target.includes("Candidate") && target.includes("normalizedPhone"))
+    (target.includes("Candidate") && target.includes("normalizedPhone")) ||
+    (target.includes("Candidate") && target.includes("normalizedLinkedinUrl"))
   );
 }
 

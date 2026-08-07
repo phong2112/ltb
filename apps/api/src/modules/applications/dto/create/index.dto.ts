@@ -84,12 +84,16 @@ export class CreateApplicationDto {
   applicationArea!: string;
 
   @ApiPropertyOptional({ example: "https://www.linkedin.com/in/candidate" })
+  @TrimOptionalString()
   @IsString()
+  @MaxLength(500)
   @IsOptional()
   linkedinUrl?: string;
 
   @ApiPropertyOptional({ example: "https://candidate.dev" })
+  @TrimOptionalString()
   @IsString()
+  @MaxLength(500)
   @IsOptional()
   portfolioUrl?: string;
 

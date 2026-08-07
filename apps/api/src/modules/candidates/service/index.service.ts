@@ -482,12 +482,29 @@ function readCvSummary(metadata: Record<string, unknown> | undefined) {
     currentTitle: typeof summary.currentTitle === "string" ? summary.currentTitle : null,
     totalExperience: typeof summary.totalExperience === "string" ? summary.totalExperience : null,
     keySkills: readStringList(summary.keySkills),
+    workExperiences: readWorkExperiences(summary.workExperiences),
     workCompanies: readStringList(summary.workCompanies),
     workHighlights: readStringList(summary.workHighlights),
     education: readStringList(summary.education),
     languages: readStringList(summary.languages),
     notesForTa: readStringList(summary.notesForTa),
   };
+}
+
+function readWorkExperiences(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map(item => {
+      const record = asPlainRecord(item);
+      const company = typeof record?.company === "string" ? record.company.trim() : "";
+      if (!company) return null;
+      return {
+        company,
+        title: typeof record?.title === "string" && record.title.trim() ? record.title.trim() : null,
+        duration: typeof record?.duration === "string" && record.duration.trim() ? record.duration.trim() : null,
+      };
+    })
+    .filter((item): item is { company: string; title: string | null; duration: string | null } => Boolean(item));
 }
 
 function readStringList(value: unknown) {

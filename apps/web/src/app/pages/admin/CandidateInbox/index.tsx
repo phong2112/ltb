@@ -98,7 +98,7 @@ export default function CandidateInbox() {
       email: candidate.email,
       title: latestApplication.jobTitle,
       date: latestApplication.appliedAt,
-      sortTimestamp: timestamp(latestApplication.appliedAt),
+      sortTimestamp: timestamp(latestApplication.appliedAtIso),
       status: latestApplication.status,
       applicationsCount: candidate.applications.length,
       hasNew: candidate.applications.some(application => application.status === "new"),

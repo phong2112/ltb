@@ -15,7 +15,7 @@ export default function AdminDashboard() {
   const followUps = candidates.filter(c => c.followUpDate && c.status !== "rejected" && c.status !== "offer" && c.status !== "offer_closed").length;
   const completedMatches = candidates.filter(candidate => candidate.aiStatus === "completed");
   const topMatch = [...completedMatches].sort((a, b) => b.aiScore - a.aiScore).slice(0, 3);
-  const recentCandidates = [...candidates].sort((a, b) => b.appliedAt.localeCompare(a.appliedAt)).slice(0, 5);
+  const recentCandidates = [...candidates].sort((a, b) => b.appliedAtIso.localeCompare(a.appliedAtIso)).slice(0, 5);
   const averageScore = completedMatches.length ? Math.round(completedMatches.reduce((sum, candidate) => sum + candidate.aiScore, 0) / completedMatches.length) : 0;
   const activePipeline = candidates.filter(candidate => candidate.status !== "rejected" && candidate.status !== "offer" && candidate.status !== "offer_closed").length;
   const talentPoolCandidates = candidateProfiles.filter(candidate => candidate.applications.some(application => application.status === "talent_pool")).length;

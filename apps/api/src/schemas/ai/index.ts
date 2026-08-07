@@ -47,6 +47,11 @@ export const cvSummarySchema = z.object({
   currentTitle: z.string().nullable(),
   totalExperience: z.string().nullable(),
   keySkills: z.array(z.string()).max(12),
+  workExperiences: z.array(z.object({
+    company: z.string().min(1).max(120),
+    title: z.string().min(1).max(120).nullable(),
+    duration: z.string().min(1).max(120).nullable(),
+  })).max(8).optional().default([]),
   workCompanies: z.array(z.string()).max(8),
   workHighlights: z.array(z.string()).max(6),
   education: z.array(z.string()).max(4),

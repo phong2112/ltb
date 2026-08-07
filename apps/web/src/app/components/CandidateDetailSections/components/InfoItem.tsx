@@ -16,7 +16,7 @@ export function InfoItem({ icon, label, value, copied = false, copyLabel, copyVa
   const resolvedCopyLabel = copyLabel || "Copy";
 
   return (
-    <div className={`grid min-w-0 items-center gap-3 rounded-xl border border-border/80 bg-background/55 px-3.5 py-3 ${canCopy ? "grid-cols-[2.25rem_minmax(0,1fr)_auto]" : "grid-cols-[2.25rem_minmax(0,1fr)]"}`}>
+    <div className="grid min-h-[92px] min-w-0 grid-cols-[2.25rem_minmax(0,1fr)_2rem] items-center gap-3 rounded-xl border border-border/80 bg-background/55 px-3.5 py-3">
       <div className="flex size-9 items-center justify-center rounded-lg bg-white text-primary ring-1 ring-border/80">
         {icon}
       </div>
@@ -28,7 +28,7 @@ export function InfoItem({ icon, label, value, copied = false, copyLabel, copyVa
           {value}
         </dd>
       </div>
-      {canCopy && (
+      {canCopy ? (
         <button
           type="button"
           onClick={onCopy}
@@ -38,6 +38,8 @@ export function InfoItem({ icon, label, value, copied = false, copyLabel, copyVa
         >
           {copied ? <Check size={15} /> : <Copy size={15} />}
         </button>
+      ) : (
+        <span aria-hidden="true" className="size-8" />
       )}
     </div>
   );

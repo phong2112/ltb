@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { ApplicationStatus, CvParseStatus, FileKind, Prisma } from "@prisma/client";
 import { ConfigService } from "@nestjs/config";
-import { lockCandidateContacts, normalizeEmail, normalizePhone } from "../../candidates/contact";
+import { lockCandidateContacts, normalizeEmail, normalizeLinkedinUrl, normalizePhone } from "../../candidates/contact";
 import { JobsService } from "../../jobs/service/index.service";
 import { PrismaService } from "../../prisma";
 import { prepareCvTextForAi } from "../cv/cleaner";
@@ -176,9 +176,11 @@ export class TalentPoolProcessingService {
     const phone = typeof data.phone === "string" ? data.phone : entry.candidate.phone ?? undefined;
     const normalizedEmail = email ? normalizeEmail(email) : undefined;
     const normalizedPhone = normalizePhone(phone);
+    const linkedinUrl = typeof data.linkedinUrl === "string" ? data.linkedinUrl : entry.candidate.linkedinUrl ?? undefined;
+    const normalizedLinkedinUrl = normalizeLinkedinUrl(linkedinUrl);
 
-    if (!normalizedEmail && !normalizedPhone) {
-      throw new BadRequestException("Cần email hoặc số điện thoại của ứng viên trước khi gán vào vị trí. Hãy bổ sung ở hồ sơ.");
+    if (!normalizedEmail && !normalizedPhone && !normalizedLinkedinUrl) {
+      throw new BadRequestException("Cần email, số điện thoại hoặc LinkedIn của ứng viên trước khi gán vào vị trí. Hãy bổ sung ở hồ sơ.");
     }
 
     const fullFile = await this.prisma.candidateFile.findUniqueOrThrow({ where: { id: entry.file.id } });
@@ -192,8 +194,10 @@ export class TalentPoolProcessingService {
             submittedFullName: entry.candidate.fullName,
             submittedEmail: email,
             submittedPhone: phone,
+            submittedLinkedinUrl: linkedinUrl,
             normalizedEmail,
             normalizedPhone,
+            normalizedLinkedinUrl,
             status: ApplicationStatus.VIEWED,
             consentAccepted: false,
             answers: { source: "talent_pool", talentPoolEntryId: entry.id },
@@ -278,6 +282,7 @@ export class TalentPoolProcessingService {
         phone: string | null;
         normalizedPhone: string | null;
         linkedinUrl: string | null;
+        normalizedLinkedinUrl: string | null;
         portfolioUrl: string | null;
       };
       email?: string;
@@ -289,11 +294,13 @@ export class TalentPoolProcessingService {
   ) {
     const normalizedEmail = input.email ? normalizeEmail(input.email) : undefined;
     const normalizedPhone = normalizePhone(input.phone);
-    await lockCandidateContacts(tx, normalizedEmail, normalizedPhone);
+    const normalizedLinkedinUrl = normalizeLinkedinUrl(input.linkedinUrl);
+    await lockCandidateContacts(tx, normalizedEmail, normalizedPhone, normalizedLinkedinUrl);
 
     const filters: Prisma.CandidateWhereInput[] = [];
     if (normalizedEmail) filters.push({ normalizedEmail });
     if (normalizedPhone) filters.push({ normalizedPhone });
+    if (normalizedLinkedinUrl) filters.push({ normalizedLinkedinUrl });
     const matches = filters.length
       ? await tx.candidate.findMany({
           where: { id: { not: input.currentCandidate.id }, OR: filters },
@@ -303,7 +310,7 @@ export class TalentPoolProcessingService {
       : [];
 
     if (matches.length > 1 && matches[0].id !== matches[1].id) {
-      throw new BadRequestException("Email và số điện thoại đang khớp với hai hồ sơ ứng viên khác nhau.");
+      throw new BadRequestException("Email, số điện thoại hoặc LinkedIn đang khớp với hai hồ sơ ứng viên khác nhau.");
     }
 
     const target = matches[0] ?? input.currentCandidate;
@@ -312,7 +319,7 @@ export class TalentPoolProcessingService {
       data: {
         ...(!target.email && input.email ? { email: input.email, normalizedEmail } : {}),
         ...(!target.phone && input.phone ? { phone: input.phone, normalizedPhone } : {}),
-        ...(!target.linkedinUrl && input.linkedinUrl ? { linkedinUrl: input.linkedinUrl } : {}),
+        ...(!target.linkedinUrl && input.linkedinUrl ? { linkedinUrl: input.linkedinUrl, normalizedLinkedinUrl } : {}),
         ...(!target.portfolioUrl && input.portfolioUrl ? { portfolioUrl: input.portfolioUrl } : {}),
         ...(target.id === input.currentCandidate.id && input.fullName ? { fullName: input.fullName } : {}),
       },
@@ -327,6 +334,7 @@ function sanitizeCvSummary(summary: CvSummary): Prisma.InputJsonObject {
     currentTitle: sanitizeNullableSummaryText(summary.currentTitle),
     totalExperience: sanitizeNullableSummaryText(summary.totalExperience),
     keySkills: sanitizeSummaryList(summary.keySkills, 12),
+    workExperiences: sanitizeWorkExperiences(summary.workExperiences ?? [], 8),
     workCompanies: sanitizeSummaryList(summary.workCompanies, 8),
     workHighlights: sanitizeSummaryList(summary.workHighlights, 6),
     education: sanitizeSummaryList(summary.education, 4),
@@ -339,6 +347,17 @@ function sanitizeSummaryList(values: string[], maxItems: number) {
   return values
     .map(sanitizeSummaryText)
     .filter(Boolean)
+    .slice(0, maxItems);
+}
+
+function sanitizeWorkExperiences(values: NonNullable<CvSummary["workExperiences"]>, maxItems: number) {
+  return values
+    .map(item => ({
+      company: sanitizeSummaryText(item.company),
+      title: sanitizeNullableSummaryText(item.title),
+      duration: sanitizeNullableSummaryText(item.duration),
+    }))
+    .filter(item => item.company)
     .slice(0, maxItems);
 }
 

@@ -39,6 +39,7 @@ export type Candidate = {
   name: string;
   email: string;
   phone: string;
+  linkedinUrl: string;
   applicationArea: string;
   cvUrl: string;
   cvFile?: {
@@ -53,6 +54,7 @@ export type Candidate = {
   jobTitle: string;
   status: CandidateStatus;
   appliedAt: string;
+  appliedAtIso: string;
   followUpDate: string;
   aiScore: number;
   aiStatus: AiAnalysisStatus;
@@ -78,6 +80,7 @@ export type CandidateProfile = {
   name: string;
   email: string;
   phone: string;
+  linkedinUrl: string;
   applications: Candidate[];
 };
 

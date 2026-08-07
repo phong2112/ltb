@@ -183,19 +183,21 @@ model Candidate {
   normalizedEmail   String?           @unique(map: "Candidate_normalizedEmail_unique_not_null", where: raw("(\"normalizedEmail\" IS NOT NULL)"))
   phone             String?
   normalizedPhone   String?           @unique(map: "Candidate_normalizedPhone_unique_not_null", where: raw("(\"normalizedPhone\" IS NOT NULL)"))
-  linkedinUrl       String?
-  portfolioUrl      String?
-  source            String            @default("career_site")
-  applications      Application[]
-  talentPoolEntries TalentPoolEntry[]
-  activities        ActivityLog[]
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  linkedinUrl           String?
+  normalizedLinkedinUrl String?           @unique(map: "Candidate_normalizedLinkedinUrl_unique_not_null", where: raw("(\"normalizedLinkedinUrl\" IS NOT NULL)"))
+  portfolioUrl          String?
+  source                String            @default("career_site")
+  applications          Application[]
+  talentPoolEntries     TalentPoolEntry[]
+  activities            ActivityLog[]
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
 
   @@index([email])
   @@index([normalizedEmail])
   @@index([phone])
   @@index([normalizedPhone])
+  @@index([normalizedLinkedinUrl])
   @@index([createdAt])
 }
 
@@ -212,6 +214,7 @@ model Application {
   /// Prisma Client does not model check constraints, so keep the SQL migration in sync.
   normalizedEmail       String?
   normalizedPhone       String?
+  normalizedLinkedinUrl String?
   status                ApplicationStatus  @default(NEW)
   salaryExpectation     String?
   noticePeriod          String?
@@ -234,6 +237,7 @@ model Application {
   @@unique([candidateId, jobId])
   @@unique([jobId, normalizedEmail])
   @@unique([jobId, normalizedPhone])
+  @@unique([jobId, normalizedLinkedinUrl])
   @@index([candidateId])
   @@index([jobId])
   @@index([status])

@@ -12,6 +12,7 @@ function createService(options: { aiEnabled?: boolean; existingCandidate?: Recor
       phone: null,
       normalizedPhone: null,
       linkedinUrl: null,
+      normalizedLinkedinUrl: null,
       portfolioUrl: null,
     },
     file: { id: "file-1", originalName: "candidate.pdf", mimeType: "application/pdf", path: "cv/file.pdf" },
@@ -167,6 +168,7 @@ describe("TalentPoolProcessingService", () => {
       phone: null,
       normalizedPhone: null,
       linkedinUrl: null,
+      normalizedLinkedinUrl: null,
       portfolioUrl: null,
     };
     const { service, tx } = createService({ existingCandidate });

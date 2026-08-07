@@ -365,6 +365,7 @@ function normalizeCvSummaryCandidate(value: unknown) {
     currentTitle: nullableString(record.currentTitle ?? record.title),
     totalExperience: nullableString(record.totalExperience ?? record.yearsExperience),
     keySkills: stringArray(record.keySkills ?? record.skills),
+    workExperiences: workExperienceArray(record.workExperiences ?? record.experiences ?? record.workHistory),
     workCompanies: stringArray(record.workCompanies ?? record.companies ?? record.employers),
     workHighlights: stringArray(record.workHighlights ?? record.highlights ?? record.experienceHighlights),
     education: stringArray(record.education),
@@ -382,6 +383,23 @@ function nullableString(value: unknown) {
 function stringArray(value: unknown) {
   if (Array.isArray(value)) return value.filter((item): item is string => typeof item === "string");
   return typeof value === "string" ? [value] : [];
+}
+
+function workExperienceArray(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map(item => {
+      const record = toRecord(item);
+      if (!record) return null;
+      const company = nullableString(record.company ?? record.employer ?? record.organization)?.trim();
+      if (!company) return null;
+      return {
+        company,
+        title: nullableString(record.title ?? record.position ?? record.role),
+        duration: nullableString(record.duration ?? record.period ?? record.dateRange ?? record.time),
+      };
+    })
+    .filter((item): item is { company: string; title: string | null; duration: string | null } => Boolean(item));
 }
 
 function unwrapKnownPayload(value: unknown, keys: string[]) {

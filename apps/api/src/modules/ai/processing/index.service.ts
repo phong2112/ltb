@@ -373,6 +373,7 @@ function sanitizeCvSummary(summary: CvSummary): Prisma.InputJsonObject {
     currentTitle: sanitizeNullableSummaryText(summary.currentTitle),
     totalExperience: sanitizeNullableSummaryText(summary.totalExperience),
     keySkills: sanitizeSummaryList(summary.keySkills, 12),
+    workExperiences: sanitizeWorkExperiences(summary.workExperiences ?? [], 8),
     workCompanies: sanitizeSummaryList(summary.workCompanies, 8),
     workHighlights: sanitizeSummaryList(summary.workHighlights, 6),
     education: sanitizeSummaryList(summary.education, 4),
@@ -385,6 +386,17 @@ function sanitizeSummaryList(values: string[], maxItems: number) {
   return values
     .map(sanitizeSummaryText)
     .filter(Boolean)
+    .slice(0, maxItems);
+}
+
+function sanitizeWorkExperiences(values: NonNullable<CvSummary["workExperiences"]>, maxItems: number) {
+  return values
+    .map(item => ({
+      company: sanitizeSummaryText(item.company),
+      title: sanitizeNullableSummaryText(item.title),
+      duration: sanitizeNullableSummaryText(item.duration),
+    }))
+    .filter(item => item.company)
     .slice(0, maxItems);
 }
 

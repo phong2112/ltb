@@ -68,6 +68,7 @@ function mapCandidate(application: ApiApplication): Candidate | null {
     name: application.submittedFullName,
     email: application.submittedEmail ?? "",
     phone: application.submittedPhone ?? "",
+    linkedinUrl: application.submittedLinkedinUrl ?? application.candidate?.linkedinUrl ?? "",
     applicationArea: typeof answers?.applicationArea === "string" ? answers.applicationArea : "",
     cvUrl: uploadedCvUrl ?? (cvPath && /^https?:\/\//.test(cvPath) ? cvPath : (application.submittedPortfolioUrl ?? "#")),
     cvFile: cvFile
@@ -84,6 +85,7 @@ function mapCandidate(application: ApiApplication): Candidate | null {
     jobTitle: job.title,
     status: mapApplicationStatus(application.status),
     appliedAt: formatDate(application.createdAt),
+    appliedAtIso: application.createdAt ?? "",
     followUpDate: formatDate(application.followUpTask?.dueAt),
     aiScore: application.matchResult?.score ?? 0,
     aiStatus,
@@ -192,6 +194,7 @@ export function mapCandidateProfile(candidate: ApiCandidateProfile): CandidatePr
     name: candidate.fullName,
     email: candidate.email ?? applications[0]?.email ?? "",
     phone: candidate.phone ?? applications[0]?.phone ?? "",
+    linkedinUrl: candidate.linkedinUrl ?? applications[0]?.linkedinUrl ?? "",
     applications,
   };
 }
@@ -233,12 +236,29 @@ function parseCvSummary(value: unknown): Candidate["cvSummary"] {
     currentTitle: typeof record.currentTitle === "string" && record.currentTitle.trim() ? record.currentTitle.trim() : null,
     totalExperience: typeof record.totalExperience === "string" && record.totalExperience.trim() ? record.totalExperience.trim() : null,
     keySkills: toStringArray(record.keySkills),
+    workExperiences: toWorkExperiences(record.workExperiences),
     workCompanies: toStringArray(record.workCompanies ?? record.companies ?? record.employers),
     workHighlights: toStringArray(record.workHighlights),
     education: toStringArray(record.education),
     languages: toStringArray(record.languages),
     notesForTa: toStringArray(record.notesForTa),
   };
+}
+
+function toWorkExperiences(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map(item => {
+      const record = asRecord(item);
+      const company = typeof record?.company === "string" ? record.company.trim() : "";
+      if (!company) return null;
+      return {
+        company,
+        title: typeof record?.title === "string" && record.title.trim() ? record.title.trim() : null,
+        duration: typeof record?.duration === "string" && record.duration.trim() ? record.duration.trim() : null,
+      };
+    })
+    .filter((item): item is { company: string; title: string | null; duration: string | null } => Boolean(item));
 }
 
 function asRecord(value: unknown) {

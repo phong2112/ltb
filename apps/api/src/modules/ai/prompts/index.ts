@@ -170,6 +170,7 @@ JSON bắt buộc:
   "currentTitle": string | null,
   "totalExperience": string | null,
   "keySkills": string[],
+  "workExperiences": [{"company": string, "title": string | null, "duration": string | null}],
   "workCompanies": string[],
   "workHighlights": string[],
   "education": string[],
@@ -180,6 +181,7 @@ JSON bắt buộc:
 Giới hạn:
 - overview: 1-2 câu, tối đa 350 ký tự.
 - keySkills: tối đa 12 mục.
+- workExperiences: tối đa 8 mục công việc; mỗi mục chỉ dùng thông tin rõ trong CV. company là tên công ty/tổ chức; title là vị trí/chức danh; duration là khoảng thời gian công tác như "01/2022 - 06/2024" hoặc "2021 - 2023". Nếu thiếu title/duration thì để null.
 - workCompanies: tối đa 8 tên công ty/tổ chức đã làm việc; chỉ ghi tên rõ trong CV, không ghi dự án/công nghệ.
 - workHighlights: tối đa 6 mục, tập trung vai trò/công ty/dự án/trách nhiệm/kết quả nổi bật.
 - education: tối đa 4 mục.

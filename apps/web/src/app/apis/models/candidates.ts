@@ -23,6 +23,7 @@ export type ApiApplication = {
   submittedFullName: string;
   submittedEmail?: string | null;
   submittedPhone?: string | null;
+  submittedLinkedinUrl?: string | null;
   submittedPortfolioUrl?: string | null;
   coverNote?: string | null;
   hrNotes?: string | null;
@@ -59,6 +60,7 @@ export type ApiApplication = {
     fullName: string;
     email?: string | null;
     phone?: string | null;
+    linkedinUrl?: string | null;
     portfolioUrl?: string | null;
   };
 };
@@ -80,6 +82,6 @@ export type ApiCandidateProfile = {
   fullName: string;
   email?: string | null;
   phone?: string | null;
+  linkedinUrl?: string | null;
   applications?: ApiApplication[];
 };
-

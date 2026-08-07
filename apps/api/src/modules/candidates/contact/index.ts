@@ -21,14 +21,43 @@ export function normalizePhone(value?: string) {
 }
 
 /**
+ * Normalize LinkedIn profile URLs so the same candidate is not duplicated by
+ * protocol, www/mobile host, query params, or trailing slash differences.
+ */
+export function normalizeLinkedinUrl(value?: string) {
+  const raw = value?.trim();
+  if (!raw) return undefined;
+
+  let url: URL;
+  try {
+    url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+  } catch {
+    return undefined;
+  }
+
+  const host = url.hostname.toLowerCase().replace(/^m\./, "www.");
+  if (host !== "linkedin.com" && host !== "www.linkedin.com") {
+    return undefined;
+  }
+
+  const path = url.pathname.replace(/\/+$/, "").toLowerCase();
+  if (!/^\/(in|pub)\/[^/]+/.test(path)) {
+    return undefined;
+  }
+
+  return `https://www.linkedin.com${path}`;
+}
+
+/**
  * Take per-contact transaction advisory locks so concurrent submissions for the
- * same email/phone serialize and cannot create duplicate candidates.
+ * same email/phone/LinkedIn URL serialize and cannot create duplicate candidates.
  * Keys are sorted to avoid deadlocks when both email and phone are locked.
  */
 export async function lockCandidateContacts(
   tx: Prisma.TransactionClient,
   normalizedEmail?: string,
   normalizedPhone?: string,
+  normalizedLinkedinUrl?: string,
 ) {
   const lockKeys: string[] = [];
 
@@ -38,6 +67,10 @@ export async function lockCandidateContacts(
 
   if (normalizedPhone) {
     lockKeys.push(`candidate-phone:${normalizedPhone}`);
+  }
+
+  if (normalizedLinkedinUrl) {
+    lockKeys.push(`candidate-linkedin:${normalizedLinkedinUrl}`);
   }
 
   for (const lockKey of lockKeys.sort()) {

@@ -13,6 +13,7 @@ import {
   GraduationCap,
   History,
   Languages,
+  Linkedin,
   Mail,
   MapPin,
   MessageSquare,
@@ -52,6 +53,7 @@ import {
   CANDIDATE_WORKFLOW_STATUSES,
   type CandidateStatus,
 } from "@/app/utils/configs/status-config";
+import { formatWorkExperience, getWorkExperienceItems, type WorkExperienceDisplayItem } from "@/app/utils/cv-summary";
 import { safeAdminReturnTo } from "@/app/utils/navigation";
 
 export default function CandidateDetail() {
@@ -200,8 +202,10 @@ export default function CandidateDetail() {
           : { text: "text-red-700", soft: "bg-red-50", border: "border-red-200", bar: "bg-red-500" };
   const primaryEmail = candidate.email || application.email || "—";
   const primaryPhone = candidate.phone || application.phone || "—";
+  const primaryLinkedinUrl = candidate.linkedinUrl || application.linkedinUrl || "—";
   const emailCopyValue = primaryEmail === "—" ? undefined : primaryEmail;
   const phoneCopyValue = primaryPhone === "—" ? undefined : primaryPhone;
+  const linkedinCopyValue = primaryLinkedinUrl === "—" ? undefined : primaryLinkedinUrl;
   const scoreValue = Math.max(0, Math.min(application.aiScore, 100));
   const scoreLabel = application.aiStatus === "completed"
     ? `${application.aiScore}/100`
@@ -297,7 +301,7 @@ export default function CandidateDetail() {
                   </span>
                 </div>
               </div>
-              <dl className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-2">
+              <dl className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 <InfoItem
                   icon={<Mail size={14} />}
                   label={t("common.email")}
@@ -315,6 +319,15 @@ export default function CandidateDetail() {
                   copyLabel={copiedContactKey === "phone" ? t("common.copied") : t("common.copy")}
                   copyValue={phoneCopyValue}
                   onCopy={phoneCopyValue ? () => void copyContactValue("phone", phoneCopyValue) : undefined}
+                />
+                <InfoItem
+                  icon={<Linkedin size={14} />}
+                  label="LinkedIn"
+                  value={primaryLinkedinUrl}
+                  copied={copiedContactKey === "linkedin"}
+                  copyLabel={copiedContactKey === "linkedin" ? t("common.copied") : t("common.copy")}
+                  copyValue={linkedinCopyValue}
+                  onCopy={linkedinCopyValue ? () => void copyContactValue("linkedin", linkedinCopyValue) : undefined}
                 />
                 <InfoItem icon={<MapPin size={14} />} label={t("admin.applicationArea")} value={application.applicationArea || "—"} />
                 <InfoItem icon={<Briefcase size={14} />} label={t("admin.appliedRole")} value={application.jobTitle} />
@@ -466,7 +479,7 @@ export default function CandidateDetail() {
 
 function CvSummarySection({ application }: { application: ReturnType<typeof useData>["candidates"][number] }) {
   const summary = application.cvSummary;
-  const workCompanies = summary ? getWorkCompanies(summary) : [];
+  const workExperiences = summary ? getWorkExperienceItems(summary) : [];
 
   return (
     <section className="rounded-2xl border border-border/80 bg-white p-5 shadow-[0_10px_30px_rgba(120,70,86,0.04)]">
@@ -493,7 +506,7 @@ function CvSummarySection({ application }: { application: ReturnType<typeof useD
             <div className="grid gap-4">
               <CvSummaryList icon={<GraduationCap size={14} />} title="Học vấn" items={summary.education} />
               <CvSummaryList icon={<Languages size={14} />} title="Ngôn ngữ" items={summary.languages} inline />
-              <CvSummaryList icon={<Building2 size={14} />} title="Các công ty đã làm việc" items={workCompanies} inline />
+              <CvWorkExperienceList icon={<Building2 size={14} />} title="Các công ty đã làm việc" items={workExperiences} />
             </div>
             <CvSummaryList icon={<Briefcase size={14} />} title="Kinh nghiệm nổi bật" items={summary.workHighlights} />
           </div>
@@ -503,23 +516,37 @@ function CvSummarySection({ application }: { application: ReturnType<typeof useD
   );
 }
 
-function getWorkCompanies(summary: NonNullable<ReturnType<typeof useData>["candidates"][number]["cvSummary"]>) {
-  const explicitCompanies = summary.workCompanies?.filter(Boolean) ?? [];
-  if (explicitCompanies.length > 0) return Array.from(new Set(explicitCompanies));
-
-  const companyPattern = /(?:\bat\b|\b@|\btại\b|\bở\b)\s+([^,.;|()]+(?:\s+(?:JSC|LLC|Ltd|Limited|Inc|Corp|Corporation|Company|Co\.?|Group|Bank|University|FPT|VNPT|Viettel|Synology|QNAP))?)/iu;
-  const companies = summary.workHighlights
-    .map(item => item.match(companyPattern)?.[1]?.trim())
-    .filter((company): company is string => Boolean(company));
-
-  return Array.from(new Set(companies));
-}
-
 function SummaryPill({ label }: { label: string }) {
   return (
     <span className="inline-flex max-w-full items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-bold text-primary">
       <span className="truncate">{label}</span>
     </span>
+  );
+}
+
+function CvWorkExperienceList({ icon, title, items }: {
+  icon: ReactNode;
+  title: string;
+  items: WorkExperienceDisplayItem[];
+}) {
+  return (
+    <div className="min-w-0 rounded-xl border border-border/80 bg-background/60 p-4">
+      <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+        <span className="text-primary">{icon}</span> {title}
+      </p>
+      {items.length > 0 ? (
+        <ul className="mt-3 space-y-2">
+          {items.map(item => (
+            <li key={`${item.company}:${item.title ?? ""}:${item.duration ?? ""}`} className="grid grid-cols-[8px_minmax(0,1fr)] gap-2 text-sm leading-6 text-foreground">
+              <span className="mt-2 size-1.5 rounded-full bg-primary" />
+              <span>{formatWorkExperience(item)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-3 text-sm font-semibold text-muted-foreground">—</p>
+      )}
+    </div>
   );
 }
 

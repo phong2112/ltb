@@ -3,7 +3,7 @@ import type { Candidate } from "@/app/data";
 export function getSortedJobCandidates(candidates: Candidate[], jobId: string) {
   return candidates
     .filter((candidate) => candidate.jobId === jobId)
-    .sort((left, right) => right.appliedAt.localeCompare(left.appliedAt));
+    .sort((left, right) => right.appliedAtIso.localeCompare(left.appliedAtIso));
 }
 
 export function filterApplicants(candidates: Candidate[], search: string) {
@@ -28,4 +28,3 @@ export function paginateApplicants(candidates: Candidate[], page: number, pageSi
     visibleCandidates: candidates.slice(pageStart, pageStart + pageSize),
   };
 }
-

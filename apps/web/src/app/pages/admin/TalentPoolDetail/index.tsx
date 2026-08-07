@@ -42,6 +42,7 @@ import {
 } from "@/app/apis/requests";
 import type { TalentPoolEntry } from "@/app/apis/models";
 import { TalentPoolStatusBadge } from "@/app/components/TalentPoolStatusBadge";
+import { formatWorkExperience, getWorkExperienceItems, type WorkExperienceDisplayItem } from "@/app/utils/cv-summary";
 import { safeAdminReturnTo } from "@/app/utils/navigation";
 
 type ProfileForm = {
@@ -259,7 +260,7 @@ function DeleteDialog({ name, isDeleting, onConfirm, t }: { name: string; isDele
 
 function ExternalProfileLink({ href, label }: { href: string; label: string }) { return <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-bold text-primary hover:bg-pink-50">{label}<ExternalLink size={12} /></a>; }
 function TalentPoolCvSummarySection({ summary }: { summary: CvSummary }) {
-  const workCompanies = getWorkCompanies(summary);
+  const workExperiences = getWorkExperienceItems(summary);
 
   return (
     <section className="rounded-xl border border-border bg-white p-4 sm:p-5">
@@ -274,12 +275,29 @@ function TalentPoolCvSummarySection({ summary }: { summary: CvSummary }) {
           <div className="grid gap-4">
             <CvSummaryList icon={<GraduationCap size={14} />} title="Học vấn" items={summary.education} />
             <CvSummaryList icon={<Languages size={14} />} title="Ngôn ngữ" items={summary.languages} inline />
-            <CvSummaryList icon={<Building2 size={14} />} title="Các công ty đã làm việc" items={workCompanies} inline />
+            <CvWorkExperienceList icon={<Building2 size={14} />} title="Các công ty đã làm việc" items={workExperiences} />
           </div>
           <CvSummaryList icon={<Briefcase size={14} />} title="Kinh nghiệm nổi bật" items={summary.workHighlights} />
         </div>
       </div>
     </section>
+  );
+}
+function CvWorkExperienceList({ icon, title, items }: { icon: React.ReactNode; title: string; items: WorkExperienceDisplayItem[] }) {
+  return (
+    <div className="min-w-0 rounded-xl border border-border/80 bg-background/60 p-4">
+      <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground"><span className="text-primary">{icon}</span> {title}</p>
+      {items.length > 0 ? (
+        <ul className="mt-3 space-y-2">
+          {items.map(item => (
+            <li key={`${item.company}:${item.title ?? ""}:${item.duration ?? ""}`} className="grid grid-cols-[8px_minmax(0,1fr)] gap-2 text-sm leading-6 text-foreground">
+              <span className="mt-2 size-1.5 rounded-full bg-primary" />
+              <span>{formatWorkExperience(item)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : <p className="mt-3 text-sm font-semibold text-muted-foreground">—</p>}
+    </div>
   );
 }
 function CvSummaryList({ icon, title, items, inline = false }: { icon: React.ReactNode; title: string; items: string[]; inline?: boolean }) {
@@ -327,6 +345,7 @@ function readCvSummary(value: unknown): CvSummary | null {
     currentTitle: text(record.currentTitle) || null,
     totalExperience: text(record.totalExperience) || null,
     keySkills: stringList(record.keySkills),
+    workExperiences: workExperienceList(record.workExperiences),
     workCompanies: stringList(record.workCompanies),
     workHighlights: stringList(record.workHighlights),
     education: stringList(record.education),
@@ -334,16 +353,20 @@ function readCvSummary(value: unknown): CvSummary | null {
     notesForTa: stringList(record.notesForTa),
   };
 }
-function getWorkCompanies(summary: CvSummary) {
-  const explicitCompanies = summary.workCompanies?.filter(Boolean) ?? [];
-  if (explicitCompanies.length > 0) return Array.from(new Set(explicitCompanies));
-
-  const companyPattern = /(?:\bat\b|\b@|\btại\b|\bở\b)\s+([^,.;|()]+(?:\s+(?:JSC|LLC|Ltd|Limited|Inc|Corp|Corporation|Company|Co\.?|Group|Bank|University|FPT|VNPT|Viettel|Synology|QNAP))?)/iu;
-  const companies = summary.workHighlights
-    .map(item => item.match(companyPattern)?.[1]?.trim())
-    .filter((company): company is string => Boolean(company));
-
-  return Array.from(new Set(companies));
+function workExperienceList(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map(item => {
+      const record = item && typeof item === "object" && !Array.isArray(item) ? item as Record<string, unknown> : null;
+      const company = text(record?.company).trim();
+      if (!company) return null;
+      return {
+        company,
+        title: text(record?.title).trim() || null,
+        duration: text(record?.duration).trim() || null,
+      };
+    })
+    .filter((item): item is { company: string; title: string | null; duration: string | null } => Boolean(item));
 }
 function linkField(value: unknown) { return typeof value === "string" && /^https?:\/\//i.test(value) ? value : ""; }
 function resolvedFullName(entry: TalentPoolEntry) {

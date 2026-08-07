@@ -25,7 +25,7 @@ The MVP is not an enterprise ATS. Avoid enterprise-only complexity unless it dir
 A sourcing campaign starts from a published or draft job and produces a structured workflow:
 
 1. Generate a sourcing brief from the JD.
-2. Generate Boolean and X-Ray search queries for TA use.
+2. Generate multi-platform search queries with LinkedIn as the highest-priority discovery path.
 3. Let the TA import candidate links, public profile data, CSV rows, or CV files.
 4. Parse CVs and profile text where provided by the TA or obtained from compliant public sources.
 5. Match each candidate against the JD using grounded evidence.
@@ -45,6 +45,21 @@ The product may support public web discovery when it is implemented with explici
 - Avoid bypassing login, paywalls, CAPTCHAs, technical protections, or access controls.
 - Configure each source adapter explicitly so the TA can enable, disable, throttle, and audit it.
 - Prefer TA-provided links/files and official integrations for restricted or authenticated platforms.
+
+## Source Priority
+
+LinkedIn is the primary sourcing channel. The product may also support GitHub, public portfolio search, ITviec, VietnamWorks, Facebook, GitLab, Stack Overflow, referrals, and manual sources when each source is explicit, reviewable, and auditable. For restricted or authenticated platforms, the product should prefer assisted search, TA-provided links, or official integrations unless a compliant adapter is approved.
+
+Default source order:
+
+1. LinkedIn.
+2. Existing Talent Pool and previous applications.
+3. GitHub and public portfolios.
+4. Public web search.
+5. ITviec and VietnamWorks.
+6. Facebook public search.
+7. GitLab and Stack Overflow.
+8. CSV, referrals, and other manual sources.
 
 This project should not implement unrestricted internet scraping. Public discovery must be narrow, auditable, and configurable per source.
 
@@ -83,8 +98,8 @@ Campaigns should measure:
 
 1. Add campaign data models for sourcing campaigns, sourced profiles, candidate-source links, and campaign funnel status.
 2. Add admin UI for `/admin/sourcing`.
-3. Generate sourcing briefs and Boolean search queries from JD data.
-4. Add manual candidate import and CSV import into Talent Pool.
+3. Generate multi-platform sourcing briefs and search queries from JD data with LinkedIn priority.
+4. Add deduplicated profile URL import by source, then manual candidate and CSV import into Talent Pool.
 5. Connect Talent Pool entries to one or more target jobs for matching.
 6. Add outreach draft generation and copy-to-send actions.
 7. Add compliant public web discovery adapters only after the campaign workflow and audit model are in place.
