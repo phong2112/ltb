@@ -11,12 +11,13 @@ export type FormState = {
   name: string;
   email: string;
   phone: string;
+  linkedinUrl: string;
   applicationArea: string;
   note: string;
   agreed: boolean;
 };
 
-export type TextFieldName = "name" | "email" | "phone" | "applicationArea" | "note";
+export type TextFieldName = "name" | "email" | "phone" | "linkedinUrl" | "applicationArea" | "note";
 export type ScreeningQuestion = Job["questions"][number];
 export type FormErrors = Record<string, string>;
 export type Translate = ReturnType<typeof useLanguage>["t"];

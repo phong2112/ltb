@@ -41,6 +41,10 @@ export function submitApplication(candidate: NewCandidate) {
   form.set("applicationArea", candidate.applicationArea);
   form.set("consentAccepted", "true");
 
+  if (candidate.linkedinUrl?.trim()) {
+    form.set("linkedinUrl", candidate.linkedinUrl.trim());
+  }
+
   if (candidate.note.trim()) {
     form.set("screeningAnswers", candidate.note.trim());
   }

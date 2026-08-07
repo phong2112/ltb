@@ -86,6 +86,26 @@ export function PersonalFields({
           </div>
         </Field>
 
+        <Field label={t("apply.linkedinLabel")} id={fieldId("linkedin-url")} error={errors.linkedinUrl}>
+          <div className="relative">
+            <input
+              id={fieldId("linkedin-url")}
+              type="url"
+              value={form.linkedinUrl}
+              onChange={(event) => updateTextField("linkedinUrl", event.target.value)}
+              placeholder={t("apply.linkedinPlaceholder")}
+              autoComplete="url"
+              inputMode="url"
+              aria-invalid={Boolean(errors.linkedinUrl)}
+              aria-describedby={errors.linkedinUrl ? `${fieldId("linkedin-url")}-error` : undefined}
+              className={`${fieldControlClassName} ${isLoadingField(loadingFields, "linkedinUrl") ? "pr-9" : ""} ${errors.linkedinUrl ? "border-red-300 focus:border-red-500" : "border-border/80"}`}
+            />
+            <FieldLoadingIndicator active={isLoadingField(loadingFields, "linkedinUrl")} />
+          </div>
+        </Field>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t("apply.areaLabel")} id={fieldId("application-area")} error={errors.applicationArea}>
           <Select
             value={form.applicationArea}

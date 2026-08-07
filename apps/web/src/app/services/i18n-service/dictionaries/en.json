@@ -402,6 +402,8 @@
     "apply.emailInvalid": "Invalid email",
     "apply.emailLabel": "Email *",
     "apply.formTitle": "Application information",
+    "apply.linkedinLabel": "LinkedIn",
+    "apply.linkedinPlaceholder": "https://www.linkedin.com/in/your-name",
     "apply.nameLabel": "Full name *",
     "apply.namePlaceholder": "Lan Nguyen",
     "apply.nameRequired": "Please enter your full name",

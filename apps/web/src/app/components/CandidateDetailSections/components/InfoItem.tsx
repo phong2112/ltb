@@ -5,18 +5,19 @@ type InfoItemProps = {
   icon: ReactNode;
   label: string;
   value: string;
+  className?: string;
   copied?: boolean;
   copyLabel?: string;
   copyValue?: string;
   onCopy?: () => void;
 };
 
-export function InfoItem({ icon, label, value, copied = false, copyLabel, copyValue, onCopy }: InfoItemProps) {
+export function InfoItem({ icon, label, value, className = "", copied = false, copyLabel, copyValue, onCopy }: InfoItemProps) {
   const canCopy = Boolean(copyValue && onCopy);
   const resolvedCopyLabel = copyLabel || "Copy";
 
   return (
-    <div className="grid min-h-[92px] min-w-0 grid-cols-[2.25rem_minmax(0,1fr)_2rem] items-center gap-3 rounded-xl border border-border/80 bg-background/55 px-3.5 py-3">
+    <div className={`grid min-h-[92px] min-w-0 grid-cols-[2.25rem_minmax(0,1fr)_2rem] items-center gap-3 rounded-xl border border-border/80 bg-background/55 px-3.5 py-3 ${className}`}>
       <div className="flex size-9 items-center justify-center rounded-lg bg-white text-primary ring-1 ring-border/80">
         {icon}
       </div>

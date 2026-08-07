@@ -29,6 +29,7 @@ export const initialForm: FormState = {
   name: "",
   email: "",
   phone: "",
+  linkedinUrl: "",
   applicationArea: "",
   note: "",
   agreed: false,

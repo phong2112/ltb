@@ -402,6 +402,8 @@
     "apply.emailInvalid": "Email không hợp lệ",
     "apply.emailLabel": "Email *",
     "apply.formTitle": "Điền thông tin ứng tuyển",
+    "apply.linkedinLabel": "LinkedIn",
+    "apply.linkedinPlaceholder": "https://www.linkedin.com/in/ten-cua-ban",
     "apply.nameLabel": "Họ và tên *",
     "apply.namePlaceholder": "Nguyễn Thị Lan",
     "apply.nameRequired": "Vui lòng nhập họ và tên",

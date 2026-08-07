@@ -291,7 +291,7 @@ export default function CandidateDetail() {
 
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(620px,1fr)_minmax(420px,500px)] 2xl:grid-cols-[minmax(720px,1fr)_560px]">
           <main className="min-w-0 space-y-5">
-            <section className="rounded-2xl border border-border/80 bg-white p-4 shadow-[0_10px_30px_rgba(120,70,86,0.04)] sm:p-5">
+            <section className="rounded-2xl border border-border/80 bg-white p-4 shadow-[0_10px_30px_rgba(120,70,86,0.04)] sm:p-6">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <SectionHeading icon={<UserRound size={16} />} title={t("admin.personalInfo")} />
                 <div className="flex flex-wrap items-center gap-2">
@@ -301,11 +301,12 @@ export default function CandidateDetail() {
                   </span>
                 </div>
               </div>
-              <dl className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <dl className="mt-5 grid gap-3 md:grid-cols-2">
                 <InfoItem
                   icon={<Mail size={14} />}
                   label={t("common.email")}
                   value={primaryEmail}
+                  className="md:col-span-2"
                   copied={copiedContactKey === "email"}
                   copyLabel={copiedContactKey === "email" ? t("common.copied") : t("admin.copyCandidateEmail")}
                   copyValue={emailCopyValue}

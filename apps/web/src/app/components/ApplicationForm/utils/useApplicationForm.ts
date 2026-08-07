@@ -123,6 +123,7 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
         name: form.name,
         email: form.email,
         phone: form.phone,
+        linkedinUrl: form.linkedinUrl,
         applicationArea: form.applicationArea,
         cvFile,
         note: form.note,
@@ -179,10 +180,11 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
       const result = await previewApplicationCv(file, job.locations);
       if (requestId !== cvPreviewRequestId.current) return;
 
-      const suggestions: Partial<Pick<FormState, "name" | "email" | "phone" | "applicationArea">> = {
+      const suggestions: Partial<Pick<FormState, "name" | "email" | "phone" | "linkedinUrl" | "applicationArea">> = {
         ...(result.profile.fullName ? { name: result.profile.fullName } : {}),
         ...(result.profile.email ? { email: result.profile.email } : {}),
         ...(result.profile.phone ? { phone: result.profile.phone } : {}),
+        ...(result.profile.linkedinUrl ? { linkedinUrl: result.profile.linkedinUrl } : {}),
         ...(result.profile.applicationArea && job.locations.includes(result.profile.applicationArea) ? { applicationArea: result.profile.applicationArea } : {}),
       };
       const appliedFields: TextFieldName[] = [];

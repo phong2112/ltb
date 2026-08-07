@@ -88,6 +88,7 @@ export type NewCandidate = {
   name: string;
   email: string;
   phone: string;
+  linkedinUrl?: string;
   applicationArea: string;
   note: string;
   jobId: string;
