@@ -1,22 +1,25 @@
 import type {
-  TalentPoolEntry,
-  TalentPoolListResponse,
+  ApiTalentPoolEntry,
+  ApiTalentPoolListResponse,
   TalentPoolStatus,
-  TalentPoolUpdateInput,
-  TalentPoolUploadResult,
+  ApiTalentPoolUpdateInput,
+  ApiTalentPoolUploadResult,
 } from "@/app/apis/models/talent-pool";
 import { apiRequest } from "./client";
+import { API_ENDPOINTS } from "./endpoints";
 
+/** Uploads one or more CV files into the talent pool, optionally targeting a job. */
 export function uploadTalentPoolFiles(files: File[], targetJobId?: string) {
   const body = new FormData();
   files.forEach(file => body.append("cvs", file));
   if (targetJobId) body.append("targetJobId", targetJobId);
-  return apiRequest<{ results: TalentPoolUploadResult[] }>("/admin/talent-pool/upload", {
+  return apiRequest<{ results: ApiTalentPoolUploadResult[] }>(API_ENDPOINTS.talentPool.upload, {
     method: "POST",
     body,
   });
 }
 
+/** Lists talent pool entries with server-side filtering and pagination. */
 export function listTalentPool(params: {
   search?: string;
   status?: TalentPoolStatus;
@@ -31,28 +34,31 @@ export function listTalentPool(params: {
   if (params.search?.trim()) query.set("search", params.search.trim());
   if (params.status) query.set("status", params.status);
   if (params.tag?.trim()) query.set("tag", params.tag.trim());
-  return apiRequest<TalentPoolListResponse>(`/admin/talent-pool?${query.toString()}`);
+  return apiRequest<ApiTalentPoolListResponse>(`${API_ENDPOINTS.talentPool.list}?${query.toString()}`);
 }
 
+/** Loads one talent pool entry detail for review/edit screens. */
 export function getTalentPoolEntry(id: string) {
-  return apiRequest<TalentPoolEntry>(`/admin/talent-pool/${id}`);
+  return apiRequest<ApiTalentPoolEntry>(API_ENDPOINTS.talentPool.entry(id));
 }
 
-export function updateTalentPoolEntry(id: string, input: TalentPoolUpdateInput) {
-  return apiRequest<TalentPoolEntry>(`/admin/talent-pool/${id}`, {
+/** Updates editable talent pool profile fields and reviewer notes. */
+export function updateTalentPoolEntry(id: string, input: ApiTalentPoolUpdateInput) {
+  return apiRequest<ApiTalentPoolEntry>(API_ENDPOINTS.talentPool.entry(id), {
     method: "PATCH",
     body: JSON.stringify(input),
   });
 }
 
+/** Promotes a talent pool entry into an application for a selected job. */
 export function promoteTalentPoolEntry(id: string, jobId: string) {
-  return apiRequest<{ applicationId: string; jobId: string }>(`/admin/talent-pool/${id}/promote`, {
+  return apiRequest<{ applicationId: string; jobId: string }>(API_ENDPOINTS.talentPool.promote(id), {
     method: "POST",
     body: JSON.stringify({ jobId }),
   });
 }
 
+/** Deletes a talent pool entry from the admin workspace. */
 export function deleteTalentPoolEntry(id: string) {
-  return apiRequest<{ id: string }>(`/admin/talent-pool/${id}`, { method: "DELETE" });
+  return apiRequest<{ id: string }>(API_ENDPOINTS.talentPool.entry(id), { method: "DELETE" });
 }
-

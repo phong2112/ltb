@@ -120,6 +120,7 @@ export default function Jobs() {
 
   return (
     <PublicLayout>
+      {/* Jobs Header And Search */}
       <div className="border-b border-border bg-gradient-to-br from-pink-50 to-background py-7">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <h1 className="text-3xl font-black text-foreground mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>{showSaved ? t("savedJobs.title") : t("jobs.allJobs")}</h1>
@@ -152,7 +153,9 @@ export default function Jobs() {
         </div>
       </div>
 
+      {/* Jobs Browser */}
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+        {/* Filter Bar */}
         <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-border bg-white/80 p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <span className="inline-flex h-8 w-8 flex-none items-center justify-center rounded-full bg-pink-50 text-primary">
@@ -176,6 +179,7 @@ export default function Jobs() {
           </span>
         </div>
 
+        {/* Empty States Or Job Results */}
         {showSaved && savedJobs.length === 0 ? (
           <div className="mx-auto max-w-md py-20 text-center">
             <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-pink-50 text-primary"><Heart size={27} /></div>
@@ -191,6 +195,7 @@ export default function Jobs() {
             <button onClick={() => { setSearch(""); setTypeFilter(ALL_FILTER); setLevelFilter(ALL_FILTER); }} className="mt-4 px-4 py-2 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all">{t("common.clearFilters")}</button>
           </div>
         ) : (
+          /* Split Job List And Detail Panel */
           <div className="grid items-start gap-4 lg:h-[calc(100dvh-6rem)] lg:grid-cols-[370px_minmax(0,1fr)] lg:items-stretch">
             <div className="scrollbar-stable space-y-3 lg:h-full lg:min-h-0 lg:overscroll-contain lg:overflow-y-auto lg:pr-1">
             {filtered.map(job => {

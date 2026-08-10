@@ -40,7 +40,7 @@ import {
   promoteTalentPoolEntry,
   updateTalentPoolEntry,
 } from "@/app/apis/requests";
-import type { TalentPoolEntry } from "@/app/apis/models";
+import type { ApiTalentPoolEntry } from "@/app/apis/models";
 import { TalentPoolStatusBadge } from "@/app/components/TalentPoolStatusBadge";
 import { formatWorkExperience, getWorkExperienceItems, type WorkExperienceDisplayItem } from "@/app/utils/cv-summary";
 import { safeAdminReturnTo } from "@/app/utils/navigation";
@@ -62,7 +62,7 @@ export default function TalentPoolDetail() {
   const [searchParams] = useSearchParams();
   const { language, t } = useLanguage();
   const returnTo = safeAdminReturnTo(searchParams.get("from"), "/admin/candidates");
-  const [entry, setEntry] = useState<TalentPoolEntry | null>(null);
+  const [entry, setEntry] = useState<ApiTalentPoolEntry | null>(null);
   const [jobs, setJobs] = useState<ApiJob[]>([]);
   const [form, setForm] = useState<ProfileForm>(EMPTY_FORM);
   const [promoteJobId, setPromoteJobId] = useState("");
@@ -331,7 +331,7 @@ function CvSummaryList({ icon, title, items, inline = false }: { icon: React.Rea
     </div>
   );
 }
-function formFromEntry(entry: TalentPoolEntry): ProfileForm { const data = entry.structuredData ?? {}; return { fullName: resolvedFullName(entry), email: text(data.email) || entry.candidate.email || "", phone: text(data.phone) || entry.candidate.phone || "", title: text(data.title), skills: stringList(data.skills).join(", "), notes: entry.notes ?? "" }; }
+function formFromEntry(entry: ApiTalentPoolEntry): ProfileForm { const data = entry.structuredData ?? {}; return { fullName: resolvedFullName(entry), email: text(data.email) || entry.candidate.email || "", phone: text(data.phone) || entry.candidate.phone || "", title: text(data.title), skills: stringList(data.skills).join(", "), notes: entry.notes ?? "" }; }
 function splitValues(value: string) { return [...new Set(value.split(",").map(item => item.trim()).filter(Boolean))]; }
 function text(value: unknown) { return typeof value === "string" ? value : ""; }
 function stringList(value: unknown) { return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []; }
@@ -369,7 +369,7 @@ function workExperienceList(value: unknown) {
     .filter((item): item is { company: string; title: string | null; duration: string | null } => Boolean(item));
 }
 function linkField(value: unknown) { return typeof value === "string" && /^https?:\/\//i.test(value) ? value : ""; }
-function resolvedFullName(entry: TalentPoolEntry) {
+function resolvedFullName(entry: ApiTalentPoolEntry) {
   const extractedName = text(entry.structuredData?.fullName).trim();
   const currentName = entry.candidate.fullName?.trim() ?? "";
   return extractedName && shouldPreferExtractedName(currentName, entry.file?.originalName) ? extractedName : currentName;

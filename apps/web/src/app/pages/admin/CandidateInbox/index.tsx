@@ -12,7 +12,7 @@ import {
   listTalentPool,
   uploadTalentPoolFiles,
 } from "@/app/apis/requests";
-import type { TalentPoolListItem, TalentPoolUploadResult } from "@/app/apis/models";
+import type { ApiTalentPoolListItem, ApiTalentPoolUploadResult } from "@/app/apis/models";
 import { appendReturnTo } from "@/app/utils/navigation";
 import {
   AlertDialog,
@@ -60,7 +60,7 @@ export default function CandidateInbox() {
   const [jobFilter, setJobFilter] = useState(() => searchParams.get("job") || "all");
   const [sortOrder, setSortOrder] = useState<SortOrder>(() => readUrlSort(searchParams));
   const [currentPage, setCurrentPage] = useState(() => readUrlPage(searchParams));
-  const [poolEntries, setPoolEntries] = useState<TalentPoolListItem[]>([]);
+  const [poolEntries, setPoolEntries] = useState<ApiTalentPoolListItem[]>([]);
   const [talentPoolTotal, setTalentPoolTotal] = useState(0);
   const [files, setFiles] = useState<File[]>([]);
   const [targetJobId, setTargetJobId] = useState("");
@@ -68,9 +68,9 @@ export default function CandidateInbox() {
   const [fileTargetJobIds, setFileTargetJobIds] = useState<Record<string, string>>({});
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadResults, setUploadResults] = useState<TalentPoolUploadResult[]>([]);
+  const [uploadResults, setUploadResults] = useState<ApiTalentPoolUploadResult[]>([]);
   const [candidateToDelete, setCandidateToDelete] = useState<(typeof candidateProfiles)[number] | null>(null);
-  const [poolEntryToDelete, setPoolEntryToDelete] = useState<TalentPoolListItem | null>(null);
+  const [poolEntryToDelete, setPoolEntryToDelete] = useState<ApiTalentPoolListItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const loadPoolEntries = useCallback(async () => {
@@ -272,6 +272,7 @@ export default function CandidateInbox() {
 
   return (
     <AdminLayout>
+      {/* Page Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{t("admin.candidateInbox")}</h1>
         <p className="text-muted-foreground text-sm mt-0.5">
@@ -281,8 +282,10 @@ export default function CandidateInbox() {
         </p>
       </div>
 
+      {/* Talent Pool Upload Panel */}
       <div className="mb-5 overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
         <div className="grid items-stretch gap-5 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_312px]">
+          {/* File Dropzone And Selected Files */}
           <section className="flex min-w-0 flex-col gap-3">
             <div
               onDragEnter={event => {
@@ -343,6 +346,7 @@ export default function CandidateInbox() {
             )}
           </section>
 
+          {/* Upload Assignment Controls */}
           <aside className="flex min-w-0 flex-col gap-2.5 rounded-xl border border-pink-100 bg-pink-50/30 p-3">
             <div className="grid grid-cols-2 gap-1 rounded-full border border-border bg-white p-1">
               <button type="button" onClick={() => setUploadMode(BULK_UPLOAD_MODE)} className={`min-h-9 rounded-full px-1.5 text-[11px] font-bold leading-tight transition-colors ${uploadMode === BULK_UPLOAD_MODE ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:bg-pink-50 hover:text-primary"}`}>
@@ -377,6 +381,7 @@ export default function CandidateInbox() {
         </div>
       </div>
 
+      {/* Candidate Filters */}
       <CandidateFilters
         filteredCount={filtered.length}
         jobs={jobs}
@@ -404,6 +409,7 @@ export default function CandidateInbox() {
         }}
       />
 
+      {/* Candidate Results */}
       <CandidateList
         language={language}
         rows={paginatedRows}
@@ -412,12 +418,15 @@ export default function CandidateInbox() {
         onDeletePoolEntry={row => setPoolEntryToDelete(row.poolEntry ?? null)}
       />
 
+      {/* Candidate Pagination */}
       <ListPagination
         currentPage={activePage}
         pageSize={ITEMS_PER_PAGE}
         totalItems={filtered.length}
         onPageChange={setCurrentPage}
       />
+
+      {/* Delete Application Candidate Dialog */}
       <AlertDialog open={Boolean(candidateToDelete)} onOpenChange={open => { if (!open && !isDeleting) setCandidateToDelete(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -434,6 +443,8 @@ export default function CandidateInbox() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Delete Talent Pool Entry Dialog */}
       <AlertDialog open={Boolean(poolEntryToDelete)} onOpenChange={open => { if (!open && !isDeleting) setPoolEntryToDelete(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>

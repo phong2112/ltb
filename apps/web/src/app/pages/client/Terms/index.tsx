@@ -16,6 +16,7 @@ export default function Terms() {
 
   return (
     <PublicLayout>
+      {/* Legal Page Header */}
       <div className="border-b border-border bg-gradient-to-br from-pink-50 to-background py-7">
         <div className="mx-auto max-w-3xl px-4 sm:px-6">
           <Link to="/" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-primary">
@@ -38,7 +39,9 @@ export default function Terms() {
         </div>
       </div>
 
+      {/* Terms Content */}
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
+        {/* Table Of Contents */}
         <div className="bg-pink-50 border border-pink-100 rounded-2xl p-5 mb-8">
           <p className="text-xs font-bold text-primary uppercase tracking-widest mb-3">{content.contentsLabel}</p>
           <ol className="space-y-1.5">
@@ -52,6 +55,7 @@ export default function Terms() {
           </ol>
         </div>
 
+        {/* Legal Sections */}
         <div className="space-y-8">
           {content.sections.map((section, index) => (
             <div key={section.title} id={`section-${index}`} className="scroll-mt-20">
@@ -64,6 +68,7 @@ export default function Terms() {
           ))}
         </div>
 
+        {/* Legal CTA */}
         <div className="mt-12 rounded-2xl border border-border bg-white p-4 text-center sm:p-6">
           <p className="text-sm text-muted-foreground mb-4">{content.acknowledgement}</p>
           <div className="flex flex-wrap gap-3 justify-center">

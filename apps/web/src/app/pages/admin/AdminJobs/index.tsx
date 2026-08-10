@@ -69,6 +69,7 @@ export default function AdminJobs() {
 
   return (
     <AdminLayout>
+      {/* Page Header */}
       <div className="mb-4 flex flex-col gap-3 min-[480px]:mb-6 min-[480px]:flex-row min-[480px]:items-center min-[480px]:justify-between">
         <div>
           <h1 className="text-xl font-black text-foreground min-[480px]:text-2xl" style={{ fontFamily: "'Playfair Display', serif" }}>{t("admin.jobsManagement")}</h1>
@@ -79,7 +80,9 @@ export default function AdminJobs() {
         </Link>
       </div>
 
+      {/* Jobs Table Card */}
       <div className="bg-white rounded-2xl border border-border overflow-hidden">
+        {/* Filters And Search */}
         <div className="space-y-3 border-b border-border p-3 sm:p-4">
           <div className="scrollbar-horizontal -mx-3 flex gap-2 overflow-x-auto px-3 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
             {filterOptions.map(option => (
@@ -104,6 +107,7 @@ export default function AdminJobs() {
           </div>
         </div>
 
+        {/* Job Rows */}
         <div className="space-y-2 bg-background/35 p-2 sm:space-y-0 sm:divide-y sm:divide-border sm:bg-transparent sm:p-0">
           {paginatedJobs.map(job => (
             <div key={job.id} className="rounded-xl border border-border bg-white p-3 transition-colors hover:bg-pink-50/50 sm:flex sm:flex-row sm:items-center sm:gap-4 sm:rounded-none sm:border-0 sm:p-4">
@@ -187,6 +191,8 @@ export default function AdminJobs() {
             </div>
           )}
         </div>
+
+        {/* Jobs Pagination */}
         <ListPagination currentPage={activePage} pageSize={ITEMS_PER_PAGE} totalItems={filtered.length} onPageChange={setCurrentPage} />
       </div>
     </AdminLayout>

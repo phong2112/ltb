@@ -3,16 +3,25 @@ import {
   type ActionNotification,
 } from "@/app/services/notification.service";
 import { currentTenantSlug } from "@/app/utils/tenant";
+import { API_ENDPOINTS } from "./endpoints";
 
 export const API_BASE = resolveApiBase(
   import.meta.env.VITE_API_BASE_PATH as string | undefined,
 );
+
+/** Auth endpoints that should not recursively trigger refresh attempts on 401 responses. */
+const AUTH_SKIP_REFRESH_ENDPOINTS = new Set<string>([
+  API_ENDPOINTS.auth.login,
+  API_ENDPOINTS.auth.refresh,
+  API_ENDPOINTS.auth.logout,
+]);
 
 type ApiRequestInit = RequestInit & {
   skipAuthRefresh?: boolean;
   notification?: ActionNotification;
 };
 
+/** Error type thrown for non-2xx API responses with the HTTP status preserved. */
 export class ApiRequestError extends Error {
   constructor(
     message: string,
@@ -22,6 +31,7 @@ export class ApiRequestError extends Error {
   }
 }
 
+/** Shared request wrapper for API calls, auth refresh, JSON parsing, and action notifications. */
 export async function apiRequest<T>(path: string, init: ApiRequestInit = {}) {
   const { skipAuthRefresh, notification, ...requestInit } = init;
   const notificationId = notification
@@ -63,6 +73,7 @@ export async function apiRequest<T>(path: string, init: ApiRequestInit = {}) {
   }
 }
 
+/** Sends one fetch request with tenant and JSON headers applied consistently. */
 function sendRequest(path: string, init: RequestInit) {
   const bodyIsFormData = init.body instanceof FormData;
 
@@ -77,6 +88,7 @@ function sendRequest(path: string, init: RequestInit) {
   });
 }
 
+/** Extracts a readable API error message from Nest validation/error response bodies. */
 function parseApiErrorMessage(body: string) {
   if (!body.trim()) return "";
 
@@ -98,9 +110,10 @@ function parseApiErrorMessage(body: string) {
   return body;
 }
 
+/** Attempts to refresh the access token using the existing auth cookie. */
 async function refreshAccessToken() {
   try {
-    const response = await fetch(`${API_BASE}/auth/refresh`, {
+    const response = await fetch(`${API_BASE}${API_ENDPOINTS.auth.refresh}`, {
       method: "POST",
       credentials: "include",
       headers: {
@@ -114,14 +127,12 @@ async function refreshAccessToken() {
   }
 }
 
+/** Prevents auth endpoints from entering a refresh loop when they return 401. */
 function shouldAttemptAuthRefresh(path: string) {
-  return (
-    path !== "/auth/login" &&
-    path !== "/auth/refresh" &&
-    path !== "/auth/logout"
-  );
+  return !AUTH_SKIP_REFRESH_ENDPOINTS.has(path);
 }
 
+/** Resolves the API origin/path and keeps Vercel deployments on same-origin API routes. */
 function resolveApiBase(configuredBase: string | undefined) {
   const normalizedBase = (configuredBase || "/api").replace(/\/$/, "");
   if (typeof window === "undefined") return normalizedBase;
@@ -138,6 +149,7 @@ function resolveApiBase(configuredBase: string | undefined) {
   return normalizedBase;
 }
 
+/** Distinguishes configured absolute API URLs from same-origin API base paths. */
 function isAbsoluteUrl(value: string) {
   return /^https?:\/\//i.test(value);
 }

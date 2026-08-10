@@ -24,6 +24,7 @@ export default function Privacy() {
 
   return (
     <PublicLayout>
+      {/* Privacy Page Header */}
       <div className="border-b border-border bg-gradient-to-br from-pink-50 to-background py-7">
         <div className="mx-auto max-w-3xl px-4 sm:px-6">
           <Link to="/" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-primary">
@@ -46,7 +47,9 @@ export default function Privacy() {
         </div>
       </div>
 
+      {/* Privacy Content */}
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
+        {/* Privacy Highlights */}
         <div className="grid sm:grid-cols-2 gap-3 mb-10">
           {content.highlights.map((highlight) => (
             <div key={highlight.key} className="flex items-start gap-3 p-4 bg-white border border-border rounded-2xl hover:border-primary/30 transition-all">
@@ -59,6 +62,7 @@ export default function Privacy() {
           ))}
         </div>
 
+        {/* Table Of Contents */}
         <div className="bg-pink-50 border border-pink-100 rounded-2xl p-5 mb-8">
           <p className="text-xs font-bold text-primary uppercase tracking-widest mb-3">{content.contentsLabel}</p>
           <ol className="space-y-1.5">
@@ -72,6 +76,7 @@ export default function Privacy() {
           </ol>
         </div>
 
+        {/* Policy Sections */}
         <div className="space-y-8">
           {content.sections.map((section, index) => (
             <div key={section.title} id={`section-${index}`} className="scroll-mt-20">
@@ -84,6 +89,7 @@ export default function Privacy() {
           ))}
         </div>
 
+        {/* Contact CTA */}
         <div className="mt-12 flex flex-col items-start gap-4 rounded-2xl border border-border bg-white p-4 sm:flex-row sm:items-center sm:p-6">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
             <Mail size={20} />

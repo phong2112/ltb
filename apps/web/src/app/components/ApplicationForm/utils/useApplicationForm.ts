@@ -6,6 +6,7 @@ import { initialForm } from "../constants";
 import type { ApplicationFormProps, CvPreviewState, FormErrors, FormState, ScreeningQuestion, TextFieldName } from "../types";
 import { getScreeningAnswerError, validateCvFile } from ".";
 
+/** Owns candidate application form state, validation, CV preview autofill, and submit behavior. */
 export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps, "job" | "onSuccess">) {
   const { addCandidate } = useData();
   const { t } = useLanguage();
@@ -24,8 +25,10 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
 
+  /** Builds stable field IDs that keep labels and inputs connected. */
   const fieldId = (name: string) => `${idPrefix}-${name}`;
 
+  /** Clears field-level errors and any stale submit error after user changes input. */
   function clearErrors(...names: string[]) {
     setErrors((previous) => {
       const next = { ...previous };
@@ -35,12 +38,14 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
     });
   }
 
+  /** Updates a candidate text field and marks prior CV autofill for that field as user-owned. */
   function updateTextField(name: TextFieldName, value: string) {
     delete cvAutofilledValuesRef.current[name];
     setForm((current) => ({ ...current, [name]: value }));
     clearErrors(name);
   }
 
+  /** Keeps React state and a synchronous ref in sync for async CV preview callbacks. */
   function setForm(nextForm: FormState | ((current: FormState) => FormState)) {
     setFormState((current) => {
       const resolved = typeof nextForm === "function"
@@ -51,11 +56,13 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
     });
   }
 
+  /** Stores an answer and immediately refreshes validation for that screening question. */
   function updateQuestionAnswer(question: ScreeningQuestion, value: string) {
     setQuestionAnswers((current) => ({ ...current, [question.id]: value }));
     setQuestionAnswerError(question, value);
   }
 
+  /** Adds or removes the error entry for one screening answer. */
   function setQuestionAnswerError(question: ScreeningQuestion, value: string) {
     const error = getScreeningAnswerError(question, value);
 
@@ -71,6 +78,7 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
     });
   }
 
+  /** Validates all required candidate, CV, consent, and screening fields before submit. */
   function validate() {
     const nextErrors: FormErrors = {};
     if (!form.name.trim()) nextErrors.name = t("apply.nameRequired");
@@ -99,6 +107,7 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
     return nextErrors;
   }
 
+  /** Submits a valid application and focuses the first invalid field when validation fails. */
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitting) return;
@@ -143,6 +152,7 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
     }
   }
 
+  /** Handles CV selection, resets stale preview state, and starts server-side preview parsing. */
   function handleCvFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
     cvPreviewRequestId.current += 1;
@@ -164,6 +174,7 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
     void previewCvFile(file, cvPreviewRequestId.current);
   }
 
+  /** Removes the selected CV and rolls back only fields that were autofilled from that CV. */
   function removeCvFile() {
     cvPreviewRequestId.current += 1;
     clearPreviousCvAutofill();
@@ -173,6 +184,7 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
     clearErrors("cv");
   }
 
+  /** Parses a CV preview and fills only empty form fields with extracted profile data. */
   async function previewCvFile(file: File, requestId: number) {
     setCvPreview({ status: "loading", appliedFields: [] });
 
@@ -222,6 +234,7 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
     }
   }
 
+  /** Clears previous CV autofill values without deleting fields the user later edited. */
   function clearPreviousCvAutofill() {
     const autofilledValues = cvAutofilledValuesRef.current;
     const nextForm = { ...formRef.current };

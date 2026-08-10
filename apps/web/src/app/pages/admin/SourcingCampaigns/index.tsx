@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { ArrowRight, BriefcaseBusiness, Linkedin, Plus, Radar, Users } from "lucide-react";
 import { Link, useNavigate } from "react-router";
-import type { SourcingCampaign, SourcingDiscoveryLocationScope } from "@/app/apis/models";
+import type { ApiSourcingCampaign, ApiSourcingDiscoveryLocationScope } from "@/app/apis/models";
 import { createSourcingCampaign, listSourcingCampaigns } from "@/app/apis/requests";
 import { useData } from "@/app/data";
 import AdminLayout from "@/app/layouts/AdminLayout";
@@ -9,10 +9,10 @@ import AdminLayout from "@/app/layouts/AdminLayout";
 export default function SourcingCampaigns() {
   const { jobs } = useData();
   const navigate = useNavigate();
-  const [campaigns, setCampaigns] = useState<SourcingCampaign[]>([]);
+  const [campaigns, setCampaigns] = useState<ApiSourcingCampaign[]>([]);
   const [jobId, setJobId] = useState("");
   const [name, setName] = useState("");
-  const [discoveryLocationScope, setDiscoveryLocationScope] = useState<SourcingDiscoveryLocationScope>("VIETNAM");
+  const [discoveryLocationScope, setDiscoveryLocationScope] = useState<ApiSourcingDiscoveryLocationScope>("VIETNAM");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -39,6 +39,7 @@ export default function SourcingCampaigns() {
 
   return (
     <AdminLayout>
+      {/* Page Header */}
       <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#0a66c2]/15 bg-[#eef6ff] px-3 py-1 text-xs font-black text-[#0a66c2]">
@@ -49,7 +50,9 @@ export default function SourcingCampaigns() {
         </div>
       </div>
 
+      {/* Campaign Creation And List */}
       <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
+        {/* Create Campaign Form */}
         <form onSubmit={handleCreate} className="h-fit rounded-2xl border border-border bg-white p-4 sm:p-5">
           <div className="mb-4 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Plus size={18} /></div>
@@ -109,6 +112,7 @@ export default function SourcingCampaigns() {
           </button>
         </form>
 
+        {/* Existing Campaigns */}
         <section className="overflow-hidden rounded-2xl border border-border bg-white">
           <div className="flex items-center justify-between border-b border-border p-4 sm:p-5">
             <div>

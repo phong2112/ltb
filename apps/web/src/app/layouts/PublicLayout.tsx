@@ -26,8 +26,10 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col" style={{ fontFamily: "'Nunito', sans-serif" }}>
+      {/* Public Header */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-border shadow-sm">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:px-6">
+          {/* Brand Link */}
           <Link to={tenantPath("/", loc.pathname)} className="flex min-w-0 items-center gap-2.5">
             <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-primary/30 bg-pink-100">
               <ImageWithFallback src={portraitImg} alt="Lường Bích" className="w-full h-full object-cover object-top" />
@@ -38,12 +40,14 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             </div>
           </Link>
 
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-muted-foreground">
             {navItems.map(item => (
               <Link key={item.to} to={item.to} className={`transition-colors hover:text-primary ${item.active ? "text-primary" : ""}`}>{item.label}</Link>
             ))}
           </nav>
 
+          {/* Header Actions */}
           <div className="flex flex-shrink-0 items-center gap-1.5 sm:gap-2">
             <div className="hidden items-center rounded-full border border-border bg-white p-0.5 min-[390px]:flex" aria-label={t("common.language")}>
               {languages.map(item => (
@@ -72,6 +76,8 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             </button>
           </div>
         </div>
+
+        {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
           <div className="border-t border-border bg-white px-4 pb-4 pt-3 shadow-sm md:hidden">
             <nav className="grid gap-1">
@@ -95,8 +101,10 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         )}
       </header>
 
+      {/* Routed Public Page Content */}
       <main className="flex-1">{children}</main>
 
+      {/* Public Footer */}
       <footer className="border-t border-border py-8 bg-white">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 text-xs text-muted-foreground sm:px-6 md:flex-row">
           <div className="flex items-center gap-2.5">

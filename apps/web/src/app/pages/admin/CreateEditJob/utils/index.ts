@@ -13,6 +13,7 @@ import {
 } from "../constants";
 import type { FormErrors, JobForm, SalaryCurrency } from "../types";
 
+/** Splits a saved salary string into editable amount and currency fields. */
 export function parseSalary(value: string): { amount: string; currency: SalaryCurrency } {
   const trimmed = value.trim();
   const currencyMatch = trimmed.match(/\b(VND|USD)\s*$/i);
@@ -25,10 +26,12 @@ export function parseSalary(value: string): { amount: string; currency: SalaryCu
   };
 }
 
+/** Joins editable salary fields into the persisted display string. */
 export function buildSalary(amount: string, currency: SalaryCurrency) {
   return amount.trim() ? `${amount.trim()} ${currency}` : "";
 }
 
+/** Keeps salary input readable while preserving support for min-max ranges. */
 export function formatSalaryAmount(value: string) {
   const normalized = value.replace(/[–—]/g, "-");
   const separatorIndex = normalized.indexOf("-");
@@ -46,15 +49,18 @@ export function formatSalaryAmount(value: string) {
   return formatNumberString(normalized);
 }
 
+/** Formats a digits-only string with thousand separators. */
 function formatNumberString(value: string) {
   const digits = value.replace(/\D/g, "");
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
+/** Counts salary edit tokens so caret position survives formatting commas. */
 export function countSalaryTokens(value: string) {
   return [...value].filter(character => /\d|-/.test(character)).length;
 }
 
+/** Restores the caret near the same logical salary token after reformatting. */
 export function findSalaryCaret(value: string, tokenOffset: number) {
   if (tokenOffset <= 0) return 0;
 
@@ -67,6 +73,7 @@ export function findSalaryCaret(value: string, tokenOffset: number) {
   return value.length;
 }
 
+/** Trims, deduplicates, and preserves the first spelling of each skill tag. */
 export function cleanTagList(values: string[]) {
   const seen = new Set<string>();
   const tags: string[] = [];
@@ -84,11 +91,13 @@ export function cleanTagList(values: string[]) {
   return tags;
 }
 
+/** Parses a formatted salary amount back to a number for range validation. */
 function parseSalaryNumber(value: string) {
   const digits = value.replace(/\D/g, "");
   return digits ? Number(digits) : 0;
 }
 
+/** Validates salary format, max value, and min-max ordering. */
 function validateSalary(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return "";
@@ -112,6 +121,7 @@ function validateSalary(value: string) {
   return "";
 }
 
+/** Validates the full job editor form before create/update requests. */
 export function validateJobForm(job: JobForm, tags: string[]) {
   const nextErrors: FormErrors = {};
   const title = job.title.trim();
@@ -174,6 +184,7 @@ export function validateJobForm(job: JobForm, tags: string[]) {
   return nextErrors;
 }
 
+/** Validates one skill tag before adding it to the job form. */
 export function getTagError(tag: string, currentTags: string[]) {
   if (currentTags.length >= 12) return "Tối đa 12 tags kỹ năng";
   if (tag.length < 2) return "Tag cần ít nhất 2 ký tự";
@@ -183,10 +194,12 @@ export function getTagError(tag: string, currentTags: string[]) {
   return "";
 }
 
+/** Creates a client-only ID for unsaved screening questions before the API assigns one. */
 export function createLocalQuestionId() {
   return `local-question-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+/** Rewrites question sortOrder to match the current drag/drop or visual order. */
 export function orderQuestions(questions: Job["questions"]) {
   return questions.map((question, index) => ({
     ...question,
@@ -194,6 +207,7 @@ export function orderQuestions(questions: Job["questions"]) {
   }));
 }
 
+/** Narrows arbitrary select values to the supported salary currency union. */
 export function isSalaryCurrency(value: string): value is SalaryCurrency {
   return SALARY_CURRENCIES.includes(value as SalaryCurrency);
 }

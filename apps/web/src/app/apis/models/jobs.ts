@@ -1,5 +1,6 @@
 import type { JobStatus as ApiJobStatus } from "@hr-copilot/shared";
 
+/** API question configured on a job application form. */
 export type ApiJobQuestion = {
   id: string;
   label?: string | null;
@@ -7,6 +8,7 @@ export type ApiJobQuestion = {
   sortOrder?: number | null;
 };
 
+/** API job record used by public jobs and admin job management screens. */
 export type ApiJob = {
   id: string;
   title: string;
@@ -30,4 +32,3 @@ export type ApiJob = {
     applications?: number;
   };
 };
-

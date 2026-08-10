@@ -7,6 +7,7 @@ import type { ApiJob } from "./jobs";
 
 export type { CvSummary, ApiCvParseStatus };
 
+/** API message record attached to one candidate application. */
 export type ApiCandidateMessage = {
   id: string;
   applicationId: string;
@@ -16,6 +17,7 @@ export type ApiCandidateMessage = {
   createdAt: string;
 };
 
+/** API application record with submitted candidate data, CV parsing, matching, and messages. */
 export type ApiApplication = {
   id: string;
   candidateId: string;
@@ -65,6 +67,7 @@ export type ApiApplication = {
   };
 };
 
+/** API response returned when reading or retrying AI analysis for one application. */
 export type ApiApplicationAnalysis = {
   applicationId: string;
   status: ApiCvParseStatus;
@@ -77,6 +80,7 @@ export type ApiApplicationAnalysis = {
   matchResult?: ApiApplication["matchResult"];
 };
 
+/** API candidate profile aggregate with all applications for that person. */
 export type ApiCandidateProfile = {
   id: string;
   fullName: string;

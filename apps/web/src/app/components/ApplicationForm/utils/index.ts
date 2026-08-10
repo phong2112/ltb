@@ -2,10 +2,12 @@ import { isAllowedCvExtension, isAllowedCvMimeType, maxScreeningAnswerLength } f
 import { MAX_CV_FILE_SIZE_BYTES } from "../constants";
 import type { ScreeningQuestion, Translate } from "../types";
 
+/** Counts answer content after trimming and collapsing whitespace for fair length validation. */
 export function getMeaningfulAnswerLength(value: string) {
   return value.trim().replace(/\s+/gu, " ").length;
 }
 
+/** Returns the validation message for one screening answer, or blank when valid. */
 export function getScreeningAnswerError(question: ScreeningQuestion, value: string) {
   const answerLength = getMeaningfulAnswerLength(value);
 
@@ -20,6 +22,7 @@ export function getScreeningAnswerError(question: ScreeningQuestion, value: stri
   return "";
 }
 
+/** Validates candidate CV files before upload using extension, MIME type, and size limits. */
 export function validateCvFile(file: File, t: Translate) {
   const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
   if (
@@ -36,6 +39,7 @@ export function validateCvFile(file: File, t: Translate) {
   return "";
 }
 
+/** Formats upload sizes for compact helper text near the file input. */
 export function formatFileSize(bytes: number) {
   if (bytes < 1024 * 1024) return `${Math.ceil(bytes / 1024)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;

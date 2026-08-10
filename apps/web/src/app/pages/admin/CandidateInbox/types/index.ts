@@ -1,5 +1,5 @@
 import type { CandidateProfile, CandidateStatus } from "@/app/data";
-import type { TalentPoolListItem } from "@/app/apis/models";
+import type { ApiTalentPoolListItem } from "@/app/apis/models";
 import {
   BULK_UPLOAD_MODE,
   PER_FILE_UPLOAD_MODE,
@@ -24,5 +24,5 @@ export type UnifiedCandidateRow = {
   hasNew: boolean;
   href: string;
   candidate?: CandidateProfile;
-  poolEntry?: TalentPoolListItem;
+  poolEntry?: ApiTalentPoolListItem;
 };

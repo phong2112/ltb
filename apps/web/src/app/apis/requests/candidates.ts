@@ -4,20 +4,24 @@ import type {
   ApiCandidateProfile,
 } from "@/app/apis/models";
 import { apiRequest } from "./client";
+import { API_ENDPOINTS } from "./endpoints";
 
+/** Loads admin candidate profiles, optionally with a prebuilt query string filter. */
 export function getAdminCandidates(query = "") {
-  return apiRequest<ApiCandidateProfile[]>(`/admin/candidates${query}`);
+  return apiRequest<ApiCandidateProfile[]>(API_ENDPOINTS.candidates.adminList(query));
 }
 
+/** Fetches the latest AI/CV analysis state for one application. */
 export function getApplicationAnalysis(applicationId: string) {
   return apiRequest<ApiApplicationAnalysis>(
-    `/admin/candidates/applications/${applicationId}/analysis`,
+    API_ENDPOINTS.candidates.applicationAnalysis(applicationId),
   );
 }
 
+/** Requeues AI analysis for an application whose CV parse or match needs retrying. */
 export function retryApplicationAnalysis(applicationId: string) {
   return apiRequest<ApiApplicationAnalysis>(
-    `/admin/candidates/applications/${applicationId}/ai/retry`,
+    API_ENDPOINTS.candidates.applicationRetry(applicationId),
     {
       method: "POST",
       notification: {
@@ -29,12 +33,13 @@ export function retryApplicationAnalysis(applicationId: string) {
   );
 }
 
+/** Updates admin-owned application fields such as status, follow-up date, and HR note. */
 export function updateCandidateApplication(
   applicationId: string,
   body: { status?: string; followUpAt?: string | null; note?: string },
   options: { silent?: boolean } = {},
 ) {
-  return apiRequest(`/admin/candidates/applications/${applicationId}`, {
+  return apiRequest(API_ENDPOINTS.candidates.application(applicationId), {
     method: "PATCH",
     body: JSON.stringify(body),
     notification: options.silent
@@ -47,8 +52,9 @@ export function updateCandidateApplication(
   });
 }
 
+/** Deletes a candidate profile and its related application records through the admin API. */
 export function deleteCandidateRequest(id: string) {
-  return apiRequest(`/admin/candidates/${id}`, {
+  return apiRequest(API_ENDPOINTS.candidates.candidate(id), {
     method: "DELETE",
     notification: {
       loading: "Đang xóa ứng viên...",
@@ -58,12 +64,13 @@ export function deleteCandidateRequest(id: string) {
   });
 }
 
+/** Sends an outbound candidate message on the selected communication channel. */
 export function sendCandidateMessageRequest(
   applicationId: string,
   channel: string,
   content: string,
 ) {
-  return apiRequest<ApiCandidateMessage>(`/admin/candidates/applications/${applicationId}/messages`, {
+  return apiRequest<ApiCandidateMessage>(API_ENDPOINTS.candidates.applicationMessages(applicationId), {
     method: "POST",
     body: JSON.stringify({ channel, content }),
     notification: {

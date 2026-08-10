@@ -30,6 +30,7 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
+      {/* Page Header */}
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-pink-100 bg-white px-3 py-1 text-xs font-bold text-primary">
@@ -48,7 +49,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Stats */}
+      {/* KPI Cards */}
       <div className="mb-6 grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-4 lg:gap-4">
         {stats.map(s => (
           <Link key={s.label} to={s.link} className="group rounded-xl border border-border bg-white p-3.5 transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md sm:p-4">
@@ -67,6 +68,7 @@ export default function AdminDashboard() {
         ))}
       </div>
 
+      {/* Dashboard Panels */}
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[0.9fr_1.1fr]">
         {/* Top AI Matches */}
         <div className="rounded-xl border border-border bg-white p-4 sm:p-5">
@@ -102,7 +104,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Recent candidates */}
+        {/* Recent Candidates */}
         <div className="rounded-xl border border-border bg-white p-4 sm:p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{t("admin.recentCandidates")}</h2>
@@ -129,7 +131,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Priority tasks */}
+        {/* Priority Tasks */}
         <div className="rounded-xl border border-border bg-white p-4 sm:p-5 xl:col-span-2">
           <h2 className="font-black text-foreground mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>{t("admin.todayTasks")}</h2>
           <div className="grid sm:grid-cols-2 gap-3">

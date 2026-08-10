@@ -1,4 +1,5 @@
 export type { ApiAuthSession } from "./auth";
+export type { ApiApplicationCvPreview } from "./applications";
 export type { ApiJob, ApiJobQuestion } from "./jobs";
 export type {
   ApiApplication,
@@ -9,19 +10,24 @@ export type {
   CvSummary,
 } from "./candidates";
 export type {
-  TalentPoolEntry,
-  TalentPoolListItem,
-  TalentPoolListResponse,
-  TalentPoolUpdateInput,
-  TalentPoolUploadResult,
+  ApiTalentPoolCandidate,
+  ApiTalentPoolEntry,
+  ApiTalentPoolFile,
+  ApiTalentPoolListItem,
+  ApiTalentPoolListResponse,
+  ApiTalentPoolStructuredData,
+  ApiTalentPoolUpdateInput,
+  ApiTalentPoolUploadResult,
 } from "./talent-pool";
-export type { ApiTemplate, TemplateInput } from "./templates";
+export type { ApiTemplate, ApiTemplateInput } from "./templates";
 export type {
-  SourcedProfile,
-  SourcingCampaign,
-  SourcingDiscoveryLocationScope,
-  SourcingImportResult,
-  SourcingProfileStatus,
-  SourcingSearchQuery,
-  SourcingSource,
+  ApiInternalCandidateSuggestionResult,
+  ApiLinkedinDiscoveryResult,
+  ApiSourcedProfile,
+  ApiSourcingCampaign,
+  ApiSourcingDiscoveryLocationScope,
+  ApiSourcingImportResult,
+  ApiSourcingProfileStatus,
+  ApiSourcingSearchQuery,
+  ApiSourcingSource,
 } from "./sourcing";

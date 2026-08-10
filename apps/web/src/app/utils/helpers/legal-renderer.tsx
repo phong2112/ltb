@@ -1,3 +1,4 @@
+/** Renders markdown-like legal copy into paragraphs, bullets, and bold spans. */
 export function renderLegalBody(text: string) {
   return text.split("\n").map((line, index) => {
     if (!line.trim()) return <div key={index} className="h-2" />;
@@ -17,6 +18,7 @@ export function renderLegalBody(text: string) {
   });
 }
 
+/** Supports the small inline **bold** syntax used in legal constants. */
 function renderInline(text: string) {
   const parts = text.split(/(\*\*.*?\*\*)/g);
   return parts.map((part, index) => {

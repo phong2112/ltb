@@ -327,6 +327,7 @@ export default function CreateEditJob() {
     <AdminLayout>
       <div className="w-full max-w-[1560px]">
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+          {/* Sticky Form Header And Save Actions */}
           <CreateEditJobHeader
             existing={existing}
             form={form}
@@ -338,10 +339,12 @@ export default function CreateEditJob() {
             onSave={(action, status) => void handleSave(action, status)}
           />
 
+          {/* Existing Job Applicant Sidebar */}
           {isEdit && existing && <JobApplicantsAside jobId={existing.id} />}
 
+          {/* Job Editor Form */}
           <div className="min-w-0 space-y-4 xl:col-start-1">
-
+            {/* Save And Error Feedback */}
             {saved && (
               <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700 font-semibold">✓ {t("admin.savedRedirect")}</div>
             )}
@@ -350,7 +353,7 @@ export default function CreateEditJob() {
             )}
 
             <div className="space-y-5 rounded-2xl border border-border bg-white p-4 sm:p-6">
-          {/* Logo picker */}
+          {/* Logo Picker */}
           <div>
             <label className="text-xs font-bold text-foreground mb-2 block uppercase tracking-wide">{t("admin.jobIcon")}</label>
             <div className="flex gap-2 flex-wrap">
@@ -362,6 +365,7 @@ export default function CreateEditJob() {
             </div>
           </div>
 
+          {/* Core Job Fields */}
           <div className="grid sm:grid-cols-2 gap-4">
             <FormField label={t("admin.jobTitle")} error={fieldErrors.title} hint={`${form.title.length}/${MAX.title} ký tự`}>
               <input value={form.title} onChange={e => updateField("title", e.target.value)} placeholder="Senior Product Designer" maxLength={MAX.title} aria-invalid={Boolean(fieldErrors.title)} className={inputCls("title")} />
@@ -509,6 +513,7 @@ export default function CreateEditJob() {
             />
           </div>
 
+          {/* Urgent Job Toggle */}
           <button
             type="button"
             onClick={() => updateField("urgent", !form.urgent)}

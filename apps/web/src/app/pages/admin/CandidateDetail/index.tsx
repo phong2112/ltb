@@ -240,6 +240,7 @@ export default function CandidateDetail() {
   return (
     <AdminLayout>
       <div className="w-full max-w-[1560px] space-y-4">
+        {/* Candidate Header And Actions */}
         <header className="overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_10px_30px_rgba(120,70,86,0.06)]">
           <div className="flex flex-col gap-3 px-3.5 py-3.5 sm:px-5 sm:py-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex min-w-0 items-start gap-3 sm:gap-4">
@@ -276,6 +277,7 @@ export default function CandidateDetail() {
           </div>
         </header>
 
+        {/* Multi-Application Switcher */}
         {candidate.applications.length > 1 && (
           <ApplicationHistory
             applications={candidate.applications}
@@ -289,8 +291,11 @@ export default function CandidateDetail() {
           />
         )}
 
+        {/* Candidate Review Workspace */}
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(620px,1fr)_minmax(420px,500px)] 2xl:grid-cols-[minmax(720px,1fr)_560px]">
+          {/* Review Details */}
           <main className="min-w-0 space-y-5">
+            {/* Personal Information */}
             <section className="rounded-2xl border border-border/80 bg-white p-4 shadow-[0_10px_30px_rgba(120,70,86,0.04)] sm:p-6">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <SectionHeading icon={<UserRound size={16} />} title={t("admin.personalInfo")} />
@@ -344,8 +349,10 @@ export default function CandidateDetail() {
               </div>
             </section>
 
+            {/* Parsed CV Summary */}
             <CvSummarySection application={application} />
 
+            {/* AI Match Analysis */}
             <section className="overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_10px_30px_rgba(120,70,86,0.04)]">
               <div className="grid gap-5 border-b border-border px-5 py-5 lg:grid-cols-[minmax(0,1fr)_220px]">
                 <div className="min-w-0">
@@ -409,6 +416,7 @@ export default function CandidateDetail() {
               </div>
             </section>
 
+            {/* Status And Follow-Up */}
             <section className="rounded-2xl border border-border/80 bg-white p-5 shadow-[0_10px_30px_rgba(120,70,86,0.04)]">
               <div className="flex items-center justify-between gap-3">
                 <SectionHeading icon={<Calendar size={16} />} title={`${t("admin.status")} & ${t("common.followUp")}`} />
@@ -452,12 +460,17 @@ export default function CandidateDetail() {
             </section>
           </main>
 
+          {/* CV Preview Sidebar */}
           <aside className="min-w-0 xl:sticky xl:top-20">
             <CvPreviewPanel candidate={application} t={t} />
           </aside>
         </div>
       </div>
+
+      {/* Floating Scroll Shortcut */}
       <ScrollToTopButton />
+
+      {/* Delete Candidate Dialog */}
       <AlertDialog open={deleteOpen} onOpenChange={open => { if (!isDeleting) setDeleteOpen(open); }}>
         <AlertDialogContent>
           <AlertDialogHeader>

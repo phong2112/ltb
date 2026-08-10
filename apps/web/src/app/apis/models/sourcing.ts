@@ -1,4 +1,5 @@
-export type SourcingProfileStatus =
+/** API funnel status for a sourced profile inside a sourcing campaign. */
+export type ApiSourcingProfileStatus =
   | "SOURCED"
   | "QUALIFIED"
   | "CONTACT_READY"
@@ -12,7 +13,8 @@ export type SourcingProfileStatus =
   | "REJECTED"
   | "NOT_A_FIT";
 
-export type SourcingSource =
+/** API source enum for where a sourced profile came from. */
+export type ApiSourcingSource =
   | "LINKEDIN"
   | "TALENT_POOL"
   | "GITHUB"
@@ -27,11 +29,13 @@ export type SourcingSource =
   | "CSV"
   | "REFERRAL";
 
-export type SourcingDiscoveryLocationScope = "VIETNAM" | "GLOBAL";
+/** API location scope used when automatic LinkedIn discovery builds search queries. */
+export type ApiSourcingDiscoveryLocationScope = "VIETNAM" | "GLOBAL";
 
-export type SourcingSearchQuery = {
+/** API search query generated from a JD for one sourcing source. */
+export type ApiSourcingSearchQuery = {
   id: string;
-  source: SourcingSource;
+  source: ApiSourcingSource;
   type: "PEOPLE" | "BROAD" | "XRAY" | "REPOSITORY" | "JOB_BOARD" | "SOCIAL" | "WEB";
   label: string;
   query: string;
@@ -39,27 +43,29 @@ export type SourcingSearchQuery = {
   priority: number;
 };
 
-export type SourcedProfile = {
+/** API sourced profile stored in a campaign pipeline. */
+export type ApiSourcedProfile = {
   id: string;
-  source: SourcingSource;
+  source: ApiSourcingSource;
   profileUrl: string;
   normalizedProfileUrl: string;
   displayName?: string | null;
   headline?: string | null;
   location?: string | null;
   notes?: string | null;
-  status: SourcingProfileStatus;
+  status: ApiSourcingProfileStatus;
   extractionMethod: string;
   createdAt: string;
   updatedAt: string;
 };
 
-export type SourcingCampaign = {
+/** API sourcing campaign detail including brief, generated queries, job, and profiles. */
+export type ApiSourcingCampaign = {
   id: string;
   jobId: string;
   name: string;
   status: "ACTIVE" | "PAUSED" | "CLOSED";
-  discoveryLocationScope: SourcingDiscoveryLocationScope;
+  discoveryLocationScope: ApiSourcingDiscoveryLocationScope;
   brief: {
     targetRole?: string;
     seniority?: string | null;
@@ -69,7 +75,7 @@ export type SourcingCampaign = {
     titleVariants?: string[];
     sourcePriority?: string[];
   };
-  searchQueries: SourcingSearchQuery[];
+  searchQueries: ApiSourcingSearchQuery[];
   job: {
     id: string;
     title: string;
@@ -77,32 +83,35 @@ export type SourcingCampaign = {
     status: string;
     locations: string[];
   };
-  profiles?: SourcedProfile[];
+  profiles?: ApiSourcedProfile[];
   _count: { profiles: number };
   createdAt: string;
   updatedAt: string;
 };
 
-export type SourcingImportResult = {
+/** API response after importing profile URLs into a sourcing campaign. */
+export type ApiSourcingImportResult = {
   createdCount: number;
   duplicateCount: number;
   foundInOtherCampaignCount: number;
   invalidUrls: string[];
-  profiles: SourcedProfile[];
+  profiles: ApiSourcedProfile[];
 };
 
-export type LinkedinDiscoveryResult = {
+/** API response after running automatic LinkedIn discovery through the search provider. */
+export type ApiLinkedinDiscoveryResult = {
   createdCount: number;
   duplicateCount: number;
   queryCount: number;
   resultCount: number;
   skippedQueries: string[];
-  profiles: SourcedProfile[];
+  profiles: ApiSourcedProfile[];
 };
 
-export type InternalCandidateSuggestionResult = {
+/** API response after suggesting existing internal candidates for a sourcing campaign. */
+export type ApiInternalCandidateSuggestionResult = {
   createdCount: number;
   duplicateCount: number;
   resultCount: number;
-  profiles: SourcedProfile[];
+  profiles: ApiSourcedProfile[];
 };

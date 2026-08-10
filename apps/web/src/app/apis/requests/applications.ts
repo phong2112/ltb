@@ -1,37 +1,21 @@
+import type { ApiApplicationCvPreview } from "@/app/apis/models";
 import type { NewCandidate } from "@/app/data/candidates";
 import { apiRequest } from "./client";
+import { API_ENDPOINTS } from "./endpoints";
 
-export type ApplicationCvPreview = {
-  profile: {
-    fullName?: string;
-    title?: string;
-    email?: string;
-    phone?: string;
-    normalizedPhone?: string;
-    applicationArea?: string;
-    skills?: string[];
-    linkedinUrl?: string;
-    portfolioUrl?: string;
-  };
-  metadata: {
-    parser: string;
-    qualityScore?: number;
-    lowConfidenceOcr?: boolean;
-    profileSource?: string;
-  };
-};
-
+/** Requests a lightweight CV parse preview used to autofill the public application form. */
 export function previewApplicationCv(file: File, jobLocations: string[]) {
   const form = new FormData();
   form.set("cv", file);
   form.set("jobLocations", JSON.stringify(jobLocations));
 
-  return apiRequest<ApplicationCvPreview>("/applications/cv-preview", {
+  return apiRequest<ApiApplicationCvPreview>(API_ENDPOINTS.applications.cvPreview, {
     method: "POST",
     body: form,
   });
 }
 
+/** Submits a public candidate application with profile fields, answers, consent, and optional CV. */
 export function submitApplication(candidate: NewCandidate) {
   const form = new FormData();
   form.set("jobId", candidate.jobId);
@@ -57,7 +41,7 @@ export function submitApplication(candidate: NewCandidate) {
     form.set("cv", candidate.cvFile);
   }
 
-  return apiRequest("/applications", {
+  return apiRequest(API_ENDPOINTS.applications.submit, {
     method: "POST",
     body: form,
     notification: {

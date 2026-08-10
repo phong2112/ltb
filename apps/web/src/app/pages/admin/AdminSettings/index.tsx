@@ -56,6 +56,7 @@ export default function AdminSettings() {
   return (
     <AdminLayout>
       <div className="max-w-5xl">
+        {/* Page Header */}
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{t("settings.title")}</h1>
@@ -70,7 +71,9 @@ export default function AdminSettings() {
           </button>
         </div>
 
+        {/* Settings Panels */}
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          {/* User Interface Settings */}
           <section className="rounded-2xl border border-border bg-white p-4 sm:p-5">
             <SectionHeader icon={<SlidersHorizontal size={17} />} title={t("settings.userInterface")} description={t("settings.userInterfaceDesc")} />
 
@@ -119,6 +122,7 @@ export default function AdminSettings() {
             </div>
           </section>
 
+          {/* Admin Workflow Settings */}
           <section className="rounded-2xl border border-border bg-white p-4 sm:p-5">
             <SectionHeader icon={<UserCog size={17} />} title={t("settings.adminInterface")} description={t("settings.adminInterfaceDesc")} />
 

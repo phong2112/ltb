@@ -1,16 +1,20 @@
-import type { InternalCandidateSuggestionResult, LinkedinDiscoveryResult, SourcedProfile, SourcingCampaign, SourcingDiscoveryLocationScope, SourcingImportResult, SourcingProfileStatus, SourcingSource } from "@/app/apis/models/sourcing";
+import type { ApiInternalCandidateSuggestionResult, ApiLinkedinDiscoveryResult, ApiSourcedProfile, ApiSourcingCampaign, ApiSourcingDiscoveryLocationScope, ApiSourcingImportResult, ApiSourcingProfileStatus, ApiSourcingSource } from "@/app/apis/models/sourcing";
 import { apiRequest } from "./client";
+import { API_ENDPOINTS } from "./endpoints";
 
+/** Lists sourcing campaigns for the admin sourcing dashboard. */
 export function listSourcingCampaigns() {
-  return apiRequest<SourcingCampaign[]>("/admin/sourcing");
+  return apiRequest<ApiSourcingCampaign[]>(API_ENDPOINTS.sourcing.campaigns);
 }
 
+/** Loads one sourcing campaign with its job, queries, and sourced profiles. */
 export function getSourcingCampaign(id: string) {
-  return apiRequest<SourcingCampaign>(`/admin/sourcing/${id}`);
+  return apiRequest<ApiSourcingCampaign>(API_ENDPOINTS.sourcing.campaign(id));
 }
 
-export function createSourcingCampaign(input: { jobId: string; name?: string; discoveryLocationScope?: SourcingDiscoveryLocationScope }) {
-  return apiRequest<SourcingCampaign>("/admin/sourcing", {
+/** Creates a sourcing campaign from a target job and optional discovery scope. */
+export function createSourcingCampaign(input: { jobId: string; name?: string; discoveryLocationScope?: ApiSourcingDiscoveryLocationScope }) {
+  return apiRequest<ApiSourcingCampaign>(API_ENDPOINTS.sourcing.campaigns, {
     method: "POST",
     body: JSON.stringify(input),
     notification: {
@@ -21,8 +25,9 @@ export function createSourcingCampaign(input: { jobId: string; name?: string; di
   });
 }
 
-export function importSourcingProfiles(campaignId: string, source: SourcingSource, urls: string[]) {
-  return apiRequest<SourcingImportResult>(`/admin/sourcing/${campaignId}/profiles`, {
+/** Imports pasted profile URLs into a campaign after API-side normalization and dedupe. */
+export function importSourcingProfiles(campaignId: string, source: ApiSourcingSource, urls: string[]) {
+  return apiRequest<ApiSourcingImportResult>(API_ENDPOINTS.sourcing.profiles(campaignId), {
     method: "POST",
     body: JSON.stringify({ source, urls }),
     notification: {
@@ -33,8 +38,9 @@ export function importSourcingProfiles(campaignId: string, source: SourcingSourc
   });
 }
 
+/** Runs assisted LinkedIn discovery for a campaign through the configured search provider. */
 export function discoverLinkedinProfiles(campaignId: string) {
-  return apiRequest<LinkedinDiscoveryResult>(`/admin/sourcing/${campaignId}/discover/linkedin`, {
+  return apiRequest<ApiLinkedinDiscoveryResult>(API_ENDPOINTS.sourcing.linkedinDiscovery(campaignId), {
     method: "POST",
     notification: {
       loading: "Đang tìm ứng viên LinkedIn từ JD...",
@@ -44,8 +50,9 @@ export function discoverLinkedinProfiles(campaignId: string) {
   });
 }
 
+/** Suggests candidates already stored in the system for the campaign's target job. */
 export function suggestInternalCandidates(campaignId: string) {
-  return apiRequest<InternalCandidateSuggestionResult>(`/admin/sourcing/${campaignId}/suggest/internal`, {
+  return apiRequest<ApiInternalCandidateSuggestionResult>(API_ENDPOINTS.sourcing.internalSuggestions(campaignId), {
     method: "POST",
     notification: {
       loading: "Đang tìm ứng viên phù hợp trong hệ thống...",
@@ -55,12 +62,13 @@ export function suggestInternalCandidates(campaignId: string) {
   });
 }
 
+/** Updates the funnel status for one sourced profile in a campaign. */
 export function updateSourcingProfileStatus(
   campaignId: string,
   profileId: string,
-  status: SourcingProfileStatus,
+  status: ApiSourcingProfileStatus,
 ) {
-  return apiRequest<SourcedProfile>(`/admin/sourcing/${campaignId}/profiles/${profileId}/status`, {
+  return apiRequest<ApiSourcedProfile>(API_ENDPOINTS.sourcing.profileStatus(campaignId, profileId), {
     method: "PATCH",
     body: JSON.stringify({ status }),
     notification: {

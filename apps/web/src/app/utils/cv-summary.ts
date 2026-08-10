@@ -15,6 +15,7 @@ export type WorkExperienceDisplayItem = {
   duration: string | null;
 };
 
+/** Builds display-ready work history from the best available CV summary fields. */
 export function getWorkExperienceItems(summary: CvSummaryLike): WorkExperienceDisplayItem[] {
   const structured = (summary.workExperiences ?? [])
     .map(item => ({
@@ -53,21 +54,25 @@ export function getWorkExperienceItems(summary: CvSummaryLike): WorkExperienceDi
   );
 }
 
+/** Formats one work experience row for compact table/list display. */
 export function formatWorkExperience(item: WorkExperienceDisplayItem) {
   return `${item.company}: ${item.title || "—"} - ${item.duration || "—"}`;
 }
 
+/** Finds the free-text highlight that mentions a known company. */
 function findCompanyHighlight(company: string, highlights: string[]) {
   const normalizedCompany = company.toLowerCase();
   return highlights.find(item => item.toLowerCase().includes(normalizedCompany));
 }
 
+/** Infers a company name from phrases like "at X" or "tại X" when structured data is missing. */
 function inferCompany(value?: string) {
   if (!value) return null;
   const match = value.match(/(?:\bat\b|\b@|\btại\b|\bở\b)\s+([^,.;|()]+)/iu);
   return cleanNullable(match?.[1]);
 }
 
+/** Infers a role/title that appears before the company mention in a highlight sentence. */
 function inferTitle(company: string, value?: string) {
   if (!value) return null;
   const escapedCompany = escapeRegExp(company);
@@ -82,6 +87,7 @@ function inferTitle(company: string, value?: string) {
   return null;
 }
 
+/** Extracts either a date range or rough tenure from a work highlight. */
 function inferDuration(value?: string) {
   if (!value) return null;
   const dateRange = value.match(/((?:\d{1,2}[/-])?\d{4}\s*(?:-|–|—|to|đến)\s*(?:(?:\d{1,2}[/-])?\d{4}|present|current|nay|hiện tại))/iu)?.[1];
@@ -89,15 +95,18 @@ function inferDuration(value?: string) {
   return cleanNullable(value.match(/(\d+(?:[.,]\d+)?\+?\s*(?:năm|years?|yrs?))/iu)?.[1]);
 }
 
+/** Removes filler words that often appear before an inferred role. */
 function stripLeadingRoleWords(value: string) {
   return value.replace(/^(?:as|a|an|vị trí|chức danh)\s+/iu, "").trim();
 }
 
+/** Normalizes optional strings and converts blank values to null for UI consistency. */
 function cleanNullable(value?: string | null) {
   const cleaned = value?.replace(/\s+/gu, " ").trim();
   return cleaned || null;
 }
 
+/** Removes duplicate work experience rows after fallback inference. */
 function uniqueExperiences(items: WorkExperienceDisplayItem[]) {
   const seen = new Set<string>();
   return items.filter(item => {
@@ -108,6 +117,7 @@ function uniqueExperiences(items: WorkExperienceDisplayItem[]) {
   });
 }
 
+/** Escapes user/company text before embedding it inside a RegExp. */
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 }

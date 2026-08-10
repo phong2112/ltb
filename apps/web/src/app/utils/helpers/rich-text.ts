@@ -7,6 +7,7 @@ const SANITIZE_CONFIG = {
   ALLOWED_ATTR: ["href", "rel"],
 };
 
+/** Escapes plain text before converting it into trusted rich-text HTML. */
 function escapeHtml(value: string) {
   return value
     .replace(/&/g, "&amp;")
@@ -16,6 +17,7 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#039;");
 }
 
+/** Converts newline text and "- " bullets into the small HTML subset supported by job fields. */
 function plainTextToHtml(value: string) {
   const blocks: string[] = [];
   let listItems: string[] = [];
@@ -39,15 +41,18 @@ function plainTextToHtml(value: string) {
   return blocks.join("");
 }
 
+/** Accepts either plain text or HTML and returns sanitized rich text for rendering/storage. */
 export function normalizeRichText(value: string) {
   const html = RICH_TEXT_TAG_PATTERN.test(value) ? value : plainTextToHtml(value);
   return DOMPurify.sanitize(html, SANITIZE_CONFIG);
 }
 
+/** Removes unsupported tags and attributes from already-HTML rich text. */
 export function sanitizeRichText(value: string) {
   return DOMPurify.sanitize(value, SANITIZE_CONFIG);
 }
 
+/** Converts allowed rich text back to text so validation can count visible content only. */
 function richTextToPlainText(value: string) {
   if (!RICH_TEXT_TAG_PATTERN.test(value)) return value;
 
@@ -57,6 +62,7 @@ function richTextToPlainText(value: string) {
   return new DOMParser().parseFromString(htmlWithSpacing, "text/html").body.textContent ?? "";
 }
 
+/** Counts meaningful visible characters, ignoring markup and repeated whitespace. */
 export function getMeaningfulRichTextLength(value: string) {
   return richTextToPlainText(value).trim().replace(/\s+/gu, " ").length;
 }

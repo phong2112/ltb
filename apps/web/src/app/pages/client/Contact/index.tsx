@@ -51,6 +51,7 @@ export default function Contact() {
 
   return (
     <PublicLayout>
+      {/* Contact Hero */}
       <section className="border-b border-pink-100 bg-[#fff7fa]">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:py-10">
           <div className="grid gap-5 lg:grid-cols-[1fr_0.85fr] lg:items-end">
@@ -83,8 +84,10 @@ export default function Contact() {
         </div>
       </section>
 
+      {/* Contact Form And Candidate Help */}
       <section className="mx-auto max-w-7xl px-4 py-9 sm:px-6 sm:py-12">
         <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+          {/* Email Contact Form */}
           <div className="rounded-2xl border border-border bg-white p-4 sm:p-6">
             <h2 className="text-xl font-black text-foreground">{t("contact.formTitle")}</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t("contact.formSubtitle")}</p>
@@ -110,6 +113,7 @@ export default function Contact() {
             </div>
           </div>
 
+          {/* Candidate Support Notes */}
           <aside className="rounded-2xl border border-pink-100 bg-white p-4 sm:p-6">
             <div className="mb-5 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">

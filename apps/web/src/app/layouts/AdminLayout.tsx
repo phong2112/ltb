@@ -67,9 +67,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen flex" style={{ fontFamily: "'Nunito', sans-serif", background: "#fdf6f0" }}>
-      {/* Sidebar */}
+      {/* Mobile Sidebar Backdrop */}
       {mobileMenuOpen && <button type="button" className="fixed inset-0 z-40 bg-black/25 lg:hidden" onClick={() => setMobileMenuOpen(false)} aria-label="Đóng menu" />}
+
+      {/* Sidebar Navigation */}
       <aside className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-shrink-0 flex-col border-r border-border bg-white shadow-xl transition-transform duration-200 lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:w-56 lg:translate-x-0 lg:shadow-none ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        {/* Workspace Brand */}
         <div className="p-5 border-b border-border">
           <div className="flex items-center gap-2.5">
             <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-full border-2 border-primary/30 bg-pink-100">
@@ -85,6 +88,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </div>
 
+        {/* Primary Admin Links */}
         <nav className="flex-1 p-3 space-y-0.5">
           {navItems.map(n => {
             const active = loc.pathname === n.to || (n.to !== "/admin/dashboard" && loc.pathname.startsWith(n.to));
@@ -99,6 +103,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
 
+        {/* Session Actions */}
         <div className="p-3 border-t border-border">
           <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-all">
             <LogOut size={17} /> {t("common.logout")}
@@ -106,8 +111,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      {/* Main */}
+      {/* Main Workspace */}
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Top Bar */}
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-border bg-white px-3 sm:px-4 lg:px-6">
           <div className="flex min-w-0 items-center gap-2">
             <button type="button" onClick={() => setMobileMenuOpen(true)} className="flex h-9 w-9 flex-none items-center justify-center rounded-xl border border-border text-foreground lg:hidden" aria-label="Mở menu">
@@ -122,6 +128,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             ))}
             </div>
           </div>
+
+          {/* Header Actions */}
           <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
             <Link
               to="/"
@@ -149,6 +157,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </div>
         </header>
+
+        {/* Routed Page Content */}
         <main className="min-w-0 flex-1 p-3 sm:p-4 lg:p-6">{children}</main>
       </div>
     </div>

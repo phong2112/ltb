@@ -21,6 +21,7 @@ export default function CandidateGuide() {
 
   return (
     <PublicLayout>
+      {/* Guide Hero */}
       <section className="border-b border-pink-100" style={{ background: "linear-gradient(135deg, #fff7fa 0%, #fdebf1 58%, #fff 100%)" }}>
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:py-10">
           <div className="max-w-3xl">
@@ -45,7 +46,9 @@ export default function CandidateGuide() {
         </div>
       </section>
 
+      {/* Application Guide Content */}
       <section className="mx-auto max-w-7xl px-4 py-9 sm:px-6 sm:py-12">
+        {/* Process Steps */}
         <div className="grid gap-4 md:grid-cols-3">
           {steps.map(step => (
             <article key={step.title} className="rounded-2xl border border-pink-100 bg-white p-5 shadow-sm">
@@ -58,7 +61,9 @@ export default function CandidateGuide() {
           ))}
         </div>
 
+        {/* Checklist And Support */}
         <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_0.9fr]">
+          {/* Candidate Checklist */}
           <section className="rounded-2xl border border-border bg-white p-4 sm:p-6">
             <div className="mb-5 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pink-50 text-primary">

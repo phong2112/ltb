@@ -95,6 +95,7 @@ export default function AdminJobDetail() {
     <AdminLayout>
       <div className="w-full max-w-[1560px]">
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+          {/* Job Header And Actions */}
           <header className="min-w-0 rounded-2xl border border-border/80 bg-white px-3.5 py-3.5 shadow-[0_10px_30px_rgba(120,70,86,0.06)] sm:px-5 sm:py-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div className="min-w-0">
@@ -160,9 +161,12 @@ export default function AdminJobDetail() {
             </div>
           </header>
 
+          {/* Applicant Sidebar */}
           <JobApplicantsAside jobId={job.id} />
 
+          {/* Job Detail Content */}
           <div className="min-w-0 space-y-5 xl:col-start-1">
+            {/* Job Overview */}
             <section className="overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_10px_30px_rgba(120,70,86,0.04)]">
               <div className="flex flex-col gap-4 border-b border-border bg-gradient-to-r from-pink-50/80 via-white to-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
@@ -194,6 +198,7 @@ export default function AdminJobDetail() {
               </div>
             </section>
 
+            {/* Public Job Description Sections */}
             <section className="overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_10px_30px_rgba(120,70,86,0.04)]">
               {[
                 [t("jobDetail.description"), job.description],
@@ -212,6 +217,8 @@ export default function AdminJobDetail() {
           </div>
         </div>
       </div>
+
+      {/* Floating Scroll Shortcut */}
       <ScrollToTopButton />
     </AdminLayout>
   );

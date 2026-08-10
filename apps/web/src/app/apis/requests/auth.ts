@@ -1,12 +1,15 @@
 import type { ApiAuthSession } from "@/app/apis/models";
 import { apiRequest } from "./client";
+import { API_ENDPOINTS } from "./endpoints";
 
+/** Loads the current admin session from the auth cookie. */
 export function getAuthSession() {
-  return apiRequest<ApiAuthSession>("/auth/me");
+  return apiRequest<ApiAuthSession>(API_ENDPOINTS.auth.me);
 }
 
+/** Sends admin credentials and relies on the API to set auth cookies. */
 export function loginRequest(email: string, password: string) {
-  return apiRequest<ApiAuthSession>("/auth/login", {
+  return apiRequest<ApiAuthSession>(API_ENDPOINTS.auth.login, {
     method: "POST",
     body: JSON.stringify({ email, password }),
     notification: {
@@ -17,8 +20,9 @@ export function loginRequest(email: string, password: string) {
   });
 }
 
+/** Logs out the current admin session and clears auth cookies server-side. */
 export function logoutRequest() {
-  return apiRequest("/auth/logout", {
+  return apiRequest(API_ENDPOINTS.auth.logout, {
     method: "POST",
     notification: {
       loading: "Đang đăng xuất...",
@@ -27,4 +31,3 @@ export function logoutRequest() {
     },
   });
 }
-

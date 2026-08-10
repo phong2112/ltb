@@ -1,3 +1,4 @@
+/** API message template record used by admin template management. */
 export type ApiTemplate = {
   id: string;
   name: string;
@@ -5,9 +6,9 @@ export type ApiTemplate = {
   content: string;
 };
 
-export type TemplateInput = {
+/** API payload for creating or updating an admin message template. */
+export type ApiTemplateInput = {
   name: string;
   channel: string;
   content: string;
 };
-

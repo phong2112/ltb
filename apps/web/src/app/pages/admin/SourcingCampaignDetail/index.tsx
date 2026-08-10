@@ -1,11 +1,11 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Archive, ArrowLeft, BriefcaseBusiness, Check, Copy, ExternalLink, Github, Globe2, Linkedin, LinkIcon, LoaderCircle, MapPin, Search, Sparkles, Users } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router";
-import type { SourcedProfile, SourcingCampaign, SourcingProfileStatus, SourcingSource } from "@/app/apis/models";
+import type { ApiSourcedProfile, ApiSourcingCampaign, ApiSourcingProfileStatus, ApiSourcingSource } from "@/app/apis/models";
 import { discoverLinkedinProfiles, getSourcingCampaign, importSourcingProfiles, suggestInternalCandidates, updateSourcingProfileStatus } from "@/app/apis/requests";
 import AdminLayout from "@/app/layouts/AdminLayout";
 
-const STATUS_OPTIONS: Array<{ value: SourcingProfileStatus; label: string }> = [
+const STATUS_OPTIONS: Array<{ value: ApiSourcingProfileStatus; label: string }> = [
   { value: "SOURCED", label: "Mới tìm thấy" },
   { value: "QUALIFIED", label: "Phù hợp" },
   { value: "CONTACT_READY", label: "Sẵn sàng liên hệ" },
@@ -20,7 +20,7 @@ const STATUS_OPTIONS: Array<{ value: SourcingProfileStatus; label: string }> = [
   { value: "REJECTED", label: "Từ chối" },
 ];
 
-const IMPORT_SOURCES: Array<{ value: SourcingSource; label: string; hint: string; color: string; placeholder: string; icon: React.ReactNode }> = [
+const IMPORT_SOURCES: Array<{ value: ApiSourcingSource; label: string; hint: string; color: string; placeholder: string; icon: React.ReactNode }> = [
   {
     value: "LINKEDIN",
     label: "LinkedIn",
@@ -98,7 +98,7 @@ const IMPORT_SOURCES: Array<{ value: SourcingSource; label: string; hint: string
 export default function SourcingCampaignDetail() {
   const { id = "" } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [campaign, setCampaign] = useState<SourcingCampaign | null>(null);
+  const [campaign, setCampaign] = useState<ApiSourcingCampaign | null>(null);
   const [urls, setUrls] = useState("");
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
@@ -109,7 +109,7 @@ export default function SourcingCampaignDetail() {
   const [discoverySummary, setDiscoverySummary] = useState("");
   const [internalSummary, setInternalSummary] = useState("");
   const [copiedId, setCopiedId] = useState("");
-  const [activeSource, setActiveSource] = useState<SourcingSource>(() => readSourcingSource(searchParams));
+  const [activeSource, setActiveSource] = useState<ApiSourcingSource>(() => readSourcingSource(searchParams));
 
   useEffect(() => {
     if (!id) return;
@@ -196,7 +196,7 @@ export default function SourcingCampaignDetail() {
     window.setTimeout(() => setCopiedId(""), 1500);
   }
 
-  async function updateStatus(profile: SourcedProfile, status: SourcingProfileStatus) {
+  async function updateStatus(profile: ApiSourcedProfile, status: ApiSourcingProfileStatus) {
     if (!campaign) return;
     const updated = await updateSourcingProfileStatus(campaign.id, profile.id, status);
     setCampaign({
@@ -215,7 +215,10 @@ export default function SourcingCampaignDetail() {
 
   return (
     <AdminLayout>
+      {/* Back Link */}
       <Link to="/admin/sourcing" className="mb-3 inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-primary"><ArrowLeft size={13} /> Tất cả chiến dịch</Link>
+
+      {/* Campaign Header */}
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-[#0a66c2] px-3 py-1 text-xs font-black text-white"><Linkedin size={13} /> LINKEDIN · TOP PRIORITY</div>
@@ -225,8 +228,11 @@ export default function SourcingCampaignDetail() {
         <div className="inline-flex w-fit items-center gap-2 rounded-xl border border-border bg-white px-3 py-2 text-sm font-black text-foreground"><Users size={15} className="text-primary" /> {profiles.length} ứng viên</div>
       </div>
 
+      {/* Campaign Workspace */}
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
+        {/* Search Queries And Results */}
         <div className="space-y-5">
+          {/* Query Builder And Discovery Actions */}
           <section className="overflow-hidden rounded-2xl border border-border bg-white">
             <div className="border-b border-border p-4 sm:p-5">
               <div className="mb-4 flex items-start gap-3">
@@ -289,6 +295,8 @@ export default function SourcingCampaignDetail() {
                 ))}
               </div>
             </div>
+
+            {/* Query List */}
             <div className="divide-y divide-border">
               {activeQueries.length ? activeQueries.map((query) => (
                 <div key={query.id} className="p-4 sm:p-5">
@@ -315,6 +323,7 @@ export default function SourcingCampaignDetail() {
             </div>
           </section>
 
+          {/* Campaign Candidate Pipeline */}
           <section className="overflow-hidden rounded-2xl border border-border bg-white">
             <div className="flex items-center justify-between border-b border-border p-4 sm:p-5">
               <div>
@@ -343,7 +352,7 @@ export default function SourcingCampaignDetail() {
                     </div>
                     <select
                       value={profile.status}
-                      onChange={(event) => void updateStatus(profile, event.target.value as SourcingProfileStatus)}
+                      onChange={(event) => void updateStatus(profile, event.target.value as ApiSourcingProfileStatus)}
                       className="h-9 w-full rounded-xl border border-border bg-white px-3 text-xs font-bold text-foreground outline-none focus:border-primary sm:w-44"
                     >
                       {STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
@@ -357,7 +366,9 @@ export default function SourcingCampaignDetail() {
           </section>
         </div>
 
+        {/* Import And Brief Sidebar */}
         <aside className="space-y-5">
+          {/* Manual Profile Import */}
           <form onSubmit={handleImport} className="rounded-2xl border border-border bg-white p-4 sm:p-5">
             <div className="mb-3 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl text-white" style={{ backgroundColor: activeSourceMeta.color }}>{activeSourceMeta.icon}</div>
@@ -368,7 +379,7 @@ export default function SourcingCampaignDetail() {
             </div>
             <select
               value={activeSource}
-              onChange={(event) => setActiveSource(event.target.value as SourcingSource)}
+              onChange={(event) => setActiveSource(event.target.value as ApiSourcingSource)}
               className="mb-3 h-10 w-full rounded-xl border border-border bg-white px-3 text-sm font-bold text-foreground outline-none focus:border-primary"
             >
               {IMPORT_SOURCES.map((source) => <option key={source.value} value={source.value}>{source.label} · {source.hint}</option>)}
@@ -387,6 +398,7 @@ export default function SourcingCampaignDetail() {
             </button>
           </form>
 
+          {/* Sourcing Brief */}
           <section className="rounded-2xl border border-border bg-white p-4 sm:p-5">
             <h2 className="mb-3 font-black text-foreground">Sourcing brief</h2>
             <BriefItem label="Chức danh" values={campaign.brief.titleVariants ?? [campaign.job.title]} />
@@ -402,7 +414,7 @@ export default function SourcingCampaignDetail() {
   );
 }
 
-function DiscoveryEvidence({ profile }: { profile: SourcedProfile }) {
+function DiscoveryEvidence({ profile }: { profile: ApiSourcedProfile }) {
   const evidence = parseDiscoveryNotes(profile.notes);
   if (!evidence) return null;
 
@@ -481,10 +493,10 @@ function profileNameFromUrl(value: string) {
   return slug.split("-").filter(Boolean).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
 }
 
-function sourceMeta(source: SourcingSource) {
+function sourceMeta(source: ApiSourcingSource) {
   if (source === "TALENT_POOL") {
     return {
-      value: "TALENT_POOL" as SourcingSource,
+      value: "TALENT_POOL" as ApiSourcingSource,
       label: "Hệ thống",
       hint: "Talent Pool",
       color: "#059669",
@@ -495,7 +507,7 @@ function sourceMeta(source: SourcingSource) {
   return IMPORT_SOURCES.find((item) => item.value === source) ?? IMPORT_SOURCES[0];
 }
 
-function readSourcingSource(searchParams: URLSearchParams): SourcingSource {
+function readSourcingSource(searchParams: URLSearchParams): ApiSourcingSource {
   const value = searchParams.get("source");
-  return value && IMPORT_SOURCES.some((item) => item.value === value) ? value as SourcingSource : "LINKEDIN";
+  return value && IMPORT_SOURCES.some((item) => item.value === value) ? value as ApiSourcingSource : "LINKEDIN";
 }

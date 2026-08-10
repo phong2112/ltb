@@ -162,6 +162,7 @@ export default function MessageTemplates() {
   return (
     <AdminLayout>
       <div className="max-w-5xl">
+        {/* Page Header */}
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{t("admin.messageTemplatesTitle")}</h1>
@@ -173,6 +174,7 @@ export default function MessageTemplates() {
           </button>
         </div>
 
+        {/* Create/Edit Template Form */}
         {isCreating && (
           <form id="template-editor" onSubmit={submitTemplate} className="mb-5 scroll-mt-4 rounded-2xl border border-pink-100 bg-white p-4 shadow-sm sm:p-5">
             <h2 className="mb-4 text-base font-black text-foreground">{t(editingId ? "admin.editTemplateTitle" : "admin.newTemplate")}</h2>
@@ -199,6 +201,7 @@ export default function MessageTemplates() {
           </form>
         )}
 
+        {/* Channel Filters */}
         <div className="flex flex-wrap gap-2 mb-5">
           {["all", ...CHANNELS].map(ch => (
             <button key={ch} onClick={() => setChannelFilter(ch)}
@@ -208,8 +211,10 @@ export default function MessageTemplates() {
           ))}
         </div>
 
+        {/* Error Banner */}
         {error && <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-600">{error}</div>}
 
+        {/* Template Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {filtered.map((template) => (
             <div key={template.id} className="rounded-2xl border border-border bg-white p-4 transition-all hover:shadow-sm sm:p-5">
@@ -251,6 +256,7 @@ export default function MessageTemplates() {
         </div>
       </div>
 
+      {/* Delete Template Dialog */}
       <AlertDialog open={templateToDelete !== null} onOpenChange={(open) => {
         if (!open && !deletingId) setTemplateToDelete(null);
       }}>

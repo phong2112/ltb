@@ -28,7 +28,7 @@ export default function Home() {
 
   return (
     <PublicLayout>
-      {/* HERO */}
+      {/* Hero Search */}
       <section className="relative overflow-hidden" style={{ background: "linear-gradient(130deg, #fff5f8 0%, #fde8ef 55%, #fad4e4 100%)" }}>
         <div className="absolute inset-y-0 right-0 z-0 w-full pointer-events-none lg:hidden" aria-hidden="true">
           <ImageWithFallback
@@ -93,7 +93,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Features strip */}
+        {/* Feature Strip */}
         <div className="relative z-10 mx-auto max-w-7xl px-4 pb-7 sm:px-6">
           <div className="grid w-full max-w-4xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[
@@ -113,7 +113,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Latest jobs preview */}
+      {/* Latest Jobs Preview */}
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-9">
         <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="text-2xl font-black text-foreground">{t("home.latestJobs")}</h2>
@@ -130,6 +130,7 @@ export default function Home() {
           </Link>
         </div>
 
+        {/* Favorite Jobs Preview */}
         {favoriteJobs.length > 0 && (
           <div className="mt-8 border-t border-border pt-7">
             <div className="mb-4 flex items-center justify-between gap-4">
