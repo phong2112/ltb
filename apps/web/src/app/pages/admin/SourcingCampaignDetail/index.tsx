@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowLeft, BriefcaseBusiness, Check, Copy, ExternalLink, Github, Globe2, Linkedin, LinkIcon, MapPin, Search, Users } from "lucide-react";
+import { Archive, ArrowLeft, BriefcaseBusiness, Check, Copy, ExternalLink, Github, Globe2, Linkedin, LinkIcon, LoaderCircle, MapPin, Search, Sparkles, Users } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router";
 import type { SourcedProfile, SourcingCampaign, SourcingProfileStatus, SourcingSource } from "@/app/apis/models";
-import { getSourcingCampaign, importSourcingProfiles, updateSourcingProfileStatus } from "@/app/apis/requests";
+import { discoverLinkedinProfiles, getSourcingCampaign, importSourcingProfiles, suggestInternalCandidates, updateSourcingProfileStatus } from "@/app/apis/requests";
 import AdminLayout from "@/app/layouts/AdminLayout";
 
 const STATUS_OPTIONS: Array<{ value: SourcingProfileStatus; label: string }> = [
@@ -102,8 +102,12 @@ export default function SourcingCampaignDetail() {
   const [urls, setUrls] = useState("");
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [discovering, setDiscovering] = useState(false);
+  const [suggestingInternal, setSuggestingInternal] = useState(false);
   const [error, setError] = useState("");
   const [importSummary, setImportSummary] = useState("");
+  const [discoverySummary, setDiscoverySummary] = useState("");
+  const [internalSummary, setInternalSummary] = useState("");
   const [copiedId, setCopiedId] = useState("");
   const [activeSource, setActiveSource] = useState<SourcingSource>(() => readSourcingSource(searchParams));
 
@@ -146,6 +150,43 @@ export default function SourcingCampaignDetail() {
       setImportSummary(parts.join(" · "));
     } finally {
       setImporting(false);
+    }
+  }
+
+  async function handleLinkedinDiscovery() {
+    if (!campaign || discovering) return;
+
+    setDiscovering(true);
+    setDiscoverySummary("");
+    try {
+      const result = await discoverLinkedinProfiles(campaign.id);
+      setCampaign({ ...campaign, profiles: result.profiles, _count: { profiles: result.profiles.length } });
+      const parts = [
+        `Đã chạy ${result.queryCount} query`,
+        `tìm thấy ${result.resultCount} hồ sơ`,
+        `thêm mới ${result.createdCount}`,
+      ];
+      if (result.duplicateCount) parts.push(`${result.duplicateCount} hồ sơ trùng`);
+      if (result.skippedQueries.length) parts.push(`${result.skippedQueries.length} query lỗi`);
+      setDiscoverySummary(parts.join(" · "));
+    } finally {
+      setDiscovering(false);
+    }
+  }
+
+  async function handleInternalSuggestions() {
+    if (!campaign || suggestingInternal) return;
+
+    setSuggestingInternal(true);
+    setInternalSummary("");
+    try {
+      const result = await suggestInternalCandidates(campaign.id);
+      setCampaign({ ...campaign, profiles: result.profiles, _count: { profiles: result.profiles.length } });
+      const parts = [`gợi ý ${result.resultCount} hồ sơ`, `thêm mới ${result.createdCount}`];
+      if (result.duplicateCount) parts.push(`${result.duplicateCount} hồ sơ trùng`);
+      setInternalSummary(parts.join(" · "));
+    } finally {
+      setSuggestingInternal(false);
     }
   }
 
@@ -192,9 +233,45 @@ export default function SourcingCampaignDetail() {
                 <div className="flex h-10 w-10 flex-none items-center justify-center rounded-xl text-white" style={{ backgroundColor: activeSourceMeta.color }}><Search size={18} /></div>
                 <div>
                   <h2 className="font-black text-foreground">Bộ tìm kiếm đa nền tảng</h2>
-                  <p className="mt-0.5 text-xs leading-5 text-muted-foreground">LinkedIn luôn đứng đầu. Chọn thêm nguồn để mở search và import URL vào campaign.</p>
+                  <p className="mt-0.5 text-xs leading-5 text-muted-foreground">LinkedIn luôn đứng đầu. Có thể chạy discovery tự động từ public search hoặc mở query để kiểm tra thủ công.</p>
                 </div>
               </div>
+              <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-black text-foreground">Suggest từ hệ thống</p>
+                    <p className="mt-0.5 text-xs leading-5 text-muted-foreground">Tự rà Talent Pool và ứng viên từng apply vị trí khác, rồi gợi ý hồ sơ có tín hiệu khớp JD.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void handleInternalSuggestions()}
+                    disabled={suggestingInternal}
+                    className="inline-flex h-10 flex-none items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-xs font-black text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {suggestingInternal ? <LoaderCircle size={14} className="animate-spin" /> : <Archive size={14} />} {suggestingInternal ? "Đang rà..." : "Suggest ứng viên"}
+                  </button>
+                </div>
+                {internalSummary && <p className="mt-3 rounded-lg border border-emerald-300 bg-white px-3 py-2 text-xs font-bold text-emerald-800">{internalSummary}</p>}
+              </div>
+              {activeSource === "LINKEDIN" && (
+                <div className="mb-4 rounded-xl border border-[#0a66c2]/20 bg-[#0a66c2]/5 p-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-black text-foreground">LinkedIn assisted discovery</p>
+                      <p className="mt-0.5 text-xs leading-5 text-muted-foreground">Tự chạy X-Ray query qua Brave Search, dedupe URL và chấm potential fit từ snippet công khai.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void handleLinkedinDiscovery()}
+                      disabled={discovering}
+                      className="inline-flex h-10 flex-none items-center justify-center gap-2 rounded-xl bg-[#0a66c2] px-4 text-xs font-black text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {discovering ? <LoaderCircle size={14} className="animate-spin" /> : <Sparkles size={14} />} {discovering ? "Đang tìm..." : "Tìm LinkedIn tự động"}
+                    </button>
+                  </div>
+                  {discoverySummary && <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">{discoverySummary}</p>}
+                </div>
+              )}
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {IMPORT_SOURCES.filter((source) => source.value !== "MANUAL").map((source) => (
                   <button
@@ -248,11 +325,13 @@ export default function SourcingCampaignDetail() {
             ) : (
               <div className="divide-y divide-border">
                 {profiles.map((profile) => (
-                  <div key={profile.id} className="p-4 sm:flex sm:items-center sm:gap-3 sm:p-5">
+                  <div key={profile.id} className="p-4 sm:p-5">
+                    <div className="sm:flex sm:items-center sm:gap-3">
                     <div className="mb-3 flex min-w-0 flex-1 items-center gap-3 sm:mb-0">
                       <div className="flex h-9 w-9 flex-none items-center justify-center rounded-full text-white" style={{ backgroundColor: sourceMeta(profile.source).color }}>{sourceMeta(profile.source).icon}</div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-black text-foreground">{profile.displayName || profileNameFromUrl(profile.profileUrl)}</p>
+                        {profile.headline && <p className="mt-0.5 line-clamp-1 text-xs font-semibold text-muted-foreground">{profile.headline}</p>}
                         <div className="mt-0.5 flex min-w-0 items-center gap-2">
                           <span className="rounded-full px-2 py-0.5 text-[10px] font-black text-white" style={{ backgroundColor: sourceMeta(profile.source).color }}>{sourceMeta(profile.source).label}</span>
                           <a href={profile.profileUrl} target="_blank" rel="noreferrer" className="flex min-w-0 items-center gap-1 truncate text-xs text-[#0a66c2] hover:underline"><LinkIcon size={11} /> {profile.profileUrl}</a>
@@ -266,6 +345,8 @@ export default function SourcingCampaignDetail() {
                     >
                       {STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                     </select>
+                    </div>
+                    <DiscoveryEvidence profile={profile} />
                   </div>
                 ))}
               </div>
@@ -318,6 +399,70 @@ export default function SourcingCampaignDetail() {
   );
 }
 
+function DiscoveryEvidence({ profile }: { profile: SourcedProfile }) {
+  const evidence = parseDiscoveryNotes(profile.notes);
+  if (!evidence) return null;
+
+  return (
+    <div className="mt-3 rounded-xl border border-border bg-background/70 p-3">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-800">Potential {evidence.potentialScore}/100</span>
+        <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-muted-foreground">{evidence.confidence}</span>
+        <span className="text-[10px] font-semibold text-muted-foreground">{evidence.metaLabel}</span>
+      </div>
+      {evidence.matchedSignals.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {evidence.matchedSignals.slice(0, 5).map((signal) => <span key={signal} className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-foreground ring-1 ring-border">{signal}</span>)}
+        </div>
+      )}
+      <p className="line-clamp-3 text-xs leading-5 text-muted-foreground">{evidence.evidence || evidence.reason}</p>
+    </div>
+  );
+}
+
+type DiscoveryNotes = {
+  type: "linkedin_discovery" | "internal_candidate_suggestion";
+  potentialScore: number;
+  confidence: string;
+  matchedSignals: string[];
+  evidence: string;
+  reason: string;
+  searchRank?: number;
+  sourceKind?: string;
+  metaLabel: string;
+};
+
+function parseDiscoveryNotes(value?: string | null): DiscoveryNotes | null {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value) as Partial<DiscoveryNotes>;
+    const type = parsed.type;
+    if ((type !== "linkedin_discovery" && type !== "internal_candidate_suggestion") || typeof parsed.potentialScore !== "number") return null;
+    const sourceKind = typeof parsed.sourceKind === "string" ? parsed.sourceKind : undefined;
+    return {
+      type,
+      potentialScore: parsed.potentialScore,
+      confidence: typeof parsed.confidence === "string" ? parsed.confidence : "LOW",
+      matchedSignals: Array.isArray(parsed.matchedSignals) ? parsed.matchedSignals.filter((item): item is string => typeof item === "string") : [],
+      evidence: typeof parsed.evidence === "string" ? parsed.evidence : "",
+      reason: typeof parsed.reason === "string" ? parsed.reason : "",
+      searchRank: typeof parsed.searchRank === "number" ? parsed.searchRank : undefined,
+      sourceKind,
+      metaLabel: type === "internal_candidate_suggestion"
+        ? sourceKindLabel(sourceKind)
+        : `Query #${typeof parsed.searchRank === "number" ? parsed.searchRank : 0}`,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function sourceKindLabel(value?: string) {
+  if (value === "talent_pool") return "Talent Pool";
+  if (value === "previous_application") return "Ứng viên cũ";
+  return "Hệ thống";
+}
+
 function BriefItem({ label, values, icon }: { label: string; values: string[]; icon?: React.ReactNode }) {
   if (!values.length) return null;
   return (
@@ -334,6 +479,16 @@ function profileNameFromUrl(value: string) {
 }
 
 function sourceMeta(source: SourcingSource) {
+  if (source === "TALENT_POOL") {
+    return {
+      value: "TALENT_POOL" as SourcingSource,
+      label: "Hệ thống",
+      hint: "Talent Pool",
+      color: "#059669",
+      placeholder: "",
+      icon: <Archive size={16} />,
+    };
+  }
   return IMPORT_SOURCES.find((item) => item.value === source) ?? IMPORT_SOURCES[0];
 }
 

@@ -1,4 +1,4 @@
-import type { SourcedProfile, SourcingCampaign, SourcingImportResult, SourcingProfileStatus, SourcingSource } from "@/app/apis/models/sourcing";
+import type { InternalCandidateSuggestionResult, LinkedinDiscoveryResult, SourcedProfile, SourcingCampaign, SourcingImportResult, SourcingProfileStatus, SourcingSource } from "@/app/apis/models/sourcing";
 import { apiRequest } from "./client";
 
 export function listSourcingCampaigns() {
@@ -29,6 +29,28 @@ export function importSourcingProfiles(campaignId: string, source: SourcingSourc
       loading: "Đang thêm hồ sơ sourcing...",
       success: "Đã cập nhật danh sách ứng viên",
       error: "Không thể thêm hồ sơ sourcing",
+    },
+  });
+}
+
+export function discoverLinkedinProfiles(campaignId: string) {
+  return apiRequest<LinkedinDiscoveryResult>(`/admin/sourcing/${campaignId}/discover/linkedin`, {
+    method: "POST",
+    notification: {
+      loading: "Đang tìm ứng viên LinkedIn từ JD...",
+      success: "Đã cập nhật shortlist LinkedIn",
+      error: "Không thể chạy LinkedIn discovery",
+    },
+  });
+}
+
+export function suggestInternalCandidates(campaignId: string) {
+  return apiRequest<InternalCandidateSuggestionResult>(`/admin/sourcing/${campaignId}/suggest/internal`, {
+    method: "POST",
+    notification: {
+      loading: "Đang tìm ứng viên phù hợp trong hệ thống...",
+      success: "Đã cập nhật gợi ý ứng viên nội bộ",
+      error: "Không thể gợi ý ứng viên nội bộ",
     },
   });
 }

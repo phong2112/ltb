@@ -1,8 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { SourcingProfileStatus, SourcingSource } from "@prisma/client";
+import { SourcingProfileStatus } from "@prisma/client";
 import { PrismaService } from "../../prisma";
+import { LinkedinDiscoveryService } from "../discovery/index.service";
 import { CreateSourcingCampaignDto } from "../dto/create/index.dto";
 import { ImportSourcingProfilesDto } from "../dto/import-linkedin/index.dto";
+import { InternalCandidateSuggestionService } from "../internal-suggestions/index.service";
 import {
   buildSourcingQueries,
   buildSourcingBrief,
@@ -25,7 +27,11 @@ const campaignListInclude = {
 
 @Injectable()
 export class SourcingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly linkedinDiscoveryService: LinkedinDiscoveryService,
+    private readonly internalSuggestionService: InternalCandidateSuggestionService,
+  ) {}
 
   listCampaigns() {
     return this.prisma.sourcingCampaign.findMany({
@@ -136,6 +142,26 @@ export class SourcingService {
       where: { id: profileId },
       data: { status },
     });
+  }
+
+  async discoverLinkedinProfiles(campaignId: string) {
+    const campaign = await this.prisma.sourcingCampaign.findUnique({
+      where: { id: campaignId },
+      include: { job: true },
+    });
+    if (!campaign) throw new NotFoundException("Không tìm thấy chiến dịch sourcing.");
+
+    return this.linkedinDiscoveryService.discoverAndStore(this.prisma, campaign.id, campaign.job);
+  }
+
+  async suggestInternalCandidates(campaignId: string) {
+    const campaign = await this.prisma.sourcingCampaign.findUnique({
+      where: { id: campaignId },
+      include: { job: true },
+    });
+    if (!campaign) throw new NotFoundException("Không tìm thấy chiến dịch sourcing.");
+
+    return this.internalSuggestionService.suggestAndStore(this.prisma, campaign.id, campaign.job);
   }
 
   private async assertCampaignExists(id: string) {

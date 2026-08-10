@@ -4,6 +4,7 @@ import ApplicationForm, { ApplicationJobSummary } from "@/app/components/Applica
 import { useData } from "@/app/data";
 import { useLanguage } from "@/app/services/i18n-service";
 import PublicLayout from "@/app/layouts/PublicLayout";
+import { tenantPath } from "@/app/utils/tenant";
 
 export default function Apply() {
   const { id } = useParams();
@@ -23,7 +24,7 @@ export default function Apply() {
       <div className="py-32 text-center">
         <div className="mb-4 text-5xl">🌸</div>
         <p className="mb-2 text-xl font-bold">{t("apply.notFound")}</p>
-        <Link to="/jobs" className="text-sm text-primary underline">{t("common.backToList")}</Link>
+        <Link to={tenantPath("/jobs")} className="text-sm text-primary underline">{t("common.backToList")}</Link>
       </div>
     </PublicLayout>
   );
@@ -31,7 +32,7 @@ export default function Apply() {
   return (
     <PublicLayout>
       <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8">
-        <Link to={`/jobs/${job.id}`} className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-primary">
+        <Link to={tenantPath(`/jobs/${job.id}`)} className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-primary">
           <ChevronLeft size={15} /> {t("apply.backToJd")}
         </Link>
 
@@ -39,7 +40,7 @@ export default function Apply() {
 
         <div className="mt-6 rounded-2xl border border-border bg-white p-4 sm:p-6">
           <h1 className="mb-5 text-xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{t("apply.formTitle")}</h1>
-          <ApplicationForm job={job} onSuccess={() => navigate("/apply/success")} />
+          <ApplicationForm job={job} onSuccess={() => navigate(tenantPath("/apply/success"))} />
         </div>
       </div>
     </PublicLayout>

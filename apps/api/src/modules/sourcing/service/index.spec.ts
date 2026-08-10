@@ -17,7 +17,7 @@ function createService() {
 
   return {
     prisma,
-    service: new SourcingService(prisma as never),
+    service: new SourcingService(prisma as never, {} as never, {} as never),
   };
 }
 

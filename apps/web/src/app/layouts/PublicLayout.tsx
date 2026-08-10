@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router";
 import { LogIn, Menu, X } from "lucide-react";
 import { ImageWithFallback } from "@/app/components/ImageFallBack";
 import { useLanguage, type Language } from "@/app/services/i18n-service";
+import { stripTenantPath, tenantPath } from "@/app/utils/tenant";
 
 const portraitImg = "/images/luong-thi-bich.png";
 
@@ -11,11 +12,12 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
   const { language, setLanguage, t } = useLanguage();
   const languages: Language[] = ["vi", "en"];
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const activePath = stripTenantPath(loc.pathname);
   const navItems = [
-    { to: "/", label: t("common.home"), active: loc.pathname === "/" },
-    { to: "/jobs", label: t("common.jobs"), active: loc.pathname.startsWith("/jobs") },
-    { to: "/candidate-guide", label: t("common.candidateGuide"), active: loc.pathname === "/candidate-guide" },
-    { to: "/contact", label: t("common.contact"), active: loc.pathname === "/contact" },
+    { to: tenantPath("/", loc.pathname), label: t("common.home"), active: activePath === "/" },
+    { to: tenantPath("/jobs", loc.pathname), label: t("common.jobs"), active: activePath.startsWith("/jobs") },
+    { to: tenantPath("/candidate-guide", loc.pathname), label: t("common.candidateGuide"), active: activePath === "/candidate-guide" },
+    { to: tenantPath("/contact", loc.pathname), label: t("common.contact"), active: activePath === "/contact" },
   ];
 
   useEffect(() => {
@@ -26,7 +28,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
     <div className="min-h-screen bg-background text-foreground flex flex-col" style={{ fontFamily: "'Nunito', sans-serif" }}>
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-border shadow-sm">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:px-6">
-          <Link to="/" className="flex min-w-0 items-center gap-2.5">
+          <Link to={tenantPath("/", loc.pathname)} className="flex min-w-0 items-center gap-2.5">
             <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-primary/30 bg-pink-100">
               <ImageWithFallback src={portraitImg} alt="Lường Bích" className="w-full h-full object-cover object-top" />
             </div>
@@ -104,9 +106,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             <span className="font-bold text-primary" style={{ fontFamily: "'Playfair Display', serif" }}>Lường Bích</span>
           </div>
           <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 font-semibold">
-            <Link to="/terms" className="hover:text-primary transition-colors">{t("footer.terms")}</Link>
-            <Link to="/privacy" className="hover:text-primary transition-colors">{t("footer.privacy")}</Link>
-            <Link to="/contact" className="hover:text-primary transition-colors">{t("footer.contact")}</Link>
+            <Link to={tenantPath("/terms", loc.pathname)} className="hover:text-primary transition-colors">{t("footer.terms")}</Link>
+            <Link to={tenantPath("/privacy", loc.pathname)} className="hover:text-primary transition-colors">{t("footer.privacy")}</Link>
+            <Link to={tenantPath("/contact", loc.pathname)} className="hover:text-primary transition-colors">{t("footer.contact")}</Link>
           </div>
         </div>
       </footer>

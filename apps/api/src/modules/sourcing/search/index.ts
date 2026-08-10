@@ -190,6 +190,38 @@ export function buildSourcingQueries(job: SourcingJobInput): SourcingSearchQuery
 
 export const buildLinkedinQueries = buildSourcingQueries;
 
+export function buildLinkedinDiscoveryQueries(job: SourcingJobInput): SourcingSearchQuery[] {
+  const titles = titleVariants(job.title);
+  const skills = unique(job.tags.map(cleanPhrase).filter(Boolean)).slice(0, 8);
+  const locations = unique(job.locations.map(cleanPhrase).filter(Boolean)).slice(0, 4);
+  const seniority = cleanPhrase(job.level ?? "");
+  const mustHave = splitRequirements(job.requirements).map(cleanPhrase).filter(Boolean).slice(0, 6);
+  const skillGroups = groupDiscoveryTerms(skills.length ? skills : mustHave, 3).filter((group) => group.length);
+  const locationClause = locations.length ? orClause([...locations, "Vietnam", "Viet Nam"]) : orClause(["Vietnam", "Viet Nam"]);
+  const titleClause = orClause(titles);
+  const adjacentTitleClause = orClause(unique([...titles, ...adjacentTitleVariants(job.title)]));
+  const seniorityClause = seniority ? ` ${quote(seniority)}` : "";
+  const baseNegative = "-jobs -job -company -pulse -school -learning";
+  const queries: SourcingSearchQuery[] = [];
+
+  pushLinkedinDiscoveryQuery(queries, "linkedin-discovery-strict", "LinkedIn · Auto strict", `${titleClause}${seniorityClause}${skillGroups[0] ? ` ${orClause(skillGroups[0])}` : ""} ${locationClause} ${baseNegative}`);
+  pushLinkedinDiscoveryQuery(queries, "linkedin-discovery-skill-first", "LinkedIn · Auto skill-first", `${skillGroups[0] ? orClause(skillGroups[0]) : titleClause} ${adjacentTitleClause} ${locationClause} ${baseNegative}`);
+  pushLinkedinDiscoveryQuery(queries, "linkedin-discovery-adjacent-title", "LinkedIn · Auto title mở rộng", `${adjacentTitleClause}${skillGroups[1] ? ` ${orClause(skillGroups[1])}` : ""} ${locationClause} ${baseNegative}`);
+  pushLinkedinDiscoveryQuery(queries, "linkedin-discovery-location-broad", "LinkedIn · Auto rộng địa điểm", `${titleClause}${skillGroups[0] ? ` ${orClause(skillGroups[0])}` : ""} ${baseNegative}`);
+  pushLinkedinDiscoveryQuery(queries, "linkedin-discovery-hidden-gem", "LinkedIn · Auto hidden gems", `${skillGroups.flat().slice(0, 5).map(quote).join(" ")} ${locationClause} ${baseNegative}`);
+
+  skillGroups.slice(0, 4).forEach((group, index) => {
+    pushLinkedinDiscoveryQuery(
+      queries,
+      `linkedin-discovery-skill-group-${index + 1}`,
+      `LinkedIn · Auto skill group ${index + 1}`,
+      `${adjacentTitleClause} ${orClause(group)} ${locationClause} ${baseNegative}`,
+    );
+  });
+
+  return queries.map((query, index) => ({ ...query, priority: index + 1 }));
+}
+
 export function normalizeSourcingProfileUrl(value: string, source: SourcingImportSource) {
   const raw = value.trim();
   if (!raw) return null;
@@ -237,6 +269,38 @@ function linkedinPeopleSearchUrl(query: string) {
 
 function googleSearchUrl(query: string) {
   return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+}
+
+function pushLinkedinDiscoveryQuery(queries: SourcingSearchQuery[], id: string, label: string, body: string) {
+  const normalizedBody = body.replace(/\s+/gu, " ").trim();
+  if (!normalizedBody) return;
+  queries.push({
+    id,
+    source: "LINKEDIN",
+    type: "XRAY",
+    label,
+    query: `site:linkedin.com/in ${normalizedBody}`,
+    searchUrl: googleSearchUrl(`site:linkedin.com/in ${normalizedBody}`),
+    priority: queries.length + 1,
+  });
+}
+
+function adjacentTitleVariants(title: string) {
+  if (/tester|qa|quality/iu.test(title)) return ["QA Engineer", "Quality Assurance", "Automation Tester", "SDET", "Test Engineer"];
+  if (/frontend|front-end/iu.test(title)) return ["Frontend Engineer", "Frontend Developer", "React Developer", "Web Developer"];
+  if (/backend|back-end/iu.test(title)) return ["Backend Engineer", "Backend Developer", "Software Engineer", "API Developer"];
+  if (/full.?stack/iu.test(title)) return ["Full Stack Engineer", "Full Stack Developer", "Software Engineer", "Web Developer"];
+  if (/ai|machine learning|\bml\b/iu.test(title)) return ["AI Engineer", "Machine Learning Engineer", "ML Engineer", "Data Scientist"];
+  if (/recruit|talent acquisition|\bta\b/iu.test(title)) return ["Recruiter", "Talent Acquisition", "Talent Partner", "Technical Recruiter"];
+  return [];
+}
+
+function groupDiscoveryTerms<T>(values: T[], size: number) {
+  const chunks: T[][] = [];
+  for (let index = 0; index < values.length; index += size) {
+    chunks.push(values.slice(index, index + size));
+  }
+  return chunks;
 }
 
 function normalizeHostPathUrl(

@@ -2,6 +2,7 @@ import {
   notificationService,
   type ActionNotification,
 } from "@/app/services/notification.service";
+import { currentTenantSlug } from "@/app/utils/tenant";
 
 export const API_BASE = resolveApiBase(
   import.meta.env.VITE_API_BASE_PATH as string | undefined,
@@ -70,6 +71,7 @@ function sendRequest(path: string, init: RequestInit) {
     ...init,
     headers: {
       ...(bodyIsFormData ? {} : { "Content-Type": "application/json" }),
+      "X-Tenant-Slug": currentTenantSlug(),
       ...(init.headers ?? {}),
     },
   });
@@ -136,4 +138,3 @@ function resolveApiBase(configuredBase: string | undefined) {
 function isAbsoluteUrl(value: string) {
   return /^https?:\/\//i.test(value);
 }
-

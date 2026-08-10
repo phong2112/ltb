@@ -6,6 +6,7 @@ import PublicJobCard from "@/app/components/PublicJobCard";
 import { useData } from "@/app/data";
 import PublicLayout from "@/app/layouts/PublicLayout";
 import { useLanguage } from "@/app/services/i18n-service";
+import { tenantPath } from "@/app/utils/tenant";
 
 const portraitImg = "/images/luong-thi-bich.png";
 
@@ -22,7 +23,7 @@ export default function Home() {
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    navigate(`/jobs?q=${encodeURIComponent(search)}`);
+    navigate(tenantPath(`/jobs?q=${encodeURIComponent(search)}`));
   }
 
   return (
@@ -73,7 +74,7 @@ export default function Home() {
             <div className="mb-5 flex flex-wrap gap-2 text-xs">
               <span className="text-muted-foreground">{t("home.popular")}</span>
               {["Designer", "React", "Marketing", "TA", "Data"].map(t => (
-                <Link key={t} to={`/jobs?q=${t}`} className="px-3 py-1 bg-white/70 border border-pink-200 rounded-full hover:bg-white hover:border-primary hover:text-primary text-muted-foreground transition-all">{t}</Link>
+                <Link key={t} to={tenantPath(`/jobs?q=${t}`)} className="px-3 py-1 bg-white/70 border border-pink-200 rounded-full hover:bg-white hover:border-primary hover:text-primary text-muted-foreground transition-all">{t}</Link>
               ))}
             </div>
 
@@ -116,7 +117,7 @@ export default function Home() {
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-9">
         <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="text-2xl font-black text-foreground">{t("home.latestJobs")}</h2>
-          <Link to="/jobs" className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">{t("home.ctaJobs")} <ArrowRight size={14} /></Link>
+          <Link to={tenantPath("/jobs")} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">{t("home.ctaJobs")} <ArrowRight size={14} /></Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {latestJobs.map(job => (
@@ -124,7 +125,7 @@ export default function Home() {
           ))}
         </div>
         <div className="mt-5 flex justify-end md:hidden">
-          <Link to="/jobs" className="inline-flex h-10 w-full items-center justify-center gap-1 rounded-xl border border-pink-200 bg-white px-4 text-sm font-bold text-primary transition-colors hover:border-primary sm:w-auto">
+          <Link to={tenantPath("/jobs")} className="inline-flex h-10 w-full items-center justify-center gap-1 rounded-xl border border-pink-200 bg-white px-4 text-sm font-bold text-primary transition-colors hover:border-primary sm:w-auto">
             {t("home.ctaJobs")} <ArrowRight size={14} />
           </Link>
         </div>
@@ -135,7 +136,7 @@ export default function Home() {
               <h2 className="flex items-center gap-2 text-2xl font-black text-foreground">
                 <Heart size={20} className="text-primary" fill="currentColor" /> {t("home.favoriteJobs")}
               </h2>
-              <Link to="/jobs?view=saved" className="flex flex-shrink-0 items-center gap-1 text-sm font-semibold text-primary hover:underline">{t("home.ctaJobs")} <ArrowRight size={14} /></Link>
+              <Link to={tenantPath("/jobs?view=saved")} className="flex flex-shrink-0 items-center gap-1 text-sm font-semibold text-primary hover:underline">{t("home.ctaJobs")} <ArrowRight size={14} /></Link>
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {favoriteJobs.map(job => (

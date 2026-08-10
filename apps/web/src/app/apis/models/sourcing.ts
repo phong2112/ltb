@@ -87,3 +87,19 @@ export type SourcingImportResult = {
   invalidUrls: string[];
   profiles: SourcedProfile[];
 };
+
+export type LinkedinDiscoveryResult = {
+  createdCount: number;
+  duplicateCount: number;
+  queryCount: number;
+  resultCount: number;
+  skippedQueries: string[];
+  profiles: SourcedProfile[];
+};
+
+export type InternalCandidateSuggestionResult = {
+  createdCount: number;
+  duplicateCount: number;
+  resultCount: number;
+  profiles: SourcedProfile[];
+};

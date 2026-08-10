@@ -32,6 +32,18 @@ export class SourcingController {
     return this.sourcingService.getCampaign(id);
   }
 
+  @ApiCreatedResponse({ description: "Discovered LinkedIn public profiles through the configured search API." })
+  @Post(":id/discover/linkedin")
+  discoverLinkedinProfiles(@Param("id") id: string) {
+    return this.sourcingService.discoverLinkedinProfiles(id);
+  }
+
+  @ApiCreatedResponse({ description: "Suggested existing candidates and talent pool entries that may match the JD." })
+  @Post(":id/suggest/internal")
+  suggestInternalCandidates(@Param("id") id: string) {
+    return this.sourcingService.suggestInternalCandidates(id);
+  }
+
   @ApiCreatedResponse({ description: "Imported and deduplicated profile URLs by source." })
   @Post(":id/profiles")
   importProfiles(@Param("id") id: string, @Body() dto: ImportSourcingProfilesDto) {

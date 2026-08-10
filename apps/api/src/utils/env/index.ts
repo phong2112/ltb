@@ -23,6 +23,8 @@ const integerVariables = [
   "OCR_TIMEOUT_MS",
   "APPLICATION_RATE_LIMIT_MAX",
   "APPLICATION_RATE_LIMIT_WINDOW_SECONDS",
+  "SOURCING_DISCOVERY_MAX_QUERIES_PER_CAMPAIGN",
+  "SOURCING_DISCOVERY_RESULTS_PER_QUERY",
 ];
 
 const nonNegativeIntegerVariables = ["TRUST_PROXY_HOPS"];
@@ -82,6 +84,18 @@ export function validateEnv(config: Record<string, unknown>) {
     !["true", "false"].includes(String(swaggerEnabled))
   ) {
     throw new Error("SWAGGER_ENABLED must be true or false");
+  }
+
+  const sourcingDiscoveryEnabled = config.SOURCING_DISCOVERY_ENABLED;
+  if (
+    hasValue(sourcingDiscoveryEnabled) &&
+    !["true", "false"].includes(String(sourcingDiscoveryEnabled))
+  ) {
+    throw new Error("SOURCING_DISCOVERY_ENABLED must be true or false");
+  }
+
+  if (String(sourcingDiscoveryEnabled || "false") === "true" && !hasValue(config.BRAVE_SEARCH_API_KEY)) {
+    throw new Error("BRAVE_SEARCH_API_KEY is required when SOURCING_DISCOVERY_ENABLED=true");
   }
 
   const storageDriver = config.CV_STORAGE_DRIVER;

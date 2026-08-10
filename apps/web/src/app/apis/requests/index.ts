@@ -35,8 +35,10 @@ export {
 } from "./templates";
 export {
   createSourcingCampaign,
+  discoverLinkedinProfiles,
   getSourcingCampaign,
   importSourcingProfiles,
   listSourcingCampaigns,
+  suggestInternalCandidates,
   updateSourcingProfileStatus,
 } from "./sourcing";

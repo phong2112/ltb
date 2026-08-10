@@ -7,6 +7,7 @@ import RichTextContent from "@/app/components/RichTextContent";
 import { notificationService } from "@/app/services/notification.service";
 import { URGENT_BADGE_CLASS } from "@/app/utils/configs/status-config";
 import ApplicationDialog from "@/app/components/ApplicationDialog";
+import { stripTenantPath, tenantPath } from "@/app/utils/tenant";
 
 const typeColors: Record<string, string> = {
   "Full-time": "bg-pink-100 text-pink-700",
@@ -32,7 +33,7 @@ export default function JobDetail() {
       <div className="text-center py-32">
         <div className="text-5xl mb-4">🌸</div>
         <p className="text-xl font-bold text-foreground mb-2">{t("jobDetail.notFound")}</p>
-        <Link to="/jobs" className="text-primary underline text-sm">{t("common.backToJobs")}</Link>
+        <Link to={tenantPath("/jobs")} className="text-primary underline text-sm">{t("common.backToJobs")}</Link>
       </div>
     </PublicLayout>
   );
@@ -149,12 +150,12 @@ export default function JobDetail() {
 }
 
 function buildBackToJobsPath(returnTo: string | null, jobId: string) {
-  const fallback = `/jobs?job=${encodeURIComponent(jobId)}`;
+  const fallback = tenantPath(`/jobs?job=${encodeURIComponent(jobId)}`);
   if (!returnTo || returnTo.startsWith("//")) return fallback;
 
   try {
     const url = new URL(returnTo, "https://local.app");
-    if (url.pathname !== "/jobs") return fallback;
+    if (stripTenantPath(url.pathname) !== "/jobs") return fallback;
     url.searchParams.set("job", jobId);
     return `${url.pathname}${url.search}${url.hash}`;
   } catch {

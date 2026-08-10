@@ -87,6 +87,34 @@ export const router = createBrowserRouter([
         ],
       },
       {
+        path: "/t/:tenantSlug",
+        children: [
+          { index: true, Component: Home },
+          {
+            path: "jobs",
+            children: [
+              { index: true, Component: Jobs },
+              { path: ":id", Component: JobDetail },
+              { path: ":id/apply", Component: Apply },
+            ],
+          },
+          {
+            path: "saved-jobs",
+            element: <Navigate to="../jobs?view=saved" replace />,
+          },
+          { path: "candidate-guide", Component: CandidateGuide },
+          { path: "contact", Component: Contact },
+          { path: "terms", Component: Terms },
+          { path: "privacy", Component: Privacy },
+          {
+            path: "apply",
+            children: [
+              { path: "success", Component: ApplySuccess },
+            ],
+          },
+        ],
+      },
+      {
         path: "/admin",
         children: [
           { index: true, Component: AdminLogin },
