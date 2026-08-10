@@ -1,4 +1,4 @@
-import { buildSourcingQueries, normalizeLinkedinProfileUrl, normalizeSourcingProfileUrl } from ".";
+import { buildLinkedinDiscoveryQueries, buildSourcingQueries, normalizeLinkedinProfileUrl, normalizeSourcingProfileUrl } from ".";
 
 describe("LinkedIn-first sourcing search", () => {
   const job = {
@@ -22,6 +22,37 @@ describe("LinkedIn-first sourcing search", () => {
     expect(queries[0].query).toContain('"AI Engineer"');
     expect(queries[0].query).toContain('"Python"');
     expect(queries[0].query).toContain('"TP Hồ Chí Minh"');
+  });
+
+  it("keeps Vietnam targeting as query terms for LinkedIn discovery", () => {
+    const queries = buildLinkedinDiscoveryQueries(job);
+
+    expect(queries.length).toBeGreaterThan(0);
+    expect(queries.every((query) => !query.query.includes("loc:vn"))).toBe(true);
+    expect(queries[0].query).toContain('"TP Hồ Chí Minh"');
+    expect(queries[0].query).toContain('"Vietnam"');
+  });
+
+  it("can build global LinkedIn discovery queries without location terms", () => {
+    const queries = buildLinkedinDiscoveryQueries(job, { locationScope: "GLOBAL" });
+
+    expect(queries.length).toBeGreaterThan(0);
+    expect(queries[0].query).not.toContain('"TP Hồ Chí Minh"');
+    expect(queries[0].query).not.toContain('"Vietnam"');
+  });
+
+  it("expands business analyst typos and JD tool signals for LinkedIn discovery", () => {
+    const queries = buildLinkedinDiscoveryQueries({
+      ...job,
+      title: "Business Analystic",
+      locations: ["Hà Nội"],
+      tags: ["Unit Test", "Integration Test"],
+      requirements: "Business Analyst. Thành thạo Jira, Confluence, Figma.",
+    });
+
+    expect(queries[0].query).toContain('"Business Analyst"');
+    expect(queries[0].query).toContain('"Jira"');
+    expect(queries[0].query).toContain('"Hanoi"');
   });
 
   it("normalizes supported LinkedIn profile URLs and removes tracking", () => {

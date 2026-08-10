@@ -256,10 +256,13 @@ export default function SourcingCampaignDetail() {
               {activeSource === "LINKEDIN" && (
                 <div className="mb-4 rounded-xl border border-[#0a66c2]/20 bg-[#0a66c2]/5 p-3">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-sm font-black text-foreground">LinkedIn assisted discovery</p>
-                      <p className="mt-0.5 text-xs leading-5 text-muted-foreground">Tự chạy X-Ray query qua Brave Search, dedupe URL và chấm potential fit từ snippet công khai.</p>
-                    </div>
+                  <div>
+                    <p className="text-sm font-black text-foreground">LinkedIn assisted discovery</p>
+                    <p className="mt-0.5 text-xs leading-5 text-muted-foreground">Tự chạy X-Ray query qua Brave Search, dedupe URL và chấm potential fit từ snippet công khai.</p>
+                    <span className="mt-2 inline-flex rounded-full bg-white px-2.5 py-1 text-[11px] font-black text-[#0a66c2] ring-1 ring-[#0a66c2]/20">
+                      {campaign.discoveryLocationScope === "GLOBAL" ? "All location" : "Việt Nam"}
+                    </span>
+                  </div>
                     <button
                       type="button"
                       onClick={() => void handleLinkedinDiscovery()}

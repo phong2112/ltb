@@ -1,4 +1,4 @@
-import type { InternalCandidateSuggestionResult, LinkedinDiscoveryResult, SourcedProfile, SourcingCampaign, SourcingImportResult, SourcingProfileStatus, SourcingSource } from "@/app/apis/models/sourcing";
+import type { InternalCandidateSuggestionResult, LinkedinDiscoveryResult, SourcedProfile, SourcingCampaign, SourcingDiscoveryLocationScope, SourcingImportResult, SourcingProfileStatus, SourcingSource } from "@/app/apis/models/sourcing";
 import { apiRequest } from "./client";
 
 export function listSourcingCampaigns() {
@@ -9,7 +9,7 @@ export function getSourcingCampaign(id: string) {
   return apiRequest<SourcingCampaign>(`/admin/sourcing/${id}`);
 }
 
-export function createSourcingCampaign(input: { jobId: string; name?: string }) {
+export function createSourcingCampaign(input: { jobId: string; name?: string; discoveryLocationScope?: SourcingDiscoveryLocationScope }) {
   return apiRequest<SourcingCampaign>("/admin/sourcing", {
     method: "POST",
     body: JSON.stringify(input),

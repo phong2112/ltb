@@ -27,6 +27,8 @@ export type SourcingSource =
   | "CSV"
   | "REFERRAL";
 
+export type SourcingDiscoveryLocationScope = "VIETNAM" | "GLOBAL";
+
 export type SourcingSearchQuery = {
   id: string;
   source: SourcingSource;
@@ -57,6 +59,7 @@ export type SourcingCampaign = {
   jobId: string;
   name: string;
   status: "ACTIVE" | "PAUSED" | "CLOSED";
+  discoveryLocationScope: SourcingDiscoveryLocationScope;
   brief: {
     targetRole?: string;
     seniority?: string | null;

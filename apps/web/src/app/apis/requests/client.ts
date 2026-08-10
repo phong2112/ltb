@@ -103,7 +103,10 @@ async function refreshAccessToken() {
     const response = await fetch(`${API_BASE}/auth/refresh`, {
       method: "POST",
       credentials: "include",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Tenant-Slug": currentTenantSlug(),
+      },
     });
     return response.ok;
   } catch {

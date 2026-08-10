@@ -19,6 +19,7 @@ export type { ApiTemplate, TemplateInput } from "./templates";
 export type {
   SourcedProfile,
   SourcingCampaign,
+  SourcingDiscoveryLocationScope,
   SourcingImportResult,
   SourcingProfileStatus,
   SourcingSearchQuery,

@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { SourcingProfileStatus } from "@prisma/client";
+import { SourcingDiscoveryLocationScope, SourcingProfileStatus } from "@prisma/client";
 import { PrismaService } from "../../prisma";
 import { LinkedinDiscoveryService } from "../discovery/index.service";
 import { CreateSourcingCampaignDto } from "../dto/create/index.dto";
@@ -24,6 +24,10 @@ const campaignListInclude = {
   },
   _count: { select: { profiles: true } },
 };
+
+function discoveryLocationScope(value: string | undefined) {
+  return value === "GLOBAL" ? SourcingDiscoveryLocationScope.GLOBAL : SourcingDiscoveryLocationScope.VIETNAM;
+}
 
 @Injectable()
 export class SourcingService {
@@ -63,6 +67,7 @@ export class SourcingService {
       data: {
         jobId: job.id,
         name,
+        discoveryLocationScope: discoveryLocationScope(dto.discoveryLocationScope),
         brief: buildSourcingBrief(job),
         searchQueries: buildSourcingQueries(job),
       },
@@ -151,7 +156,9 @@ export class SourcingService {
     });
     if (!campaign) throw new NotFoundException("Không tìm thấy chiến dịch sourcing.");
 
-    return this.linkedinDiscoveryService.discoverAndStore(this.prisma, campaign.id, campaign.job);
+    return this.linkedinDiscoveryService.discoverAndStore(this.prisma, campaign.id, campaign.job, {
+      locationScope: campaign.discoveryLocationScope,
+    });
   }
 
   async suggestInternalCandidates(campaignId: string) {

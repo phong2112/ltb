@@ -50,5 +50,6 @@ describe("BraveLinkedinDiscoveryAdapter", () => {
     expect(fetchMock).toHaveBeenCalledWith(expect.any(URL), expect.objectContaining({
       headers: expect.objectContaining({ "X-Subscription-Token": "token" }),
     }));
+    expect((fetchMock.mock.calls[0][0] as URL).searchParams.get("country")).toBe("ALL");
   });
 });

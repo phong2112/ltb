@@ -1,8 +1,8 @@
-import { BadRequestException, Injectable, ServiceUnavailableException } from "@nestjs/common";
+import { BadGatewayException, BadRequestException, Injectable, ServiceUnavailableException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Prisma } from "@prisma/client";
 import type { PrismaService } from "../../prisma";
-import { buildLinkedinDiscoveryQueries, type SourcingJobInput } from "../search";
+import { buildLinkedinDiscoveryQueries, type SourcingDiscoveryLocationScope, type SourcingJobInput } from "../search";
 import { BraveLinkedinDiscoveryAdapter } from "./brave-linkedin.adapter";
 import { scoreLinkedinDiscoveryResult } from "./scoring";
 import type { LinkedinDiscoveryAdapter, LinkedinDiscoveryResult, LinkedinDiscoverySummary } from "./types";
@@ -33,11 +33,12 @@ export class LinkedinDiscoveryService {
     prisma: PrismaService,
     campaignId: string,
     job: SourcingJobInput,
+    options: { locationScope?: SourcingDiscoveryLocationScope } = {},
   ): Promise<LinkedinDiscoverySummary & { profiles: unknown[] }> {
     const adapter = this.createAdapter();
     const maxQueries = this.positiveInteger("SOURCING_DISCOVERY_MAX_QUERIES_PER_CAMPAIGN", DEFAULT_MAX_QUERIES);
     const resultsPerQuery = this.positiveInteger("SOURCING_DISCOVERY_RESULTS_PER_QUERY", DEFAULT_RESULTS_PER_QUERY);
-    const queries = buildLinkedinDiscoveryQueries(job).slice(0, maxQueries);
+    const queries = buildLinkedinDiscoveryQueries(job, { locationScope: options.locationScope }).slice(0, maxQueries);
 
     if (!queries.length) {
       throw new BadRequestException("Không tạo được LinkedIn discovery query từ JD này.");
@@ -52,6 +53,10 @@ export class LinkedinDiscoveryService {
       } catch {
         skippedQueries.push(query.id);
       }
+    }
+
+    if (!discovered.length && skippedQueries.length === queries.length) {
+      throw new BadGatewayException("LinkedIn discovery provider failed for every generated query.");
     }
 
     const byUrl = new Map(discovered.map((result) => [result.normalizedProfileUrl, result]));

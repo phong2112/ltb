@@ -31,8 +31,11 @@ export type SourcingSearchSource =
 
 export type SourcingImportSource = SourcingSearchSource | "MANUAL" | "REFERRAL";
 
+export type SourcingDiscoveryLocationScope = "VIETNAM" | "GLOBAL";
+
 const TITLE_EQUIVALENTS: Array<[RegExp, string[]]> = [
   [/software engineer|software developer/iu, ["Software Engineer", "Software Developer"]],
+  [/business analyst|analystic|\bba\b/iu, ["Business Analyst", "BA", "Product Owner", "System Analyst"]],
   [/frontend|front-end/iu, ["Frontend Engineer", "Frontend Developer", "Web Developer"]],
   [/backend|back-end/iu, ["Backend Engineer", "Backend Developer", "Software Engineer"]],
   [/full.?stack/iu, ["Full Stack Engineer", "Full Stack Developer", "Software Engineer"]],
@@ -190,32 +193,40 @@ export function buildSourcingQueries(job: SourcingJobInput): SourcingSearchQuery
 
 export const buildLinkedinQueries = buildSourcingQueries;
 
-export function buildLinkedinDiscoveryQueries(job: SourcingJobInput): SourcingSearchQuery[] {
+export function buildLinkedinDiscoveryQueries(
+  job: SourcingJobInput,
+  options: { locationScope?: SourcingDiscoveryLocationScope } = {},
+): SourcingSearchQuery[] {
   const titles = titleVariants(job.title);
   const skills = unique(job.tags.map(cleanPhrase).filter(Boolean)).slice(0, 8);
   const locations = unique(job.locations.map(cleanPhrase).filter(Boolean)).slice(0, 4);
   const seniority = cleanPhrase(job.level ?? "");
   const mustHave = splitRequirements(job.requirements).map(cleanPhrase).filter(Boolean).slice(0, 6);
-  const skillGroups = groupDiscoveryTerms(skills.length ? skills : mustHave, 3).filter((group) => group.length);
-  const locationClause = locations.length ? orClause([...locations, "Vietnam", "Viet Nam"]) : orClause(["Vietnam", "Viet Nam"]);
+  const discoveryTerms = unique([
+    ...skills,
+    ...extractDiscoveryKeywordSignals(`${job.requirements}\n${job.description}`),
+    ...mustHave,
+  ]).slice(0, 12);
+  const skillGroups = groupDiscoveryTerms(discoveryTerms, 3).filter((group) => group.length);
+  const locationClause = discoveryLocationClause(locations, options.locationScope ?? "VIETNAM");
   const titleClause = orClause(titles);
   const adjacentTitleClause = orClause(unique([...titles, ...adjacentTitleVariants(job.title)]));
   const seniorityClause = seniority ? ` ${quote(seniority)}` : "";
   const baseNegative = "-jobs -job -company -pulse -school -learning";
   const queries: SourcingSearchQuery[] = [];
 
-  pushLinkedinDiscoveryQuery(queries, "linkedin-discovery-strict", "LinkedIn · Auto strict", `${titleClause}${seniorityClause}${skillGroups[0] ? ` ${orClause(skillGroups[0])}` : ""} ${locationClause} ${baseNegative}`);
-  pushLinkedinDiscoveryQuery(queries, "linkedin-discovery-skill-first", "LinkedIn · Auto skill-first", `${skillGroups[0] ? orClause(skillGroups[0]) : titleClause} ${adjacentTitleClause} ${locationClause} ${baseNegative}`);
-  pushLinkedinDiscoveryQuery(queries, "linkedin-discovery-adjacent-title", "LinkedIn · Auto title mở rộng", `${adjacentTitleClause}${skillGroups[1] ? ` ${orClause(skillGroups[1])}` : ""} ${locationClause} ${baseNegative}`);
+  pushLinkedinDiscoveryQuery(queries, "linkedin-discovery-strict", "LinkedIn · Auto strict", `${titleClause}${seniorityClause}${skillGroups[0] ? ` ${orClause(skillGroups[0])}` : ""}${locationClause} ${baseNegative}`);
+  pushLinkedinDiscoveryQuery(queries, "linkedin-discovery-skill-first", "LinkedIn · Auto skill-first", `${skillGroups[0] ? orClause(skillGroups[0]) : titleClause} ${adjacentTitleClause}${locationClause} ${baseNegative}`);
+  pushLinkedinDiscoveryQuery(queries, "linkedin-discovery-adjacent-title", "LinkedIn · Auto title mở rộng", `${adjacentTitleClause}${skillGroups[1] ? ` ${orClause(skillGroups[1])}` : ""}${locationClause} ${baseNegative}`);
   pushLinkedinDiscoveryQuery(queries, "linkedin-discovery-location-broad", "LinkedIn · Auto rộng địa điểm", `${titleClause}${skillGroups[0] ? ` ${orClause(skillGroups[0])}` : ""} ${baseNegative}`);
-  pushLinkedinDiscoveryQuery(queries, "linkedin-discovery-hidden-gem", "LinkedIn · Auto hidden gems", `${skillGroups.flat().slice(0, 5).map(quote).join(" ")} ${locationClause} ${baseNegative}`);
+  pushLinkedinDiscoveryQuery(queries, "linkedin-discovery-hidden-gem", "LinkedIn · Auto hidden gems", `${skillGroups.flat().slice(0, 5).map(quote).join(" ")}${locationClause} ${baseNegative}`);
 
   skillGroups.slice(0, 4).forEach((group, index) => {
     pushLinkedinDiscoveryQuery(
       queries,
       `linkedin-discovery-skill-group-${index + 1}`,
       `LinkedIn · Auto skill group ${index + 1}`,
-      `${adjacentTitleClause} ${orClause(group)} ${locationClause} ${baseNegative}`,
+      `${adjacentTitleClause} ${orClause(group)}${locationClause} ${baseNegative}`,
     );
   });
 
@@ -286,6 +297,7 @@ function pushLinkedinDiscoveryQuery(queries: SourcingSearchQuery[], id: string, 
 }
 
 function adjacentTitleVariants(title: string) {
+  if (/business analyst|analystic|\bba\b/iu.test(title)) return ["Business Analyst", "BA", "Product Owner", "System Analyst"];
   if (/tester|qa|quality/iu.test(title)) return ["QA Engineer", "Quality Assurance", "Automation Tester", "SDET", "Test Engineer"];
   if (/frontend|front-end/iu.test(title)) return ["Frontend Engineer", "Frontend Developer", "React Developer", "Web Developer"];
   if (/backend|back-end/iu.test(title)) return ["Backend Engineer", "Backend Developer", "Software Engineer", "API Developer"];
@@ -301,6 +313,55 @@ function groupDiscoveryTerms<T>(values: T[], size: number) {
     chunks.push(values.slice(index, index + size));
   }
   return chunks;
+}
+
+function discoveryLocationClause(locations: string[], scope: SourcingDiscoveryLocationScope) {
+  if (scope === "GLOBAL") return "";
+  return ` ${locations.length ? orClause([...expandLocationTerms(locations), "Vietnam", "Viet Nam"]) : orClause(["Vietnam", "Viet Nam"])}`;
+}
+
+function expandLocationTerms(locations: string[]) {
+  const expanded = [...locations];
+  for (const location of locations) {
+    const normalized = stripDiacritics(location).toLowerCase();
+    if (normalized.includes("ha noi") || normalized.includes("hanoi")) expanded.push("Hanoi", "Ha Noi");
+    if (normalized.includes("ho chi minh") || normalized.includes("hcm")) expanded.push("Ho Chi Minh", "HCMC", "Saigon");
+    if (normalized.includes("da nang") || normalized.includes("danang")) expanded.push("Da Nang", "Danang");
+  }
+  return unique(expanded);
+}
+
+function extractDiscoveryKeywordSignals(value: string) {
+  const text = plainText(value);
+  const catalog = [
+    "Jira",
+    "Confluence",
+    "Figma",
+    "Visio",
+    "Bizagi",
+    "Lucidchart",
+    "Agile",
+    "Scrum",
+    "Waterfall",
+    "SQL",
+    "UAT",
+    "API",
+    "Playwright",
+    "Selenium",
+    "React",
+    "Vue",
+    "Angular",
+    "Node.js",
+    "Java",
+    "Python",
+    "LLM",
+  ];
+  const lower = text.toLowerCase();
+  return catalog.filter((term) => lower.includes(term.toLowerCase()));
+}
+
+function stripDiacritics(value: string) {
+  return value.normalize("NFD").replace(/\p{Diacritic}/gu, "");
 }
 
 function normalizeHostPathUrl(

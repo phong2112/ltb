@@ -12,7 +12,7 @@ export class BraveLinkedinDiscoveryAdapter implements LinkedinDiscoveryAdapter {
     const requestUrl = new URL(BRAVE_WEB_SEARCH_ENDPOINT);
     requestUrl.searchParams.set("q", query.query);
     requestUrl.searchParams.set("count", String(Math.min(Math.max(limit, 1), 20)));
-    requestUrl.searchParams.set("country", "VN");
+    requestUrl.searchParams.set("country", "ALL");
     requestUrl.searchParams.set("search_lang", "en");
     requestUrl.searchParams.set("extra_snippets", "true");
     requestUrl.searchParams.set("safesearch", "moderate");

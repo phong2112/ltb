@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { ArrowRight, BriefcaseBusiness, Linkedin, Plus, Radar, Users } from "lucide-react";
 import { Link, useNavigate } from "react-router";
-import type { SourcingCampaign } from "@/app/apis/models";
+import type { SourcingCampaign, SourcingDiscoveryLocationScope } from "@/app/apis/models";
 import { createSourcingCampaign, listSourcingCampaigns } from "@/app/apis/requests";
 import { useData } from "@/app/data";
 import AdminLayout from "@/app/layouts/AdminLayout";
@@ -12,6 +12,7 @@ export default function SourcingCampaigns() {
   const [campaigns, setCampaigns] = useState<SourcingCampaign[]>([]);
   const [jobId, setJobId] = useState("");
   const [name, setName] = useState("");
+  const [discoveryLocationScope, setDiscoveryLocationScope] = useState<SourcingDiscoveryLocationScope>("VIETNAM");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -29,7 +30,7 @@ export default function SourcingCampaigns() {
 
     setSubmitting(true);
     try {
-      const campaign = await createSourcingCampaign({ jobId, name: name.trim() || undefined });
+      const campaign = await createSourcingCampaign({ jobId, name: name.trim() || undefined, discoveryLocationScope });
       navigate(`/admin/sourcing/${campaign.id}`);
     } finally {
       setSubmitting(false);
@@ -69,6 +70,25 @@ export default function SourcingCampaigns() {
             <option value="">Chọn một vị trí</option>
             {jobs.filter((job) => job.status !== "archived").map((job) => <option key={job.id} value={job.id}>{job.title}</option>)}
           </select>
+
+          <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-muted-foreground">Phạm vi LinkedIn discovery</label>
+          <div className="mb-4 grid grid-cols-2 gap-2">
+            {[
+              { value: "VIETNAM" as const, label: "Việt Nam", hint: "Ưu tiên location trong JD + Vietnam" },
+              { value: "GLOBAL" as const, label: "All location", hint: "Không giới hạn địa điểm" },
+            ].map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setDiscoveryLocationScope(option.value)}
+                className={`min-h-[76px] rounded-xl border px-3 py-2 text-left transition-colors ${discoveryLocationScope === option.value ? "border-primary bg-primary/5 text-primary" : "border-border bg-white text-foreground hover:border-primary/50"}`}
+                aria-pressed={discoveryLocationScope === option.value}
+              >
+                <span className="block text-sm font-black">{option.label}</span>
+                <span className="mt-1 block text-[11px] font-semibold leading-4 text-muted-foreground">{option.hint}</span>
+              </button>
+            ))}
+          </div>
 
           <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-muted-foreground" htmlFor="sourcing-name">Tên chiến dịch (không bắt buộc)</label>
           <input
@@ -123,6 +143,7 @@ export default function SourcingCampaigns() {
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-bold">
                       <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-muted-foreground"><Users size={11} /> {campaign._count.profiles} ứng viên</span>
                       <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-700">Đang chạy</span>
+                      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-amber-700">{campaign.discoveryLocationScope === "GLOBAL" ? "All location" : "Việt Nam"}</span>
                       <span className="rounded-full bg-[#eef6ff] px-2.5 py-1 text-[#0a66c2]">Multi-source</span>
                     </div>
                   </div>
