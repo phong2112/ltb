@@ -76,7 +76,7 @@ export default function CandidateDetail() {
   const [error, setError] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const autoViewedApplicationId = useRef<string | null>(null);
+  const inspectedApplicationIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!selectedApplication) return;
@@ -94,12 +94,16 @@ export default function CandidateDetail() {
   }, [selectedApplication?.aiStatus, selectedApplication?.applicationId, refreshCandidateAnalysis]);
 
   useEffect(() => {
-    if (!selectedApplication || selectedApplication.status !== "new") return;
-    if (autoViewedApplicationId.current === selectedApplication.applicationId) return;
+    if (!selectedApplication) return;
 
-    autoViewedApplicationId.current = selectedApplication.applicationId;
+    const applicationId = selectedApplication.applicationId;
+    if (inspectedApplicationIds.current.has(applicationId)) return;
+
+    inspectedApplicationIds.current.add(applicationId);
+    if (selectedApplication.status !== "new") return;
+
     void updateCandidate(selectedApplication.id, { status: "viewed" }).catch(markViewedError => {
-      autoViewedApplicationId.current = null;
+      inspectedApplicationIds.current.delete(applicationId);
       setError(markViewedError instanceof Error ? markViewedError.message : "Không cập nhật được trạng thái đã xem");
     });
   }, [selectedApplication, updateCandidate]);
