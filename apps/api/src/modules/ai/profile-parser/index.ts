@@ -14,7 +14,8 @@ export type RegexCvProfile = {
 const EMAIL_PATTERN = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i;
 // Vietnamese/international phone: optional +, groups of digits separated by space/dot/dash, 8-15 digits total.
 const PHONE_PATTERN = /(?:\+?\d[\d\s.\-()]{7,}\d)/g;
-const LINKEDIN_PATTERN = /https?:\/\/(?:[a-z]{2,3}\.)?linkedin\.com\/[^\s)"'<>]+/i;
+const LINKEDIN_DIRECT_PATTERN = /(?:https?:\/\/)?(?:www\.|m\.|[a-z]{2,3}\.)?linkedin\.com\/(?:in|pub)\/[a-z0-9][a-z0-9_]*(?:-[a-z0-9_]+)*(?:\/)?/i;
+const LINKEDIN_LABEL_HANDLE_PATTERN = /\blinkedin\b\s*[:\-|]?\s*(?:\/?in\/)?([a-z0-9][a-z0-9_]*(?:-[a-z0-9_]+)+)\b/i;
 const URL_PATTERN = /https?:\/\/[^\s)"'<>]+/gi;
 
 /**
@@ -36,8 +37,8 @@ export function parseCvProfileFromText(text: string): RegexCvProfile {
     profile.normalizedPhone = normalizePhone(phone);
   }
 
-  const linkedin = text.match(LINKEDIN_PATTERN)?.[0];
-  if (linkedin) profile.linkedinUrl = stripTrailingPunctuation(linkedin);
+  const linkedin = extractLinkedinUrl(text);
+  if (linkedin) profile.linkedinUrl = linkedin;
 
   const portfolio = extractPortfolio(text, profile.linkedinUrl);
   if (portfolio) profile.portfolioUrl = portfolio;
@@ -235,6 +236,51 @@ function extractPortfolio(text: string, linkedinUrl?: string): string | undefine
   }
 
   return undefined;
+}
+
+function extractLinkedinUrl(text: string): string | undefined {
+  const searchableText = normalizeLinkedinSearchText(text);
+  const directUrl = searchableText.match(LINKEDIN_DIRECT_PATTERN)?.[0];
+  if (directUrl) return normalizeLinkedinUrl(directUrl);
+
+  const labeledHandle = searchableText.match(LINKEDIN_LABEL_HANDLE_PATTERN)?.[1];
+  if (labeledHandle) return normalizeLinkedinUrl(`linkedin.com/in/${labeledHandle}`);
+
+  return undefined;
+}
+
+function normalizeLinkedinSearchText(text: string) {
+  return text
+    .normalize("NFKC")
+    .replace(/\blinked\s+in\b/giu, "linkedin")
+    .replace(/https?\s*:\s*\/\s*\//giu, (match) => (match.toLocaleLowerCase("en").startsWith("https") ? "https://" : "http://"))
+    .replace(/\b(www|m)\s*\.\s*/giu, (_, subdomain: string) => `${subdomain.toLocaleLowerCase("en")}.`)
+    .replace(/linkedin\s*\.\s*com/giu, "linkedin.com")
+    .replace(/\s*\/\s*/gu, "/")
+    .replace(/-\s*\r?\n\s*/gu, "-")
+    .replace(/\r?\n/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim();
+}
+
+function normalizeLinkedinUrl(value: string): string | undefined {
+  const compactUrl = stripTrailingPunctuation(value).replace(/\s+/gu, "");
+  const urlWithProtocol = /^https?:\/\//iu.test(compactUrl) ? compactUrl : `https://${compactUrl}`;
+
+  try {
+    const parsedUrl = new URL(urlWithProtocol);
+    const hostname = parsedUrl.hostname.toLocaleLowerCase("en").replace(/^(?:www|m)\./u, "");
+    const [kind, rawSlug] = parsedUrl.pathname.split("/").filter(Boolean);
+    const cleanSlug = rawSlug?.match(/^[a-z0-9][a-z0-9_-]*/iu)?.[0];
+
+    if (hostname !== "linkedin.com") return undefined;
+    if (!kind || !["in", "pub"].includes(kind.toLocaleLowerCase("en"))) return undefined;
+    if (!cleanSlug) return undefined;
+
+    return `https://www.linkedin.com/${kind.toLocaleLowerCase("en")}/${cleanSlug}`;
+  } catch {
+    return undefined;
+  }
 }
 
 function stripTrailingPunctuation(url: string): string {

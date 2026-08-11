@@ -63,17 +63,20 @@ export type ApplicationPreviewExtraction = {
   fullName: string | null;
   email: string | null;
   phone: string | null;
+  linkedinUrl: string | null;
   applicationArea: string | null;
   confidence: {
     fullName: number;
     email: number;
     phone: number;
+    linkedinUrl: number;
     applicationArea: number;
   };
   evidence: {
     fullName: string | null;
     email: string | null;
     phone: string | null;
+    linkedinUrl: string | null;
     applicationArea: string | null;
   };
 };

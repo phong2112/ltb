@@ -27,8 +27,26 @@ describe("parseCvProfileFromText", () => {
 
   it("does not treat the linkedin url as the portfolio", () => {
     const profile = parseCvProfileFromText("https://linkedin.com/in/someone only");
-    expect(profile.linkedinUrl).toBe("https://linkedin.com/in/someone");
+    expect(profile.linkedinUrl).toBe("https://www.linkedin.com/in/someone");
     expect(profile.portfolioUrl).toBeUndefined();
+  });
+
+  it("extracts linkedin urls without a protocol", () => {
+    const profile = parseCvProfileFromText("LinkedIn: linkedin.com/in/pham-quang-minh");
+
+    expect(profile.linkedinUrl).toBe("https://www.linkedin.com/in/pham-quang-minh");
+  });
+
+  it("extracts linkedin urls from OCR text with inserted spaces", () => {
+    const profile = parseCvProfileFromText("Linked In: www. linkedin. com / in / pham-quang-minh");
+
+    expect(profile.linkedinUrl).toBe("https://www.linkedin.com/in/pham-quang-minh");
+  });
+
+  it("extracts linkedin urls when OCR wraps a hyphenated slug", () => {
+    const profile = parseCvProfileFromText("LinkedIn: https://www.linkedin.com/in/pham-quang-\nminh");
+
+    expect(profile.linkedinUrl).toBe("https://www.linkedin.com/in/pham-quang-minh");
   });
 
   it("lowercases the email and strips trailing punctuation from urls", () => {

@@ -50,6 +50,7 @@ export class ApplicationCvPreviewService {
     const email = profile.email ?? (aiPreview?.email && aiPreview.confidence.email >= 0.85 ? aiPreview.email : undefined);
     const phone = profile.phone ?? (aiPreview?.phone && aiPreview.confidence.phone >= 0.75 ? aiPreview.phone : undefined);
     const normalizedPhone = profile.normalizedPhone ?? normalizePhone(phone);
+    const linkedinUrl = profile.linkedinUrl ?? (aiPreview?.linkedinUrl && aiPreview.confidence.linkedinUrl >= 0.75 ? aiPreview.linkedinUrl : undefined);
     const applicationArea = aiPreview?.applicationArea && aiPreview.confidence.applicationArea >= 0.7
       ? aiPreview.applicationArea
       : regexApplicationArea;
@@ -62,7 +63,7 @@ export class ApplicationCvPreviewService {
         ...(phone ? { phone } : {}),
         ...(normalizedPhone ? { normalizedPhone } : {}),
         ...(profile.skills?.length ? { skills: profile.skills } : {}),
-        ...(profile.linkedinUrl ? { linkedinUrl: profile.linkedinUrl } : {}),
+        ...(linkedinUrl ? { linkedinUrl } : {}),
         ...(profile.portfolioUrl ? { portfolioUrl: profile.portfolioUrl } : {}),
         ...(applicationArea ? { applicationArea } : {}),
       },

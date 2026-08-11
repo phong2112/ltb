@@ -66,17 +66,20 @@ describe("ApplicationCvPreviewService", () => {
       fullName: "Nguyễn Văn B",
       email: null,
       phone: null,
+      linkedinUrl: "https://www.linkedin.com/in/nguyen-van-b",
       applicationArea: "Hà Nội",
       confidence: {
         fullName: 0.92,
         email: 0,
         phone: 0,
+        linkedinUrl: 0.88,
         applicationArea: 0.82,
       },
       evidence: {
         fullName: "Nguyễn Văn B",
         email: null,
         phone: null,
+        linkedinUrl: "LinkedIn profile",
         applicationArea: "Open to work in Ha Noi",
       },
     });
@@ -91,6 +94,7 @@ describe("ApplicationCvPreviewService", () => {
     expect(result.profile).toMatchObject({
       fullName: "Nguyễn Văn B",
       email: "candidate@example.com",
+      linkedinUrl: "https://www.linkedin.com/in/nguyen-van-b",
       applicationArea: "Hà Nội",
     });
     expect(result.metadata.profileSource).toBe("regex+gemini");

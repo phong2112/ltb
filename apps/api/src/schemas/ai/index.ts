@@ -14,17 +14,20 @@ export const applicationPreviewExtractionSchema = z.object({
   fullName: z.string().min(1).nullable(),
   email: z.string().min(3).nullable(),
   phone: z.string().min(6).nullable(),
+  linkedinUrl: z.string().min(12).nullable(),
   applicationArea: z.string().min(1).nullable(),
   confidence: z.object({
     fullName: previewConfidenceSchema,
     email: previewConfidenceSchema,
     phone: previewConfidenceSchema,
+    linkedinUrl: previewConfidenceSchema,
     applicationArea: previewConfidenceSchema,
   }),
   evidence: z.object({
     fullName: z.string().min(1).nullable(),
     email: z.string().min(1).nullable(),
     phone: z.string().min(1).nullable(),
+    linkedinUrl: z.string().min(1).nullable(),
     applicationArea: z.string().min(1).nullable(),
   }),
 });

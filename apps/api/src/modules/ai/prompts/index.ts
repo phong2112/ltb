@@ -14,6 +14,7 @@ Quy tắc bắt buộc:
 - fullName: họ tên đầy đủ của ứng viên. Không dùng tên tệp để suy ra họ tên.
 - email: email cá nhân/liên hệ của ứng viên nếu có.
 - phone: số điện thoại cá nhân/liên hệ của ứng viên nếu có.
+- linkedinUrl: URL LinkedIn cá nhân của ứng viên nếu CV ghi rõ. Chuẩn hóa về dạng https://www.linkedin.com/in/... khi đủ dữ liệu.
 - applicationArea: chỉ chọn một giá trị trong ALLOWED_APPLICATION_AREAS khi CV thể hiện rõ nơi ở/khu vực hiện tại/nơi ứng viên muốn làm việc.
 - Nếu CV có nhiều địa danh, ưu tiên ngữ cảnh "Address", "Location", "Current location", "Based in", "Địa chỉ", "Nơi ở", "Khu vực", "Preferred location". Không dùng địa danh chỉ xuất hiện trong lịch sử công việc, trường học, tên công ty, dự án hoặc địa điểm khách hàng.
 - Nếu không chắc applicationArea, trả về null và confidence.applicationArea <= 0.49.
@@ -26,17 +27,20 @@ JSON bắt buộc:
   "fullName": string | null,
   "email": string | null,
   "phone": string | null,
+  "linkedinUrl": string | null,
   "applicationArea": string | null,
   "confidence": {
     "fullName": number,
     "email": number,
     "phone": number,
+    "linkedinUrl": number,
     "applicationArea": number
   },
   "evidence": {
     "fullName": string | null,
     "email": string | null,
     "phone": string | null,
+    "linkedinUrl": string | null,
     "applicationArea": string | null
   }
 }
