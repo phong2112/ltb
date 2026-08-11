@@ -2,19 +2,21 @@ import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { applicationAreas } from "@hr-copilot/shared";
 import { buildApplicationPreviewPrompt } from "../../ai/prompts";
+import { GeminiProvider } from "../../ai/providers/gemini";
 import { applicationPreviewExtractionSchema } from "../../../schemas/ai";
 import type { ApplicationPreviewExtraction } from "../../../models/ai";
 
 const MAX_PREVIEW_CV_CHARACTERS = 20_000;
-const DEFAULT_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
-const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 const DEFAULT_GEMINI_TIMEOUT_MS = 20_000;
 
 @Injectable()
 export class ApplicationCvPreviewAiService {
   private readonly logger = new Logger(ApplicationCvPreviewAiService.name);
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly geminiProvider: GeminiProvider,
+  ) {}
 
   get enabled() {
     return (this.configService.get<string>("PREVIEW_AI_PROVIDER") ?? "disabled") === "gemini";
@@ -41,21 +43,20 @@ export class ApplicationCvPreviewAiService {
       fileName: input.fileName,
       allowedApplicationAreas,
     });
-    const model = this.configService.get<string>("GEMINI_MODEL") ?? DEFAULT_GEMINI_MODEL;
     const timeoutMs = this.configService.get<number>("GEMINI_TIMEOUT_MS") ?? DEFAULT_GEMINI_TIMEOUT_MS;
     const startedAt = Date.now();
 
     try {
-      const rawContent = await this.createCompletion({
+      const geminiResult = await this.geminiProvider.generateJson({
         apiKey,
-        model,
         prompt,
+        systemInstruction: "Bạn là trợ lý tuyển dụng. Chỉ trả về JSON hợp lệ theo schema được yêu cầu.",
         timeoutMs,
       });
-      const parsed = parsePreviewResponse(rawContent);
+      const parsed = parsePreviewResponse(geminiResult.content);
 
       this.logger.log(
-        `Gemini preview extraction completed: model=${model} elapsedMs=${Date.now() - startedAt}`,
+        `Gemini preview extraction completed: model=${geminiResult.model} elapsedMs=${Date.now() - startedAt}`,
       );
 
       return {
@@ -72,71 +73,12 @@ export class ApplicationCvPreviewAiService {
       };
     } catch (error) {
       this.logger.warn(
-        `Gemini preview extraction failed: model=${model} elapsedMs=${Date.now() - startedAt} error=${toSafeLogMessage(error)}`,
+        `Gemini preview extraction failed: elapsedMs=${Date.now() - startedAt} error=${toSafeLogMessage(error)}`,
       );
       return null;
     }
   }
-
-  private async createCompletion(input: {
-    apiKey: string;
-    model: string;
-    prompt: string;
-    timeoutMs: number;
-  }) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), input.timeoutMs);
-    const baseUrl = (this.configService.get<string>("GEMINI_BASE_URL") ?? DEFAULT_GEMINI_BASE_URL).replace(/\/$/, "");
-    const endpoint = `${baseUrl}/models/${encodeURIComponent(input.model)}:generateContent?key=${encodeURIComponent(input.apiKey)}`;
-
-    try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [{
-              text: "Bạn là trợ lý tuyển dụng. Chỉ trả về JSON hợp lệ theo schema được yêu cầu.",
-            }],
-          },
-          contents: [{
-            role: "user",
-            parts: [{ text: input.prompt }],
-          }],
-          generationConfig: {
-            temperature: 0,
-            responseMimeType: "application/json",
-          },
-        }),
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Gemini request failed with status ${response.status}`);
-      }
-
-      const body = await response.json() as GeminiGenerateContentResponse;
-      return body.candidates?.[0]?.content?.parts
-        ?.map(part => part.text ?? "")
-        .join("")
-        .trim() ?? "";
-    } finally {
-      clearTimeout(timeout);
-    }
-  }
 }
-
-type GeminiGenerateContentResponse = {
-  candidates?: Array<{
-    content?: {
-      parts?: Array<{
-        text?: string;
-      }>;
-    };
-  }>;
-};
 
 function parsePreviewResponse(raw: string): ApplicationPreviewExtraction {
   const stripped = stripJsonCodeFence(raw.trim());

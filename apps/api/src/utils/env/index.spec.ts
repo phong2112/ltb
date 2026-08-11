@@ -160,7 +160,9 @@ describe("validateEnv", () => {
       PREVIEW_AI_PROVIDER: "gemini",
       GEMINI_API_KEY: "gemini-api-key",
       GEMINI_MODEL: "gemini-2.5-flash",
+      GEMINI_MODEL_CHAIN: "gemini-3.1-flash-lite,gemini-3.5-flash-lite",
       GEMINI_TIMEOUT_MS: "20000",
+      GEMINI_QUOTA_COOLDOWN_MS: "60000",
     })).not.toThrow();
   });
 });

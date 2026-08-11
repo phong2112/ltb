@@ -259,7 +259,7 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
     cvFile,
     cvPreview,
     autofillLoadingFields: cvPreview.status === "loading"
-      ? (["name", "email", "phone", "applicationArea"] satisfies TextFieldName[])
+      ? (["name", "email", "phone", "linkedinUrl", "applicationArea"] satisfies TextFieldName[])
       : [],
     errors,
     fieldId,
