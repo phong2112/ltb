@@ -13,7 +13,7 @@ export type RegexCvProfile = {
 
 const EMAIL_PATTERN = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i;
 // Vietnamese/international phone: optional +, groups of digits separated by space/dot/dash, 8-15 digits total.
-const PHONE_PATTERN = /(?:\+?\d[\d\s.\-()]{7,}\d)/g;
+const PHONE_PATTERN = /(?:\+?\(?\d[\d\s.\-()]{7,}\d)/g;
 const LINKEDIN_DIRECT_PATTERN = /(?:https?:\/\/)?(?:www\.|m\.|[a-z]{2,3}\.)?linkedin\.com\/(?:in|pub)\/[a-z0-9][a-z0-9_]*(?:-[a-z0-9_]+)*(?:\/)?/i;
 const LINKEDIN_LABEL_HANDLE_PATTERN = /\blinkedin\b\s*[:\-|]?\s*(?:\/?in\/)?([a-z0-9][a-z0-9_]*(?:-[a-z0-9_]+)+)\b/i;
 const URL_PATTERN = /https?:\/\/[^\s)"'<>]+/gi;

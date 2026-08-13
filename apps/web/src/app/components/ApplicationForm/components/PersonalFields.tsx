@@ -35,6 +35,7 @@ export function PersonalFields({
             <input
               id={fieldId("name")}
               required
+              disabled={isLoadingField(loadingFields, "name")}
               value={form.name}
               onChange={(event) => updateTextField("name", event.target.value)}
               placeholder={t("apply.namePlaceholder")}
@@ -52,6 +53,7 @@ export function PersonalFields({
               id={fieldId("email")}
               type="email"
               required
+              disabled={isLoadingField(loadingFields, "email")}
               value={form.email}
               onChange={(event) => updateTextField("email", event.target.value)}
               placeholder="lan@email.com"
@@ -73,6 +75,7 @@ export function PersonalFields({
               id={fieldId("phone")}
               type="tel"
               required
+              disabled={isLoadingField(loadingFields, "phone")}
               value={form.phone}
               onChange={(event) => updateTextField("phone", event.target.value)}
               placeholder="0912 345 678"
@@ -91,6 +94,7 @@ export function PersonalFields({
             <input
               id={fieldId("linkedin-url")}
               type="url"
+              disabled={isLoadingField(loadingFields, "linkedinUrl")}
               value={form.linkedinUrl}
               onChange={(event) => updateTextField("linkedinUrl", event.target.value)}
               placeholder={t("apply.linkedinPlaceholder")}
@@ -113,6 +117,7 @@ export function PersonalFields({
           >
             <SelectTrigger
               id={fieldId("application-area")}
+              disabled={isLoadingField(loadingFields, "applicationArea")}
               aria-invalid={Boolean(errors.applicationArea)}
               aria-describedby={errors.applicationArea ? `${fieldId("application-area")}-error` : undefined}
               className={`h-[42px] cursor-pointer rounded-[10px] bg-white px-3 text-sm font-semibold shadow-sm focus-visible:ring-0 data-[size=default]:h-[42px] ${errors.applicationArea ? "border-red-300 focus-visible:border-red-500" : "border-border/80 focus-visible:border-primary"}`}

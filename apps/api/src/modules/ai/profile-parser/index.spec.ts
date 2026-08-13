@@ -25,6 +25,17 @@ describe("parseCvProfileFromText", () => {
     expect(profile.normalizedPhone).toBe("0912345678");
   });
 
+  it.each([
+    ["(098) 32 123 456", "09832123456"],
+    ["098-321-2345", "0983212345"],
+    ["098 32 123 456", "09832123456"],
+  ])("extracts phone numbers formatted as %s", (formattedPhone, normalizedPhone) => {
+    const profile = parseCvProfileFromText(`Điện thoại: ${formattedPhone}`);
+
+    expect(profile.phone).toBe(formattedPhone);
+    expect(profile.normalizedPhone).toBe(normalizedPhone);
+  });
+
   it("does not treat the linkedin url as the portfolio", () => {
     const profile = parseCvProfileFromText("https://linkedin.com/in/someone only");
     expect(profile.linkedinUrl).toBe("https://www.linkedin.com/in/someone");

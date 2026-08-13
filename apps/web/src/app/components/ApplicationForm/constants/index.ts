@@ -23,7 +23,7 @@ export const APPLICATION_AREA_OPTIONS = applicationAreas.map((area) => ({
 }));
 
 export const fieldControlClassName =
-  "min-h-[42px] w-full rounded-[10px] border bg-white px-3 py-2.5 text-sm text-foreground shadow-sm outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus:border-primary focus:shadow-[0_0_0_3px_rgba(209,87,126,0.12)]";
+  "min-h-[42px] w-full rounded-[10px] border bg-white px-3 py-2.5 text-sm text-foreground shadow-sm outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus:border-primary focus:shadow-[0_0_0_3px_rgba(209,87,126,0.12)] disabled:cursor-not-allowed disabled:bg-muted/50 disabled:opacity-70";
 
 export const initialForm: FormState = {
   name: "",

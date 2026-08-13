@@ -42,7 +42,7 @@ export default function ApplicationForm({ job, onSuccess, variant = "page" }: Ap
     <form
       onSubmit={handleSubmit}
       noValidate
-      aria-busy={submitting}
+      aria-busy={submitting || cvPreview.status === "loading"}
       className={variant === "dialog" ? "flex min-h-0 flex-1 flex-col" : undefined}
     >
       <div className={variant === "dialog" ? "scrollbar-dialog min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain bg-muted/20 px-5 py-5 sm:px-6" : "space-y-5"}>
