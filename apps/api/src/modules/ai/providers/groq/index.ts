@@ -16,6 +16,9 @@ import type {
 
 const MAX_PROFILE_CV_CHARACTERS = 45_000;
 const MAX_SUMMARY_CV_CHARACTERS = 45_000;
+const DEFAULT_MODEL = "llama-3.3-70b-versatile";
+
+type GroqTask = "matching" | "profile-extraction" | "cv-summary";
 
 @Injectable()
 export class GroqAiProvider implements AiProvider {
@@ -24,19 +27,28 @@ export class GroqAiProvider implements AiProvider {
   private readonly client: Groq;
   private readonly logger = new Logger(GroqAiProvider.name);
   private readonly timeoutMs: number;
+  private readonly configService: ConfigService;
+  private readonly modelCooldowns = new Map<string, number>();
 
   constructor(configService: ConfigService) {
-    this.model = configService.get<string>("GROQ_MODEL") ?? "llama-3.3-70b-versatile";
+    this.configService = configService;
+    this.model = configService.get<string>("GROQ_MODEL") ?? DEFAULT_MODEL;
     this.timeoutMs = getPositiveIntegerConfig(configService, "GROQ_TIMEOUT_MS", 120_000);
     this.client = new Groq({
       apiKey: configService.get<string>("GROQ_API_KEY") || "disabled-placeholder",
       timeout: this.timeoutMs,
-      maxRetries: 1,
+      // Model fallback and quota backoff are managed here instead of issuing
+      // hidden SDK retries against the same exhausted model.
+      maxRetries: 0,
     });
-    this.logger.log(`Groq provider configured: model=${this.model} timeoutMs=${this.timeoutMs}`);
+    this.logger.log(`Groq provider configured: modelChain=${this.getModelChain("matching").join(",")} timeoutMs=${this.timeoutMs}`);
   }
 
   async analyzeMatch(input: AnalyzeMatchInput): Promise<ProviderMatchAnalysis> {
+    return this.withModelFallback("matching", model => this.analyzeMatchWithModel(input, model));
+  }
+
+  private async analyzeMatchWithModel(input: AnalyzeMatchInput, model: string): Promise<ProviderMatchAnalysis> {
     const prompt = buildMatchPrompt(input);
     const startedAt = Date.now();
     const baseMessages = [
@@ -54,7 +66,7 @@ export class GroqAiProvider implements AiProvider {
     this.logger.log(
       [
         "Groq match request started:",
-        `model=${this.model}`,
+        `model=${model}`,
         `criteria=${input.criteria.length}`,
         `cvChars=${input.cvText.length}`,
         `jobDescriptionChars=${input.jobDescription.length}`,
@@ -66,6 +78,7 @@ export class GroqAiProvider implements AiProvider {
     try {
       let rawContent = await this.createStructuredCompletion(
         baseMessages,
+        model,
       );
       let analysis: ProviderMatchAnalysis;
 
@@ -84,6 +97,7 @@ export class GroqAiProvider implements AiProvider {
               content: `JSON vừa trả về không đúng schema (${error.message}). Hãy sửa và chỉ trả về một JSON object hợp lệ, không có markdown hoặc giải thích.`,
             },
           ],
+          model,
         );
         analysis = parseStructuredResponse(rawContent, matchAnalysisSchema, normalizeMatchAnalysisCandidate);
       }
@@ -91,7 +105,7 @@ export class GroqAiProvider implements AiProvider {
       this.logger.log(
         [
           "Groq match request completed:",
-          `model=${this.model}`,
+          `model=${model}`,
           `elapsedMs=${Date.now() - startedAt}`,
           `responseChars=${rawContent.length}`,
           `evaluations=${analysis.evaluations.length}`,
@@ -103,7 +117,7 @@ export class GroqAiProvider implements AiProvider {
       this.logger.warn(
         [
           "Groq match request failed:",
-          `model=${this.model}`,
+          `model=${model}`,
           `elapsedMs=${Date.now() - startedAt}`,
           `criteria=${input.criteria.length}`,
           `cvChars=${input.cvText.length}`,
@@ -115,6 +129,10 @@ export class GroqAiProvider implements AiProvider {
   }
 
   async extractProfile(input: ExtractProfileInput): Promise<ExtractedProfile> {
+    return this.withModelFallback("profile-extraction", model => this.extractProfileWithModel(input, model));
+  }
+
+  private async extractProfileWithModel(input: ExtractProfileInput, model: string): Promise<ExtractedProfile> {
     const prompt = buildExtractProfilePrompt({
       fileName: input.fileName,
       cvText: input.cvText.slice(0, MAX_PROFILE_CV_CHARACTERS),
@@ -130,11 +148,12 @@ export class GroqAiProvider implements AiProvider {
           },
           { role: "user", content: prompt },
         ],
+        model,
       );
       const parsed = parseStructuredResponse(rawContent, extractedProfileSchema);
 
       this.logger.log(
-        `Groq profile extract completed: model=${this.model} elapsedMs=${Date.now() - startedAt} skills=${parsed.skills.length}`,
+        `Groq profile extract completed: model=${model} elapsedMs=${Date.now() - startedAt} skills=${parsed.skills.length}`,
       );
 
       return {
@@ -146,13 +165,17 @@ export class GroqAiProvider implements AiProvider {
       };
     } catch (error) {
       this.logger.warn(
-        `Groq profile extract failed: model=${this.model} elapsedMs=${Date.now() - startedAt} error=${toSafeLogMessage(error)}`,
+        `Groq profile extract failed: model=${model} elapsedMs=${Date.now() - startedAt} error=${toSafeLogMessage(error)}`,
       );
       throw error;
     }
   }
 
   async summarizeCv(input: SummarizeCvInput): Promise<CvSummary> {
+    return this.withModelFallback("cv-summary", model => this.summarizeCvWithModel(input, model));
+  }
+
+  private async summarizeCvWithModel(input: SummarizeCvInput, model: string): Promise<CvSummary> {
     const prompt = buildCvSummaryPrompt({
       cvText: input.cvText.slice(0, MAX_SUMMARY_CV_CHARACTERS),
     });
@@ -170,7 +193,7 @@ export class GroqAiProvider implements AiProvider {
     ];
 
     try {
-      let rawContent = await this.createStructuredCompletion(baseMessages);
+      let rawContent = await this.createStructuredCompletion(baseMessages, model);
       let summary: CvSummary;
 
       try {
@@ -186,18 +209,18 @@ export class GroqAiProvider implements AiProvider {
             role: "user" as const,
             content: `JSON vừa trả về không đúng schema (${error.message}). Hãy sửa và chỉ trả về một JSON object hợp lệ, không có markdown hoặc giải thích.`,
           },
-        ]);
+        ], model);
         summary = parseStructuredResponse(rawContent, cvSummarySchema, normalizeCvSummaryCandidate);
       }
 
       this.logger.log(
-        `Groq CV summary completed: model=${this.model} elapsedMs=${Date.now() - startedAt} cvChars=${input.cvText.length}`,
+        `Groq CV summary completed: model=${model} elapsedMs=${Date.now() - startedAt} cvChars=${input.cvText.length}`,
       );
 
       return summary;
     } catch (error) {
       this.logger.warn(
-        `Groq CV summary failed: model=${this.model} elapsedMs=${Date.now() - startedAt} cvChars=${input.cvText.length} error=${toSafeLogMessage(error)}`,
+        `Groq CV summary failed: model=${model} elapsedMs=${Date.now() - startedAt} cvChars=${input.cvText.length} error=${toSafeLogMessage(error)}`,
       );
       throw error;
     }
@@ -205,10 +228,11 @@ export class GroqAiProvider implements AiProvider {
 
   private async createStructuredCompletion(
     messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
+    model: string,
   ) {
     try {
       const response = await this.client.chat.completions.create({
-        model: this.model,
+        model,
         messages,
         temperature: 0,
         response_format: { type: "json_object" },
@@ -219,6 +243,54 @@ export class GroqAiProvider implements AiProvider {
       this.raiseIfQuota(error);
       throw error;
     }
+  }
+
+  private async withModelFallback<T>(task: GroqTask, operation: (model: string) => Promise<T>): Promise<T> {
+    const modelChain = this.getAvailableModels(this.getModelChain(task));
+    const modelsToTry = modelChain.length ? modelChain : this.getModelChain(task);
+    let lastError: unknown;
+
+    for (const model of modelsToTry) {
+      try {
+        return await operation(model);
+      } catch (error) {
+        lastError = error;
+        if (!isFallbackError(error)) throw error;
+
+        if (error instanceof QuotaExceededError) {
+          this.cooldownModel(model, error.retryAfterMs);
+        }
+
+        this.logger.warn(`Groq model fallback: task=${task} model=${model} error=${toSafeLogMessage(error)}`);
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error("Groq request failed for every configured model");
+  }
+
+  private getModelChain(task: GroqTask) {
+    const taskKey = {
+      matching: "GROQ_MATCH_MODEL_CHAIN",
+      "profile-extraction": "GROQ_EXTRACTION_MODEL_CHAIN",
+      "cv-summary": "GROQ_SUMMARY_MODEL_CHAIN",
+    }[task];
+    const taskChain = parseModelChain(this.configService.get<string>(taskKey));
+    if (taskChain.length) return taskChain;
+
+    const configuredChain = parseModelChain(this.configService.get<string>("GROQ_MODEL_CHAIN"));
+    if (configuredChain.length) return configuredChain;
+
+    const legacyModel = this.configService.get<string>("GROQ_MODEL")?.trim();
+    return legacyModel ? [legacyModel] : [DEFAULT_MODEL];
+  }
+
+  private getAvailableModels(modelChain: string[]) {
+    const now = Date.now();
+    return modelChain.filter(model => (this.modelCooldowns.get(model) ?? 0) <= now);
+  }
+
+  private cooldownModel(model: string, retryAfterMs: number) {
+    this.modelCooldowns.set(model, Date.now() + retryAfterMs);
   }
 
   private raiseIfQuota(error: unknown) {
@@ -482,6 +554,28 @@ function getPositiveIntegerConfig(configService: ConfigService, key: string, fal
   const parsed = typeof value === "number" ? value : Number(value);
 
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function parseModelChain(value: string | undefined) {
+  const seen = new Set<string>();
+  return (value ?? "")
+    .split(",")
+    .map(model => model.trim())
+    .filter(model => {
+      if (!model || seen.has(model)) return false;
+      seen.add(model);
+      return true;
+    });
+}
+
+function isFallbackError(error: unknown) {
+  if (error instanceof QuotaExceededError) return true;
+  if (!error || typeof error !== "object") return false;
+
+  const record = error as { status?: number; code?: string; name?: string };
+  return [429, 500, 502, 503, 504].includes(record.status ?? 0)
+    || record.code === "rate_limit_exceeded"
+    || record.name === "AbortError";
 }
 
 function toSafeLogMessage(error: unknown) {

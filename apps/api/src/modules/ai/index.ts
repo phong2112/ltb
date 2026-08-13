@@ -5,6 +5,7 @@ import { CvTextExtractorService } from "./cv/extractor/index.service";
 import { CvOcrService } from "./cv/ocr/index.service";
 import { AI_PROVIDER } from "../../models/ai";
 import { AiService } from "./processing/index.service";
+import { AiModelPortalService } from "./portal/index.service";
 import { GeminiProvider } from "./providers/gemini";
 import { GroqAiProvider } from "./providers/groq";
 import { AiQueueService } from "./queue/index.service";
@@ -15,13 +16,14 @@ import { TalentPoolProcessingService } from "./talent-pool/index.service";
   providers: [
     GroqAiProvider,
     GeminiProvider,
-    { provide: AI_PROVIDER, useExisting: GroqAiProvider },
+    AiModelPortalService,
+    { provide: AI_PROVIDER, useExisting: AiModelPortalService },
     CvOcrService,
     CvTextExtractorService,
     AiService,
     TalentPoolProcessingService,
     AiQueueService,
   ],
-  exports: [AiQueueService, CvTextExtractorService, TalentPoolProcessingService, AI_PROVIDER, GeminiProvider],
+  exports: [AiQueueService, CvTextExtractorService, TalentPoolProcessingService, AI_PROVIDER, AiModelPortalService],
 })
 export class AiModule {}

@@ -51,6 +51,27 @@ describe("GroqAiProvider", () => {
     }));
   });
 
+  it("falls back to the next configured model after a quota response", async () => {
+    mockCreate
+      .mockRejectedValueOnce({
+        status: 429,
+        headers: { "retry-after": "1" },
+        message: "rate limit exceeded",
+      })
+      .mockResolvedValueOnce(response(validAnalysis()));
+    const provider = createProvider({
+      GROQ_MODEL_CHAIN: "llama-3.3-70b-versatile,openai/gpt-oss-20b",
+    });
+
+    await expect(provider.analyzeMatch(matchInput())).resolves.toMatchObject({
+      summary: "Ứng viên phù hợp.",
+    });
+    expect(mockCreate.mock.calls.map(call => call[0].model)).toEqual([
+      "llama-3.3-70b-versatile",
+      "openai/gpt-oss-20b",
+    ]);
+  });
+
   it("repairs one invalid structured response and returns the valid retry", async () => {
     mockCreate
       .mockResolvedValueOnce(response({ summary: "missing required fields" }))
@@ -163,13 +184,15 @@ describe("GroqAiProvider", () => {
   });
 });
 
-function createProvider() {
+function createProvider(overrides: Record<string, unknown> = {}) {
+  const values: Record<string, unknown> = {
+    GROQ_API_KEY: "gsk_test_key",
+    GROQ_MODEL: "llama-3.3-70b-versatile",
+    GROQ_TIMEOUT_MS: 120_000,
+    ...overrides,
+  };
   const config = {
-    get: jest.fn((key: string) => ({
-      GROQ_API_KEY: "gsk_test_key",
-      GROQ_MODEL: "llama-3.3-70b-versatile",
-      GROQ_TIMEOUT_MS: 120_000,
-    })[key]),
+    get: jest.fn((key: string) => values[key]),
   } as unknown as ConfigService;
   const provider = new GroqAiProvider(config);
   expect(Groq).toHaveBeenCalledTimes(1);

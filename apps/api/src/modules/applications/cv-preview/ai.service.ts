@@ -2,7 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { applicationAreas } from "@hr-copilot/shared";
 import { buildApplicationPreviewPrompt } from "../../ai/prompts";
-import { GeminiProvider } from "../../ai/providers/gemini";
+import { AiModelPortalService } from "../../ai/portal/index.service";
 import { applicationPreviewExtractionSchema } from "../../../schemas/ai";
 import type { ApplicationPreviewExtraction } from "../../../models/ai";
 
@@ -15,7 +15,7 @@ export class ApplicationCvPreviewAiService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly geminiProvider: GeminiProvider,
+    private readonly aiPortal: AiModelPortalService,
   ) {}
 
   get enabled() {
@@ -47,7 +47,7 @@ export class ApplicationCvPreviewAiService {
     const startedAt = Date.now();
 
     try {
-      const geminiResult = await this.geminiProvider.generateJson({
+      const geminiResult = await this.aiPortal.generatePreviewJson({
         apiKey,
         prompt,
         systemInstruction: "Bạn là trợ lý tuyển dụng. Chỉ trả về JSON hợp lệ theo schema được yêu cầu.",

@@ -14,14 +14,14 @@ const DEFAULT_GEMINI_MODEL_CHAIN = [
 const DEFAULT_GEMINI_TIMEOUT_MS = 20_000;
 const DEFAULT_GEMINI_QUOTA_COOLDOWN_MS = 60_000;
 
-type GeminiGenerateInput = {
+export type GeminiGenerateInput = {
   apiKey: string;
   prompt: string;
   systemInstruction: string;
   timeoutMs?: number;
 };
 
-type GeminiGenerateResult = {
+export type GeminiGenerateResult = {
   content: string;
   model: string;
 };

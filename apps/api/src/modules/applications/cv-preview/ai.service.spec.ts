@@ -1,5 +1,5 @@
 import type { ConfigService } from "@nestjs/config";
-import type { GeminiProvider } from "../../ai/providers/gemini";
+import type { AiModelPortalService } from "../../ai/portal/index.service";
 import { ApplicationCvPreviewAiService } from "./ai.service";
 
 describe("ApplicationCvPreviewAiService", () => {
@@ -67,7 +67,7 @@ describe("ApplicationCvPreviewAiService", () => {
       applicationArea: "Hà Nội",
       confidence: expect.objectContaining({ applicationArea: 0.82 }),
     });
-    expect(geminiProvider.generateJson).toHaveBeenCalledWith(expect.objectContaining({
+    expect(geminiProvider.generatePreviewJson).toHaveBeenCalledWith(expect.objectContaining({
       apiKey: "gemini-test-key",
       timeoutMs: 20_000,
     }));
@@ -82,6 +82,7 @@ function createConfigService(values: Record<string, unknown>) {
 
 function createGeminiProvider(result = { content: "{}", model: "gemini-test" }) {
   return {
-    generateJson: jest.fn().mockResolvedValue(result),
-  } as unknown as jest.Mocked<GeminiProvider>;
+    generatePreviewJson: jest.fn().mockResolvedValue(result),
+    previewEnabled: true,
+  } as unknown as jest.Mocked<AiModelPortalService>;
 }

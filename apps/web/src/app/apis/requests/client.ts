@@ -3,18 +3,14 @@ import {
   type ActionNotification,
 } from "@/app/services/notification.service";
 import { currentTenantSlug } from "@/app/utils/tenant";
-import { API_ENDPOINTS } from "./endpoints";
+import {
+  refreshAccessToken,
+  shouldAttemptAuthRefresh,
+} from "./auth";
 
 export const API_BASE = resolveApiBase(
   import.meta.env.VITE_API_BASE_PATH as string | undefined,
 );
-
-/** Auth endpoints that should not recursively trigger refresh attempts on 401 responses. */
-const AUTH_SKIP_REFRESH_ENDPOINTS = new Set<string>([
-  API_ENDPOINTS.auth.login,
-  API_ENDPOINTS.auth.refresh,
-  API_ENDPOINTS.auth.logout,
-]);
 
 type ApiRequestInit = RequestInit & {
   skipAuthRefresh?: boolean;
@@ -46,7 +42,7 @@ export async function apiRequest<T>(path: string, init: ApiRequestInit = {}) {
       !skipAuthRefresh &&
       shouldAttemptAuthRefresh(path)
     ) {
-      const refreshed = await refreshAccessToken();
+      const refreshed = await refreshAccessToken(API_BASE);
       if (refreshed) response = await sendRequest(path, requestInit);
     }
 
@@ -108,28 +104,6 @@ function parseApiErrorMessage(body: string) {
   }
 
   return body;
-}
-
-/** Attempts to refresh the access token using the existing auth cookie. */
-async function refreshAccessToken() {
-  try {
-    const response = await fetch(`${API_BASE}${API_ENDPOINTS.auth.refresh}`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Tenant-Slug": currentTenantSlug(),
-      },
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
-/** Prevents auth endpoints from entering a refresh loop when they return 401. */
-function shouldAttemptAuthRefresh(path: string) {
-  return !AUTH_SKIP_REFRESH_ENDPOINTS.has(path);
 }
 
 /** Resolves the API origin/path and keeps Vercel deployments on same-origin API routes. */
