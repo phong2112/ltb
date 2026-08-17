@@ -1,7 +1,8 @@
 import type { CandidateStatus } from "@/app/data";
+import { ITEMS_PER_PAGE } from "@/app/utils/pagination";
 import { CANDIDATE_WORKFLOW_STATUSES } from "@/app/utils/configs/status-config";
 
-export const ITEMS_PER_PAGE = 10;
+export { ITEMS_PER_PAGE };
 export const TALENT_POOL_FETCH_SIZE = 100;
 
 export const TALENT_POOL_STATUS: CandidateStatus = "talent_pool";

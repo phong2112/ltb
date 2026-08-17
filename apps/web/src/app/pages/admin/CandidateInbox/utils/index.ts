@@ -1,6 +1,9 @@
 import type { CandidateStatus } from "@/app/data";
+import { stringField, stringList } from "@/app/utils/data";
 import { SORT_NAME_ASC, SORT_NEWEST, SORT_OLDEST, STATUS_OPTS } from "../constants";
 import type { SortOrder, UnifiedCandidateRow } from "../types";
+
+export { stringField, stringList };
 
 /** Reads the candidate status filter from the URL and falls back to "all" for invalid values. */
 export function readUrlStatus(searchParams: URLSearchParams): CandidateStatus | "all" {
@@ -24,16 +27,6 @@ export function readUrlPage(searchParams: URLSearchParams) {
   return Number.isInteger(value) && value > 0 ? value : 1;
 }
 
-/** Safely extracts optional API fields that should be strings in the UI. */
-export function stringField(value: unknown) {
-  return typeof value === "string" ? value : "";
-}
-
-/** Safely extracts optional API fields that should be string arrays in the UI. */
-export function stringList(value: unknown) {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
-}
-
 /** Creates a stable-enough key for unsaved File objects while assigning target jobs. */
 export function fileKey(file: File) {
   return `${file.name}:${file.size}:${file.lastModified}`;
@@ -54,7 +47,10 @@ export function groupFilesByTargetJob(files: File[], fileTargetJobIds: Record<st
   }));
 }
 
-/** Formats candidate dates using the active UI language. */
+/**
+ * Formats candidate dates using the active UI language.
+ * Produces a numeric format (e.g. "03/15/2024" / "15/03/2024").
+ */
 export function formatDate(value: string, language: "vi" | "en") {
   return new Intl.DateTimeFormat(language === "vi" ? "vi-VN" : "en-US", {
     day: "2-digit",

@@ -7,8 +7,7 @@ import ListPagination from "@/app/components/ListPagination";
 import AdminLayout from "@/app/layouts/AdminLayout";
 import { JOB_STATUS_CONFIG, URGENT_BADGE_CLASS } from "@/app/utils/configs/status-config";
 import { appendReturnTo } from "@/app/utils/navigation";
-
-const ITEMS_PER_PAGE = 10;
+import { ITEMS_PER_PAGE } from "@/app/utils/pagination";
 const JOB_STATUS_FILTERS = ["active", "published", "draft", "closed", "archived"] as const;
 type JobStatusFilter = JobStatus | "active";
 

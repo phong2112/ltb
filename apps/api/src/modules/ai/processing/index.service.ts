@@ -8,7 +8,6 @@ import {
   AI_PROVIDER,
   type AiProvider,
   type CriterionEvaluation,
-  type CvSummary,
   type MatchCriterion,
 } from "../../../models/ai";
 import { buildGroundedMatchInsights, groundCriterionEvaluations } from "../matching/analysis";
@@ -19,6 +18,7 @@ import {
   extractMatchCriteria,
 } from "../matching/scoring";
 import { CV_SUMMARY_PROMPT_VERSION, MATCH_PROMPT_VERSION } from "../prompts";
+import { sanitizeCvSummary } from "../cv/sanitize";
 
 const MAX_AI_CV_CHARACTERS = 45_000;
 const MAX_JOB_DESCRIPTION_CHARACTERS = 12_000;
@@ -367,53 +367,6 @@ function appendUnique(values: string[], value: string) {
   return values.includes(value) ? values : [...values, value];
 }
 
-function sanitizeCvSummary(summary: CvSummary): Prisma.InputJsonObject {
-  return {
-    overview: sanitizeSummaryText(summary.overview),
-    currentTitle: sanitizeNullableSummaryText(summary.currentTitle),
-    totalExperience: sanitizeNullableSummaryText(summary.totalExperience),
-    keySkills: sanitizeSummaryList(summary.keySkills, 12),
-    workExperiences: sanitizeWorkExperiences(summary.workExperiences ?? [], 8),
-    workCompanies: sanitizeSummaryList(summary.workCompanies, 8),
-    workHighlights: sanitizeSummaryList(summary.workHighlights, 6),
-    education: sanitizeSummaryList(summary.education, 4),
-    languages: sanitizeSummaryList(summary.languages, 6),
-    notesForTa: sanitizeSummaryList(summary.notesForTa, 5),
-  };
-}
-
-function sanitizeSummaryList(values: string[], maxItems: number) {
-  return values
-    .map(sanitizeSummaryText)
-    .filter(Boolean)
-    .slice(0, maxItems);
-}
-
-function sanitizeWorkExperiences(values: NonNullable<CvSummary["workExperiences"]>, maxItems: number) {
-  return values
-    .map(item => ({
-      company: sanitizeSummaryText(item.company),
-      title: sanitizeNullableSummaryText(item.title),
-      duration: sanitizeNullableSummaryText(item.duration),
-    }))
-    .filter(item => item.company)
-    .slice(0, maxItems);
-}
-
-function sanitizeNullableSummaryText(value: string | null) {
-  const sanitized = value ? sanitizeSummaryText(value) : "";
-  return sanitized || null;
-}
-
-function sanitizeSummaryText(value: string) {
-  return value
-    .replace(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/giu, "[email đã ẩn]")
-    .replace(/https?:\/\/[^\s)"'<>]+/giu, "[url đã ẩn]")
-    .replace(/\+?\d[\d\s.\-()]{7,}\d/gu, "[số điện thoại đã ẩn]")
-    .replace(/\s+/gu, " ")
-    .trim();
-}
-
 function htmlToPlainText(value: string) {
   const withLineBreaks = value
     .replace(/<br\s*\/?\s*>/gi, "\n")
@@ -484,7 +437,7 @@ function toSafeErrorMessage(error: unknown, stage: AiProcessingStage) {
   const message = error instanceof Error ? error.message : "Unknown AI processing error";
 
   if (stage === "analysis" && /fetch failed|ECONNREFUSED|connect/i.test(message)) {
-    return "Không thể kết nối tới Groq API. Kiểm tra GROQ_API_KEY, mạng và giới hạn dịch vụ.";
+    return "Không thể kết nối tới AI provider. Kiểm tra API key, mạng và giới hạn dịch vụ.";
   }
 
   if (/extractable text|Unsupported CV|extraction size/i.test(message)) {

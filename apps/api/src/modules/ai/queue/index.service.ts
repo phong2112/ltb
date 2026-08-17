@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { type ConnectionOptions, Job, Queue, Worker } from "bullmq";
 import { AiService } from "../processing/index.service";
 import { QuotaExceededError } from "../providers/groq";
+import { TalentPoolJobBus } from "../talent-pool-job-bus.service";
 import { TalentPoolProcessingService } from "../talent-pool/index.service";
 
 const CV_EXTRACTION_QUEUE = "cv-extraction";
@@ -35,6 +36,7 @@ export type AiQueueMetrics = {
 export class AiQueueService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AiQueueService.name);
   private readonly enabled: boolean;
+  private readonly jobAttempts: number;
   private extractionQueue?: Queue<ApplicationProcessingJob, void, typeof CV_EXTRACTION_JOB>;
   private matchQueue?: Queue<ApplicationProcessingJob, void, typeof AI_MATCH_JOB>;
   private poolExtractionQueue?: Queue<TalentPoolProcessingJob, void, typeof TALENT_POOL_EXTRACTION_JOB>;
@@ -47,8 +49,10 @@ export class AiQueueService implements OnModuleInit, OnModuleDestroy {
     private readonly configService: ConfigService,
     private readonly aiService: AiService,
     private readonly poolProcessingService: TalentPoolProcessingService,
+    private readonly jobBus: TalentPoolJobBus,
   ) {
     this.enabled = (configService.get<string>("AI_PROVIDER") ?? "disabled") === "groq";
+    this.jobAttempts = configService.get<number>("AI_JOB_ATTEMPTS") ?? 6;
     this.metrics = {
       enabled: this.enabled,
       queues: {
@@ -237,12 +241,10 @@ export class AiQueueService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (job.data.targetJobId) {
-      const promoted = await this.poolProcessingService.promotePoolEntry(
-        job.data.talentPoolEntryId,
-        job.data.targetJobId,
-        true,
-      );
-      await this.enqueue(promoted.applicationId);
+      this.jobBus.emit(TalentPoolJobBus.EXTRACTED, {
+        entryId: job.data.talentPoolEntryId,
+        targetJobId: job.data.targetJobId,
+      });
     }
   }
 
@@ -272,10 +274,8 @@ export class AiQueueService implements OnModuleInit, OnModuleDestroy {
   }
 
   private defaultJobOptions() {
-    const attempts = this.configService.get<number>("AI_JOB_ATTEMPTS") ?? 6;
-
     return {
-      attempts,
+      attempts: this.jobAttempts,
       backoff: { type: "exponential" as const, delay: 5_000 },
       removeOnComplete: 100,
       removeOnFail: 200,

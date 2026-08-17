@@ -15,14 +15,14 @@ import {
 } from "@nestjs/common";
 import { FilesInterceptor } from "@nestjs/platform-express";
 import { ApiBadRequestResponse, ApiConsumes, ApiCookieAuth, ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { JwtAuthGuard } from "../../auth/guards/index.guard";
-import type { AuthenticatedRequest } from "../../auth";
-import { ACCESS_TOKEN_SECURITY_NAME } from "../../../utils/swagger";
-import { ListTalentPoolDto } from "../dto/list/index.dto";
-import { PromoteTalentPoolEntryDto } from "../dto/promote/index.dto";
-import { UpdateTalentPoolEntryDto } from "../dto/update/index.dto";
-import { UploadTalentPoolDto } from "../dto/upload/index.dto";
-import { TalentPoolService } from "../service/index.service";
+import type { AuthenticatedRequest } from "../auth";
+import { JwtAuthGuard } from "../auth/guards/index.guard";
+import { ACCESS_TOKEN_SECURITY_NAME } from "../../utils/swagger";
+import { ListTalentPoolDto } from "./dto/list-talent-pool.dto";
+import { PromoteTalentPoolEntryDto } from "./dto/promote-talent-pool.dto";
+import { UpdateTalentPoolEntryDto } from "./dto/update-talent-pool.dto";
+import { UploadTalentPoolDto } from "./dto/upload-talent-pool.dto";
+import { TalentPoolService } from "./talent-pool.service";
 
 const MAX_UPLOAD_FILES = 20;
 

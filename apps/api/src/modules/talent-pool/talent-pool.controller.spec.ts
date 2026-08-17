@@ -1,7 +1,7 @@
-jest.mock("../service/index.service", () => ({ TalentPoolService: class {} }));
+jest.mock("./talent-pool.service", () => ({ TalentPoolService: class {} }));
 
 import { BadRequestException } from "@nestjs/common";
-import { TalentPoolController } from "./index.controller";
+import { TalentPoolController } from "./talent-pool.controller";
 
 describe("TalentPoolController", () => {
   it("passes the authenticated TA identity to per-file upload handling", async () => {

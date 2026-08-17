@@ -1,7 +1,14 @@
-jest.mock("../../ai/queue/index.service", () => ({ AiQueueService: class {} }));
+jest.mock("../ai/queue/index.service", () => ({ AiQueueService: class {} }));
+jest.mock("../ai/talent-pool-job-bus.service", () => ({
+  TalentPoolJobBus: class {
+    on = jest.fn();
+    removeAllListeners = jest.fn();
+    static EXTRACTED = "talent-pool.extracted";
+  },
+}));
 
 import { BadRequestException } from "@nestjs/common";
-import { TalentPoolService } from "../service/index.service";
+import { TalentPoolService } from "./talent-pool.service";
 
 function createService(overrides: {
   prisma?: Record<string, unknown>;
@@ -9,6 +16,7 @@ function createService(overrides: {
   config?: Record<string, unknown>;
   queue?: Record<string, unknown>;
   processing?: Record<string, unknown>;
+  jobs?: Record<string, unknown>;
 } = {}) {
   const prisma = {
     user: { upsert: jest.fn() },
@@ -33,10 +41,13 @@ function createService(overrides: {
   } as Record<string, unknown>;
   const processing = {
     processPoolEntry: jest.fn().mockResolvedValue(undefined),
-    promotePoolEntry: jest.fn(),
-    markAiUnavailable: jest.fn().mockResolvedValue(undefined),
     ...overrides.processing,
   } as Record<string, unknown>;
+  const jobs = {
+    getAdminJob: jest.fn(),
+    ...overrides.jobs,
+  } as Record<string, unknown>;
+  const bus = { on: jest.fn(), removeAllListeners: jest.fn() } as Record<string, unknown>;
 
   const service = new TalentPoolService(
     prisma as never,
@@ -44,8 +55,10 @@ function createService(overrides: {
     config as never,
     queue as never,
     processing as never,
+    jobs as never,
+    bus as never,
   );
-  return { service, prisma, storage, config, queue, processing };
+  return { service, prisma, storage, config, queue, processing, jobs };
 }
 
 describe("TalentPoolService", () => {
@@ -141,17 +154,33 @@ describe("TalentPoolService", () => {
   });
 
   it("marks a promoted application unavailable when AI is disabled", async () => {
-    const promotePoolEntry = jest.fn().mockResolvedValue({ applicationId: "app-1", jobId: "job-1" });
-    const { service, processing } = createService({
-      processing: { promotePoolEntry },
+    const cvParseResultUpdate = jest.fn().mockResolvedValue(undefined);
+    const entry = {
+      id: "entry-1",
+      candidateId: "candidate-1",
+      promotedApplicationId: null,
+      promotedApplication: null,
+      file: { id: "file-1" },
+      candidate: { fullName: "Test", email: "test@example.com", phone: null, linkedinUrl: null, portfolioUrl: null },
+      structuredData: null,
+      extractedText: null,
+    };
+    const { service } = createService({
+      prisma: {
+        talentPoolEntry: { findUnique: jest.fn().mockResolvedValue(entry) },
+        candidateFile: { findUniqueOrThrow: jest.fn().mockResolvedValue({ storageTier: "local", originalName: "cv.pdf", storedName: "stored.pdf", mimeType: "application/pdf", sizeBytes: 0, path: "/cv.pdf" }) },
+        $transaction: jest.fn().mockResolvedValue({ applicationId: "app-1", jobId: "job-1" }),
+        cvParseResult: { update: cvParseResultUpdate },
+      },
       queue: { enqueue: jest.fn().mockResolvedValue(false) },
+      jobs: { getAdminJob: jest.fn().mockResolvedValue({ id: "job-1", title: "Engineer" }) },
     });
 
     await expect(service.promote("entry-1", "job-1")).resolves.toEqual({ applicationId: "app-1", jobId: "job-1" });
-    expect(processing.markAiUnavailable).toHaveBeenCalledWith(
-      "app-1",
-      "AI matching is disabled in this environment",
-    );
+    expect(cvParseResultUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      where: { applicationId: "app-1" },
+      data: expect.objectContaining({ errorMessage: "AI matching is disabled in this environment" }),
+    }));
   });
 
   it("searches both canonical Candidate contacts and extracted contact snapshots", async () => {

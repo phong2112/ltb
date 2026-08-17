@@ -1,4 +1,4 @@
-import type { CvSummary, TalentPoolStatus } from "@hr-copilot/shared";
+import type { CvSummary, TalentPoolStatus, TalentPoolUploadResult } from "@hr-copilot/shared";
 
 export type { TalentPoolStatus };
 
@@ -65,12 +65,7 @@ export type ApiTalentPoolListResponse = {
 };
 
 /** API per-file result returned after bulk talent pool CV upload. */
-export type ApiTalentPoolUploadResult = {
-  fileName: string;
-  status: "created" | "duplicate" | "error";
-  entryId?: string;
-  reason?: string;
-};
+export type ApiTalentPoolUploadResult = TalentPoolUploadResult;
 
 /** API payload for updating editable talent pool profile fields. */
 export type ApiTalentPoolUpdateInput = {

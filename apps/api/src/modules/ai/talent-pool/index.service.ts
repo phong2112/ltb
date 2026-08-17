@@ -1,14 +1,14 @@
-import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { ApplicationStatus, CvParseStatus, FileKind, Prisma } from "@prisma/client";
+import { BadRequestException, Inject, Injectable } from "@nestjs/common";
+import { CvParseStatus, Prisma } from "@prisma/client";
 import { ConfigService } from "@nestjs/config";
 import { lockCandidateContacts, normalizeEmail, normalizeLinkedinUrl, normalizePhone } from "../../candidates/contact";
-import { JobsService } from "../../jobs/service/index.service";
 import { PrismaService } from "../../prisma";
 import { prepareCvTextForAi } from "../cv/cleaner";
 import { CvTextExtractorService } from "../cv/extractor/index.service";
-import { AI_PROVIDER, type AiProvider, type CvSummary } from "../../../models/ai";
+import { AI_PROVIDER, type AiProvider } from "../../../models/ai";
 import { parseCvProfileFromText } from "../profile-parser";
 import { CV_SUMMARY_PROMPT_VERSION } from "../prompts";
+import { sanitizeCvSummary } from "../cv/sanitize";
 
 const EXTRACTION_VERSION = "talent-pool-extraction-v2";
 const MAX_AI_CV_CHARACTERS = 45_000;
@@ -18,7 +18,6 @@ export class TalentPoolProcessingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly textExtractor: CvTextExtractorService,
-    private readonly jobsService: JobsService,
     private readonly configService: ConfigService,
     @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider,
   ) {}
@@ -149,117 +148,6 @@ export class TalentPoolProcessingService {
     }
   }
 
-  async promotePoolEntry(id: string, jobId: string, allowExisting = false) {
-    const entry = await this.prisma.talentPoolEntry.findUnique({
-      where: { id },
-      include: {
-        candidate: true,
-        file: { select: { id: true } },
-        promotedApplication: { select: { jobId: true } },
-      },
-    });
-
-    if (!entry) throw new NotFoundException("Không tìm thấy hồ sơ trong kho ứng viên.");
-    if (entry.promotedApplicationId) {
-      if (allowExisting && entry.promotedApplication?.jobId === jobId) {
-        return { applicationId: entry.promotedApplicationId, jobId };
-      }
-      throw new ConflictException("Hồ sơ này đã được gán vào một vị trí tuyển dụng.");
-    }
-    if (!entry.file) {
-      throw new BadRequestException("Hồ sơ không có tệp CV để gán vào vị trí tuyển dụng.");
-    }
-
-    const job = await this.jobsService.getAdminJob(jobId);
-    const data = (entry.structuredData ?? {}) as Record<string, unknown>;
-    const email = typeof data.email === "string" ? data.email : entry.candidate.email ?? undefined;
-    const phone = typeof data.phone === "string" ? data.phone : entry.candidate.phone ?? undefined;
-    const normalizedEmail = email ? normalizeEmail(email) : undefined;
-    const normalizedPhone = normalizePhone(phone);
-    const linkedinUrl = typeof data.linkedinUrl === "string" ? data.linkedinUrl : entry.candidate.linkedinUrl ?? undefined;
-    const normalizedLinkedinUrl = normalizeLinkedinUrl(linkedinUrl);
-
-    if (!normalizedEmail && !normalizedPhone && !normalizedLinkedinUrl) {
-      throw new BadRequestException("Cần email, số điện thoại hoặc LinkedIn của ứng viên trước khi gán vào vị trí. Hãy bổ sung ở hồ sơ.");
-    }
-
-    const fullFile = await this.prisma.candidateFile.findUniqueOrThrow({ where: { id: entry.file.id } });
-
-    try {
-      return await this.prisma.$transaction(async tx => {
-        const application = await tx.application.create({
-          data: {
-            candidateId: entry.candidateId,
-            jobId: job.id,
-            submittedFullName: entry.candidate.fullName,
-            submittedEmail: email,
-            submittedPhone: phone,
-            submittedLinkedinUrl: linkedinUrl,
-            normalizedEmail,
-            normalizedPhone,
-            normalizedLinkedinUrl,
-            status: ApplicationStatus.VIEWED,
-            consentAccepted: false,
-            answers: { source: "talent_pool", talentPoolEntryId: entry.id },
-          },
-        });
-        const applicationFile = await tx.candidateFile.create({
-          data: {
-            applicationId: application.id,
-            kind: FileKind.CV,
-            storageTier: fullFile.storageTier,
-            originalName: fullFile.originalName,
-            storedName: fullFile.storedName,
-            mimeType: fullFile.mimeType,
-            sizeBytes: fullFile.sizeBytes,
-            path: fullFile.path,
-          },
-        });
-        await tx.cvParseResult.create({
-          data: {
-            applicationId: application.id,
-            candidateFileId: applicationFile.id,
-            status: entry.extractedText ? CvParseStatus.EXTRACTED : CvParseStatus.PENDING,
-            extractedText: entry.extractedText,
-            structuredData: (entry.structuredData ?? Prisma.JsonNull) as Prisma.InputJsonValue,
-            summary: "Hồ sơ được gán từ kho ứng viên; đang chờ phân tích mức độ phù hợp.",
-          },
-        });
-        await tx.talentPoolEntry.update({
-          where: { id: entry.id },
-          data: { promotedApplicationId: application.id },
-        });
-        await tx.activityLog.create({
-          data: {
-            candidateId: entry.candidateId,
-            applicationId: application.id,
-            jobId: job.id,
-            actor: "admin",
-            action: "talent_pool_promoted",
-            metadata: { talentPoolEntryId: entry.id, jobTitle: job.title },
-          },
-        });
-        return { applicationId: application.id, jobId: job.id };
-      });
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-        throw new ConflictException("Ứng viên này đã có hồ sơ ứng tuyển cho vị trí đã chọn.");
-      }
-      throw error;
-    }
-  }
-
-  async markAiUnavailable(applicationId: string, errorMessage: string) {
-    await this.prisma.cvParseResult.update({
-      where: { applicationId },
-      data: {
-        status: CvParseStatus.FAILED,
-        summary: "Không thể bắt đầu phân tích AI. HR vẫn có thể xem CV và đánh giá thủ công.",
-        errorMessage,
-      },
-    });
-  }
-
   async markPoolFailed(entryId: string, error: unknown) {
     await this.prisma.talentPoolEntry.update({
       where: { id: entryId },
@@ -328,49 +216,3 @@ export class TalentPoolProcessingService {
   }
 }
 
-function sanitizeCvSummary(summary: CvSummary): Prisma.InputJsonObject {
-  return {
-    overview: sanitizeSummaryText(summary.overview),
-    currentTitle: sanitizeNullableSummaryText(summary.currentTitle),
-    totalExperience: sanitizeNullableSummaryText(summary.totalExperience),
-    keySkills: sanitizeSummaryList(summary.keySkills, 12),
-    workExperiences: sanitizeWorkExperiences(summary.workExperiences ?? [], 8),
-    workCompanies: sanitizeSummaryList(summary.workCompanies, 8),
-    workHighlights: sanitizeSummaryList(summary.workHighlights, 6),
-    education: sanitizeSummaryList(summary.education, 4),
-    languages: sanitizeSummaryList(summary.languages, 6),
-    notesForTa: sanitizeSummaryList(summary.notesForTa, 5),
-  };
-}
-
-function sanitizeSummaryList(values: string[], maxItems: number) {
-  return values
-    .map(sanitizeSummaryText)
-    .filter(Boolean)
-    .slice(0, maxItems);
-}
-
-function sanitizeWorkExperiences(values: NonNullable<CvSummary["workExperiences"]>, maxItems: number) {
-  return values
-    .map(item => ({
-      company: sanitizeSummaryText(item.company),
-      title: sanitizeNullableSummaryText(item.title),
-      duration: sanitizeNullableSummaryText(item.duration),
-    }))
-    .filter(item => item.company)
-    .slice(0, maxItems);
-}
-
-function sanitizeNullableSummaryText(value: string | null) {
-  const sanitized = value ? sanitizeSummaryText(value) : "";
-  return sanitized || null;
-}
-
-function sanitizeSummaryText(value: string) {
-  return value
-    .replace(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/giu, "[email đã ẩn]")
-    .replace(/https?:\/\/[^\s)"'<>]+/giu, "[url đã ẩn]")
-    .replace(/\+?\d[\d\s.\-()]{7,}\d/gu, "[số điện thoại đã ẩn]")
-    .replace(/\s+/gu, " ")
-    .trim();
-}

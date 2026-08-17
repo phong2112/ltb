@@ -146,7 +146,7 @@ export class InternalCandidateSuggestionService {
 
       const metadata = asRecord(application.cvParseResult?.structuredData);
       const cvSummary = readCvSummaryText(metadata);
-      const strengths = readJsonStringList(application.matchResult?.strengths);
+      const strengths = readTextList(asRecord(application.matchResult), "strengths");
       const evidence = joinEvidence([
         candidate.fullName,
         candidate.linkedinUrl,
@@ -276,10 +276,6 @@ function readText(record: Record<string, unknown> | null, key: string) {
 
 function readTextList(record: Record<string, unknown> | null, key: string) {
   const value = record?.[key];
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && !!item.trim()) : [];
-}
-
-function readJsonStringList(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && !!item.trim()) : [];
 }
 
