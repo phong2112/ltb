@@ -9,6 +9,13 @@ type CvSummaryLike = {
   workHighlights?: string[];
 };
 
+export function removeRedactedPhoneMarker(value: string) {
+  const marker = "[số điện thoại đã ẩn]";
+  let cleaned = value.replaceAll(marker, "").trim();
+  while (/[[-–—,:;|/]$/.test(cleaned)) cleaned = cleaned.slice(0, -1).trim();
+  return cleaned.split(" ").filter(Boolean).join(" ");
+}
+
 export type WorkExperienceDisplayItem = {
   company: string;
   title: string | null;
@@ -19,7 +26,7 @@ export type WorkExperienceDisplayItem = {
 export function getWorkExperienceItems(summary: CvSummaryLike): WorkExperienceDisplayItem[] {
   const structured = (summary.workExperiences ?? [])
     .map(item => ({
-      company: item.company?.trim(),
+      company: cleanNullable(item.company) ?? "",
       title: cleanNullable(item.title),
       duration: cleanNullable(item.duration),
     }))
@@ -102,7 +109,7 @@ function stripLeadingRoleWords(value: string) {
 
 /** Normalizes optional strings and converts blank values to null for UI consistency. */
 function cleanNullable(value?: string | null) {
-  const cleaned = value?.replace(/\s+/gu, " ").trim();
+  const cleaned = value ? removeRedactedPhoneMarker(value) : "";
   return cleaned || null;
 }
 

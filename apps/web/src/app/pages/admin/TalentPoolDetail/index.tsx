@@ -1,5 +1,5 @@
 import { Link, useParams, useSearchParams } from "react-router";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, RefreshCw, Save } from "lucide-react";
 import { CvDocumentPreview } from "@/app/components/CandidateDetailSections";
 import { useLanguage } from "@/app/services/i18n-service";
 import AdminLayout from "@/app/layouts/AdminLayout";
@@ -7,7 +7,7 @@ import { API_BASE } from "@/app/apis/requests";
 import { TalentPoolStatusBadge } from "@/app/components/TalentPoolStatusBadge";
 import { safeAdminReturnTo } from "@/app/utils/navigation";
 import { useTalentPoolDetail } from "./use-talent-pool-detail";
-import { formatDate, readCvSummary, resolvedFullName } from "./utils";
+import { formatDate, readCvSummary } from "./utils";
 import { CvSummarySection } from "./components/CvSummarySection";
 import { DeleteDialog } from "./components/DeleteDialog";
 import { ProfileEditForm } from "./components/ProfileEditForm";
@@ -19,7 +19,7 @@ export default function TalentPoolDetail() {
   const { language, t } = useLanguage();
   const returnTo = safeAdminReturnTo(searchParams.get("from"), "/admin/candidates");
   const detail = useTalentPoolDetail(id, returnTo);
-  const { entry, jobs, form, promoteJobId, isLoading, isSaving, isPromoting, isDeleting, isDirty, error } = detail;
+  const { entry, jobs, form, promoteJobId, isLoading, isSaving, isPromoting, isVerifyingAi, isDeleting, isDirty, error } = detail;
 
   if (isLoading) {
     return <AdminLayout><div className="py-32 text-center text-sm font-semibold text-muted-foreground">{t("common.loading")}</div></AdminLayout>;
@@ -36,7 +36,7 @@ export default function TalentPoolDetail() {
     );
   }
 
-  const displayName = resolvedFullName(entry);
+  const displayName = entry.candidate.fullName;
   const cvUrl = entry.file ? `${API_BASE}/admin/candidates/files/${entry.file.id}` : "#";
   const cvSummary = readCvSummary(entry.structuredData?.cvSummary);
 
@@ -55,6 +55,15 @@ export default function TalentPoolDetail() {
             <p className="mt-1 text-xs text-muted-foreground">{entry.file?.originalName ?? "CV"} · {formatDate(entry.createdAt, language)}</p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void detail.handleVerifyAi()}
+              disabled={isVerifyingAi || entry.status === "PENDING" || entry.status === "EXTRACTING"}
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 text-xs font-bold text-primary hover:bg-primary/10 disabled:cursor-wait disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={isVerifyingAi ? "animate-spin" : undefined} />
+              {isVerifyingAi ? t("talentPool.verifyingAi") : t("talentPool.verifyAi")}
+            </button>
             <button type="button" onClick={() => void detail.handleSave()} disabled={!isDirty || isSaving} className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-xs font-bold text-white disabled:opacity-50">
               <Save size={14} /> {isSaving ? t("talentPool.saving") : t("talentPool.save")}
             </button>

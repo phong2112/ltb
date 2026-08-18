@@ -69,6 +69,13 @@ export class TalentPoolController {
     return this.talentPoolService.getEntry(id);
   }
 
+  @ApiOperation({ summary: "Re-run AI CV extraction and summary for a talent pool entry" })
+  @ApiOkResponse({ description: "Talent pool entry after AI verification was requested." })
+  @Post(":id/ai/retry")
+  retryAiVerification(@Param("id") id: string) {
+    return this.talentPoolService.retryAiVerification(id);
+  }
+
   @ApiOperation({ summary: "Update a talent pool entry's parsed profile, tags, or notes" })
   @Patch(":id")
   updateEntry(@Param("id") id: string, @Body() dto: UpdateTalentPoolEntryDto) {

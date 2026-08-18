@@ -1,10 +1,8 @@
-import { shouldPreferExtractedName } from "@hr-copilot/shared";
 import type { CvSummary } from "@/app/data";
 import type { ApiTalentPoolEntry } from "@/app/apis/models";
 import { stringField, stringList } from "@/app/utils/data";
 import type { ProfileForm } from "./types";
 
-export { shouldPreferExtractedName };
 
 /**
  * Derives the initial editable form state from a talent pool entry.
@@ -13,7 +11,7 @@ export { shouldPreferExtractedName };
 export function formFromEntry(entry: ApiTalentPoolEntry): ProfileForm {
   const data = entry.structuredData ?? {};
   return {
-    fullName: resolvedFullName(entry),
+    fullName: entry.candidate.fullName,
     email: stringField(data.email) || entry.candidate.email || "",
     phone: stringField(data.phone) || entry.candidate.phone || "",
     title: stringField(data.title),
@@ -81,16 +79,6 @@ export function linkField(value: unknown): string {
   return typeof value === "string" && /^https?:\/\//i.test(value) ? value : "";
 }
 
-/**
- * Resolves the display name for a talent pool entry.
- * Prefers the AI-extracted name from `structuredData.fullName` when the stored candidate name
- * is still a placeholder or raw upload artifact, as determined by `shouldPreferExtractedName`.
- */
-export function resolvedFullName(entry: ApiTalentPoolEntry): string {
-  const extractedName = stringField(entry.structuredData?.fullName).trim();
-  const currentName = entry.candidate.fullName?.trim() ?? "";
-  return extractedName && shouldPreferExtractedName(currentName, entry.file?.originalName) ? extractedName : currentName;
-}
 
 /**
  * Formats a date string for display using the active UI language.

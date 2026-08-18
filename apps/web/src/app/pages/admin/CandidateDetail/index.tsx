@@ -53,7 +53,7 @@ import {
   CANDIDATE_WORKFLOW_STATUSES,
   type CandidateStatus,
 } from "@/app/utils/configs/status-config";
-import { formatWorkExperience, getWorkExperienceItems, type WorkExperienceDisplayItem } from "@/app/utils/cv-summary";
+import { formatWorkExperience, getWorkExperienceItems, removeRedactedPhoneMarker, type WorkExperienceDisplayItem } from "@/app/utils/cv-summary";
 import { safeAdminReturnTo } from "@/app/utils/navigation";
 
 export default function CandidateDetail() {
@@ -361,7 +361,7 @@ export default function CandidateDetail() {
               <div className="grid gap-5 border-b border-border px-5 py-5 lg:grid-cols-[minmax(0,1fr)_220px]">
                 <div className="min-w-0">
                   <SectionHeading icon={<Sparkles size={16} />} title={t("common.aiAnalysis")} />
-                  <p className="mt-3 max-w-4xl text-sm leading-6 text-foreground">{application.aiSummary}</p>
+                  <p className="mt-3 max-w-4xl text-sm leading-6 text-foreground">{removeRedactedPhoneMarker(application.aiSummary)}</p>
                   {application.aiStatus === "completed" && application.aiConfidence !== null && (
                     <p className="mt-2 text-xs font-semibold text-muted-foreground">Độ tin cậy của bằng chứng: {application.aiConfidence}%</p>
                   )}
@@ -385,17 +385,15 @@ export default function CandidateDetail() {
                   {application.aiStatus === "failed" && application.aiError && (
                     <p className="mt-2 text-xs font-semibold text-red-600">{application.aiError}</p>
                   )}
-                  {application.aiStatus === "failed" && (
-                    <button
-                      type="button"
-                      disabled={retryingAnalysis}
-                      onClick={() => void handleRetryAnalysis()}
-                      className="mt-3 inline-flex h-8 items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-black text-red-700 transition-colors hover:border-red-300 hover:bg-red-100 disabled:cursor-wait disabled:opacity-60"
-                    >
-                      <RefreshCw size={13} className={retryingAnalysis ? "animate-spin" : undefined} />
-                      Chạy lại AI
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    disabled={retryingAnalysis || application.aiStatus === "pending"}
+                    onClick={() => void handleRetryAnalysis()}
+                    className="mt-3 inline-flex h-8 items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 text-xs font-black text-primary transition-colors hover:border-primary/50 hover:bg-primary/10 disabled:cursor-wait disabled:opacity-60"
+                  >
+                    <RefreshCw size={13} className={retryingAnalysis ? "animate-spin" : undefined} />
+                    {retryingAnalysis ? "Đang xác minh AI..." : "Xác minh lại CV & AI"}
+                  </button>
                 </div>
                 <div className={`rounded-2xl border p-4 ${scoreTone.soft} ${scoreTone.border}`}>
                   <div className="flex items-end justify-between gap-3">
@@ -505,12 +503,12 @@ function CvSummarySection({ application }: { application: ReturnType<typeof useD
         <div>
           <SectionHeading icon={<FileText size={16} />} title="Tóm tắt CV" />
           <p className="mt-3 max-w-4xl text-sm leading-6 text-foreground">
-            {summary?.overview ?? (application.aiStatus === "failed" ? "AI chưa tóm tắt được CV này. TA có thể mở file CV để xem trực tiếp." : "Tóm tắt CV sẽ hiển thị sau khi AI đọc xong hồ sơ.")}
+            {summary ? removeRedactedPhoneMarker(summary.overview) : (application.aiStatus === "failed" ? "AI chưa tóm tắt được CV này. TA có thể mở file CV để xem trực tiếp." : "Tóm tắt CV sẽ hiển thị sau khi AI đọc xong hồ sơ.")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2 sm:justify-end">
-          {summary?.currentTitle && <SummaryPill label={summary.currentTitle} />}
-          {summary?.totalExperience && <SummaryPill label={summary.totalExperience} />}
+          {summary?.currentTitle && removeRedactedPhoneMarker(summary.currentTitle) && <SummaryPill label={removeRedactedPhoneMarker(summary.currentTitle)} />}
+          {summary?.totalExperience && removeRedactedPhoneMarker(summary.totalExperience) && <SummaryPill label={removeRedactedPhoneMarker(summary.totalExperience)} />}
         </div>
       </div>
 
@@ -574,15 +572,17 @@ function CvSummaryList({ icon, title, items, inline = false }: {
   items: string[];
   inline?: boolean;
 }) {
+  const visibleItems = items.map(removeRedactedPhoneMarker).filter(Boolean);
+
   return (
     <div className="min-w-0 rounded-xl border border-border/80 bg-background/60 p-4">
       <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
         <span className="text-primary">{icon}</span> {title}
       </p>
-      {items.length > 0 ? (
+      {visibleItems.length > 0 ? (
         inline ? (
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {items.map(item => (
+            {visibleItems.map(item => (
               <span key={item} className="max-w-full rounded-full border border-border bg-white px-2.5 py-1 text-xs font-bold text-foreground">
                 {item}
               </span>
@@ -590,7 +590,7 @@ function CvSummaryList({ icon, title, items, inline = false }: {
           </div>
         ) : (
           <ul className="mt-3 space-y-2">
-            {items.map(item => (
+            {visibleItems.map(item => (
               <li key={item} className="grid grid-cols-[8px_minmax(0,1fr)] gap-2 text-sm leading-6 text-foreground">
                 <span className="mt-2 size-1.5 rounded-full bg-primary" />
                 <span>{item}</span>

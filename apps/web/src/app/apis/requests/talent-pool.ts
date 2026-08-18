@@ -42,6 +42,11 @@ export function getTalentPoolEntry(id: string) {
   return apiRequest<ApiTalentPoolEntry>(API_ENDPOINTS.talentPool.entry(id));
 }
 
+/** Re-runs CV extraction and AI summary after HR requests verification. */
+export function retryTalentPoolAiVerification(id: string) {
+  return apiRequest<ApiTalentPoolEntry>(API_ENDPOINTS.talentPool.aiRetry(id), { method: "POST" });
+}
+
 /** Updates editable talent pool profile fields and reviewer notes. */
 export function updateTalentPoolEntry(id: string, input: ApiTalentPoolUpdateInput) {
   return apiRequest<ApiTalentPoolEntry>(API_ENDPOINTS.talentPool.entry(id), {

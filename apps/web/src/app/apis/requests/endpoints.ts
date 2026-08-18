@@ -47,6 +47,7 @@ export const API_ENDPOINTS = {
     upload: `${ADMIN_TALENT_POOL_ENDPOINT}/upload`,
     entry: (id: string) => `${ADMIN_TALENT_POOL_ENDPOINT}/${encodeURIComponent(id)}`,
     promote: (id: string) => `${API_ENDPOINTS.talentPool.entry(id)}/promote`,
+    aiRetry: (id: string) => API_ENDPOINTS.talentPool.entry(id) + "/ai/retry",
   },
   templates: {
     list: ADMIN_TEMPLATES_ENDPOINT,

@@ -63,15 +63,15 @@ services:
       - key: GROQ_API_KEY
         sync: false
       - key: GROQ_MODEL
-        value: "llama-3.3-70b-versatile"
+        value: "openai/gpt-oss-120b"
       - key: GROQ_MODEL_CHAIN
-        value: "llama-3.3-70b-versatile,openai/gpt-oss-120b,openai/gpt-oss-20b,qwen/qwen3.6-27b,llama-3.1-8b-instant"
+        value: "openai/gpt-oss-120b,qwen/qwen3.6-27b,openai/gpt-oss-20b"
       - key: GROQ_MATCH_MODEL_CHAIN
-        value: "llama-3.3-70b-versatile,openai/gpt-oss-120b,openai/gpt-oss-20b,qwen/qwen3.6-27b,llama-3.1-8b-instant"
+        value: "openai/gpt-oss-120b,qwen/qwen3.6-27b,openai/gpt-oss-20b"
       - key: GROQ_EXTRACTION_MODEL_CHAIN
-        value: "llama-3.1-8b-instant,openai/gpt-oss-20b,qwen/qwen3.6-27b,llama-3.3-70b-versatile"
+        value: "openai/gpt-oss-120b,qwen/qwen3.6-27b,openai/gpt-oss-20b"
       - key: GROQ_SUMMARY_MODEL_CHAIN
-        value: "llama-3.1-8b-instant,openai/gpt-oss-20b,qwen/qwen3.6-27b,llama-3.3-70b-versatile"
+        value: "openai/gpt-oss-120b,qwen/qwen3.6-27b,openai/gpt-oss-20b"
       - key: GROQ_TIMEOUT_MS
         value: "120000"
       - key: PREVIEW_AI_PROVIDER

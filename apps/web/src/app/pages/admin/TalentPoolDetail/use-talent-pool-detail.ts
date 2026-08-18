@@ -5,6 +5,7 @@ import {
   getAdminJobs,
   getTalentPoolEntry,
   promoteTalentPoolEntry,
+  retryTalentPoolAiVerification,
   updateTalentPoolEntry,
 } from "@/app/apis/requests";
 import type { ApiTalentPoolEntry } from "@/app/apis/models";
@@ -31,6 +32,7 @@ export function useTalentPoolDetail(id: string | undefined, returnTo: string) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isPromoting, setIsPromoting] = useState(false);
+  const [isVerifyingAi, setIsVerifyingAi] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [error, setError] = useState("");
@@ -109,6 +111,22 @@ export function useTalentPoolDetail(id: string | undefined, returnTo: string) {
     }
   }
 
+  async function handleVerifyAi() {
+    if (!id || !entry || isVerifyingAi) return;
+    setIsVerifyingAi(true);
+    const toastId = notificationService.loading(t("talentPool.verifyingAi"));
+    try {
+      const updated = await retryTalentPoolAiVerification(id);
+      setEntry(updated);
+      if (!isDirty) setForm(formFromEntry(updated));
+      notificationService.success(t("talentPool.verifyAiQueued"), toastId);
+    } catch (verificationError) {
+      notificationService.error(verificationError, t("talentPool.verifyAiError"), toastId);
+    } finally {
+      setIsVerifyingAi(false);
+    }
+  }
+
   async function handleDelete() {
     if (!id) return;
     setIsDeleting(true);
@@ -130,6 +148,7 @@ export function useTalentPoolDetail(id: string | undefined, returnTo: string) {
     isLoading,
     isSaving,
     isPromoting,
+    isVerifyingAi,
     isDeleting,
     isDirty,
     error,
@@ -137,6 +156,7 @@ export function useTalentPoolDetail(id: string | undefined, returnTo: string) {
     updateField,
     handleSave,
     handlePromote,
+    handleVerifyAi,
     handleDelete,
   };
 }

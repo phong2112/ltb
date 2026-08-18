@@ -14,7 +14,6 @@ import { PrismaService } from "../prisma";
 import { TALENT_POOL_ACTIVITY, TALENT_POOL_CANDIDATE_SOURCE, TALENT_POOL_PENDING_NAME } from "./talent-pool.constants";
 import { ListTalentPoolDto } from "./dto/list-talent-pool.dto";
 import { UpdateTalentPoolEntryDto } from "./dto/update-talent-pool.dto";
-import { resolveCandidate } from "./helpers/candidate-name-resolver";
 import { mergeStructuredData, resolveStructuredData } from "./helpers/structured-data.helpers";
 
 type UploadOptions = {
@@ -90,6 +89,39 @@ export class TalentPoolService implements OnModuleInit, OnModuleDestroy {
     return this.poolProcessingService.processPoolEntry(entryId);
   }
 
+  /** Re-runs CV extraction and AI summary after an HR review request. */
+  async retryAiVerification(entryId: string) {
+    const entry = await this.prisma.talentPoolEntry.findUnique({
+      where: { id: entryId },
+      select: { id: true, candidateId: true, file: { select: { id: true } } },
+    });
+
+    if (!entry) throw new NotFoundException("Không tìm thấy hồ sơ trong kho ứng viên.");
+    if (!entry.file) throw new BadRequestException("Hồ sơ không có tệp CV để AI đọc lại.");
+
+    await this.prisma.$transaction([
+      this.prisma.talentPoolEntry.update({
+        where: { id: entryId },
+        data: {
+          status: CvParseStatus.PENDING,
+          errorMessage: null,
+          summary: "HR đã yêu cầu AI đọc lại CV và xác minh tóm tắt.",
+        },
+      }),
+      this.prisma.activityLog.create({
+        data: {
+          candidateId: entry.candidateId,
+          actor: "admin",
+          action: "talent_pool_ai_verification_requested",
+          metadata: { talentPoolEntryId: entryId },
+        },
+      }),
+    ]);
+
+    await this.startProcessing(entryId, undefined, { force: true });
+    return this.getEntry(entryId);
+  }
+
   /** Returns a paginated, optionally filtered list of talent pool entries. */
   async list(query: ListTalentPoolDto) {
     const page = query.page ?? 1;
@@ -135,7 +167,7 @@ export class TalentPoolService implements OnModuleInit, OnModuleDestroy {
         return {
           id: entry.id,
           status: entry.status,
-          candidate: resolveCandidate(entry.candidate, structuredData, entry.file?.originalName, entry.extractedText),
+          candidate: entry.candidate,
           fileId: entry.file?.id ?? null,
           tags: entry.tags,
           summary: entry.summary,
@@ -165,7 +197,7 @@ export class TalentPoolService implements OnModuleInit, OnModuleDestroy {
     const structuredData = resolveStructuredData(entry.structuredData, entry.extractedText);
     return {
       ...entry,
-      candidate: resolveCandidate(entry.candidate, structuredData, entry.file?.originalName, entry.extractedText),
+      candidate: entry.candidate,
       structuredData,
     };
   }
@@ -428,9 +460,11 @@ export class TalentPoolService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async startProcessing(entryId: string, targetJobId?: string): Promise<void> {
+  private async startProcessing(entryId: string, targetJobId?: string, options: { force?: boolean } = {}): Promise<void> {
     try {
-      const queued = await this.aiQueueService.enqueuePoolEntry(entryId, targetJobId);
+      const queued = options.force
+        ? await this.aiQueueService.enqueuePoolEntry(entryId, targetJobId, options)
+        : await this.aiQueueService.enqueuePoolEntry(entryId, targetJobId);
       if (queued) return;
     } catch (error) {
       this.logger.error(

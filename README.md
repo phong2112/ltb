@@ -74,7 +74,7 @@ Implemented:
 Implemented for local demo:
 
 - PDF, DOC, and DOCX text extraction, with local `vie+eng` OCR fallback for scanned PDFs and JPG/PNG CVs.
-- Groq provider using `llama-3.3-70b-versatile` by default.
+- Groq provider using `openai/gpt-oss-120b` by default, with configurable model fallbacks.
 - Optional Gemini provider for public apply CV preview autofill, isolated from Groq matching queues.
 - Separate BullMQ extraction and AI matching queues backed by Redis.
 - Evidence-based comparison for each JD requirement.

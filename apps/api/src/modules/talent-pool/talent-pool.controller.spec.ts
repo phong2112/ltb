@@ -32,4 +32,12 @@ describe("TalentPoolController", () => {
     await expect(controller.upload(undefined, {}, { user: undefined } as never))
       .rejects.toBeInstanceOf(BadRequestException);
   });
+  it("requeues AI verification for a talent pool entry", async () => {
+    const service = { retryAiVerification: jest.fn().mockResolvedValue({ id: "entry-1", status: "PENDING" }) };
+    const controller = new TalentPoolController(service as never);
+
+    await expect(controller.retryAiVerification("entry-1")).resolves.toEqual({ id: "entry-1", status: "PENDING" });
+    expect(service.retryAiVerification).toHaveBeenCalledWith("entry-1");
+  });
+
 });

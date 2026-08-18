@@ -41,7 +41,9 @@ function sanitizeSummaryText(value: string) {
   return value
     .replace(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/giu, "[email đã ẩn]")
     .replace(/https?:\/\/[^\s)"'<>]+/giu, "[url đã ẩn]")
-    .replace(/\+?\d[\d\s.\-()]{7,}\d/gu, "[số điện thoại đã ẩn]")
+    .replace(/\+?\d[\d\s.\-()]{7,}\d/gu, "")
+    .replace(/\[số điện thoại đã ẩn\]/giu, "")
+    .replace(/\s*[-–—,:;|\/]\s*$/gu, "")
     .replace(/\s+/gu, " ")
     .trim();
 }

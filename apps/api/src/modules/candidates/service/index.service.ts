@@ -179,6 +179,7 @@ export class CandidatesService {
         status: CvParseStatus.PENDING,
         summary: "Hồ sơ đang chờ trích xuất lại nội dung CV.",
         errorMessage: null,
+        extractedText: null,
         structuredData: {
           source: "admin_retry_queued",
           cvSource: "uploaded_file",
@@ -190,6 +191,12 @@ export class CandidatesService {
         status: CvParseStatus.PENDING,
         summary: "Hồ sơ đang chờ trích xuất lại nội dung CV.",
         errorMessage: null,
+        extractedText: null,
+        structuredData: {
+          source: "admin_retry_queued",
+          cvSource: "uploaded_file",
+          fileName: cvFile.originalName,
+        },
       },
     });
 

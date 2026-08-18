@@ -24,6 +24,7 @@ export {
   getTalentPoolEntry,
   listTalentPool,
   promoteTalentPoolEntry,
+  retryTalentPoolAiVerification,
   updateTalentPoolEntry,
   uploadTalentPoolFiles,
 } from "./talent-pool";

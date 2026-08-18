@@ -16,7 +16,7 @@ import type {
 
 const MAX_PROFILE_CV_CHARACTERS = 45_000;
 const MAX_SUMMARY_CV_CHARACTERS = 45_000;
-const DEFAULT_MODEL = "llama-3.3-70b-versatile";
+const DEFAULT_MODEL = "openai/gpt-oss-120b";
 
 type GroqTask = "matching" | "profile-extraction" | "cv-summary";
 
@@ -573,7 +573,8 @@ function isFallbackError(error: unknown) {
   if (!error || typeof error !== "object") return false;
 
   const record = error as { status?: number; code?: string; name?: string };
-  return [429, 500, 502, 503, 504].includes(record.status ?? 0)
+  return [404, 429, 500, 502, 503, 504].includes(record.status ?? 0)
+    || record.code === "model_not_found"
     || record.code === "rate_limit_exceeded"
     || record.name === "AbortError";
 }

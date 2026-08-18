@@ -21,6 +21,7 @@ type ApplicationProcessingJob = {
 type TalentPoolProcessingJob = {
   talentPoolEntryId: string;
   targetJobId?: string;
+  runId?: string;
 };
 
 type QueueName = typeof CV_EXTRACTION_QUEUE | typeof AI_MATCH_QUEUE | typeof TALENT_POOL_EXTRACTION_QUEUE;
@@ -144,13 +145,16 @@ export class AiQueueService implements OnModuleInit, OnModuleDestroy {
     return true;
   }
 
-  async enqueuePoolEntry(talentPoolEntryId: string, targetJobId?: string) {
+  async enqueuePoolEntry(talentPoolEntryId: string, targetJobId?: string, options: { force?: boolean } = {}) {
     if (!this.enabled) return false;
     if (!this.poolExtractionQueue) throw new Error("Talent pool extraction queue is not ready");
 
-    await this.poolExtractionQueue.add(TALENT_POOL_EXTRACTION_JOB, { talentPoolEntryId, targetJobId }, {
+    const runId = options.force ? createRunId() : undefined;
+    await this.poolExtractionQueue.add(TALENT_POOL_EXTRACTION_JOB, { talentPoolEntryId, targetJobId, runId }, {
       ...this.defaultJobOptions(),
-      jobId: `${TALENT_POOL_EXTRACTION_JOB}-${talentPoolEntryId}`,
+      jobId: runId
+        ? `${TALENT_POOL_EXTRACTION_JOB}-${talentPoolEntryId}-${runId}`
+        : `${TALENT_POOL_EXTRACTION_JOB}-${talentPoolEntryId}`,
     });
     return true;
   }

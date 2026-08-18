@@ -205,7 +205,7 @@ describe("TalentPoolService", () => {
     });
   });
 
-  it("returns the extracted CV name when the stored candidate name is still a filename", async () => {
+  it("keeps the stored candidate name even when it looks like a filename", async () => {
     const { service } = createService({
       prisma: {
         talentPoolEntry: {
@@ -238,7 +238,7 @@ describe("TalentPoolService", () => {
     });
 
     await expect(service.getEntry("entry-1")).resolves.toEqual(expect.objectContaining({
-      candidate: expect.objectContaining({ fullName: "Hue Do Thi" }),
+      candidate: expect.objectContaining({ fullName: "1784628428323-inbound4290200574812242911" }),
       structuredData: expect.objectContaining({
         title: "SENIOR QA ENGINEER | QA LEAD",
         skills: expect.arrayContaining(["QA", "Automation Testing", "AI Testing", "ISTQB"]),
