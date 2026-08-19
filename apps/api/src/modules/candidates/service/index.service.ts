@@ -311,25 +311,6 @@ export class CandidatesService {
     });
   }
 
-  async createMessageForCandidate(candidateId: string, dto: CreateCandidateMessageDto) {
-    const applications = await this.prisma.application.findMany({
-      where: { candidateId },
-      select: { id: true },
-      orderBy: { createdAt: "desc" },
-      take: 2,
-    });
-
-    if (applications.length === 0) {
-      throw new NotFoundException("Không tìm thấy ứng viên.");
-    }
-
-    if (applications.length > 1) {
-      throw new BadRequestException("Ứng viên có nhiều hồ sơ ứng tuyển; vui lòng cung cấp ID hồ sơ ứng tuyển.");
-    }
-
-    return this.createMessageForApplication(applications[0].id, dto);
-  }
-
   async updateApplication(applicationId: string, dto: UpdateApplicationStatusDto) {
     const application = await this.prisma.application.findUnique({
       where: { id: applicationId },

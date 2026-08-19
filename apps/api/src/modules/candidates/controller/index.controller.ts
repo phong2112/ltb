@@ -65,26 +65,6 @@ export class CandidatesController {
     return this.candidatesService.getApplicationAnalysis(applicationId);
   }
 
-  @ApiOperation({ summary: "Get candidate detail" })
-  @ApiParam({ name: "id", example: "cmcandidate123" })
-  @ApiOkResponse({
-    description: "Candidate detail with applications, files, and activity.",
-  })
-  @ApiNotFoundResponse({ description: "Candidate not found." })
-  @Get(":id")
-  getCandidate(@Param("id") id: string) {
-    return this.candidatesService.getCandidate(id);
-  }
-
-  @ApiOperation({ summary: "Create a candidate message log entry" })
-  @ApiParam({ name: "id", example: "cmcandidate123" })
-  @ApiCreatedResponse({ description: "Created candidate message." })
-  @ApiNotFoundResponse({ description: "Candidate not found." })
-  @Post(":id/messages")
-  createMessage(@Param("id") id: string, @Body() dto: CreateCandidateMessageDto) {
-    return this.candidatesService.createMessageForCandidate(id, dto);
-  }
-
   @ApiOperation({
     summary: "Create an application-scoped candidate message log entry",
   })

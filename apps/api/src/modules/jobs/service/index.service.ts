@@ -30,19 +30,6 @@ export class JobsService {
     });
   }
 
-  async getPublicJob(slug: string) {
-    const job = await this.prisma.job.findFirst({
-      where: { slug, status: JobStatus.PUBLISHED },
-      include: jobInclude,
-    });
-
-    if (!job) {
-      throw new NotFoundException("Không tìm thấy vị trí tuyển dụng đã công khai.");
-    }
-
-    return job;
-  }
-
   listAdminJobs() {
     return this.prisma.job.findMany({
       orderBy: { createdAt: "desc" },

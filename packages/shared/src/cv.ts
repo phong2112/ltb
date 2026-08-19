@@ -10,15 +10,6 @@ export const allowedCvExtensions = ["pdf", "doc", "docx", "jpg", "jpeg", "png"] 
 export const allowedCvExtensionsWithDot = allowedCvExtensions.map((extension) => `.${extension}` as const);
 export const cvAcceptAttribute = [...allowedCvExtensionsWithDot, ...allowedCvMimeTypes].join(",");
 
-const cvMimeTypeByExtension: Record<(typeof allowedCvExtensions)[number], (typeof allowedCvMimeTypes)[number]> = {
-  pdf: "application/pdf",
-  doc: "application/msword",
-  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-};
-
 export function normalizeCvExtension(value: string) {
   return value.trim().toLowerCase().replace(/^\./u, "");
 }
@@ -30,13 +21,6 @@ export function isAllowedCvExtension(value: string) {
 
 export function isAllowedCvMimeType(value: string) {
   return allowedCvMimeTypes.some((mimeType) => mimeType === value);
-}
-
-export function getCvMimeTypeForExtension(value: string) {
-  const normalized = normalizeCvExtension(value);
-  return isAllowedCvExtension(normalized)
-    ? cvMimeTypeByExtension[normalized as (typeof allowedCvExtensions)[number]]
-    : "application/octet-stream";
 }
 
 export const defaultMaxCvFileSizeMb = 10;

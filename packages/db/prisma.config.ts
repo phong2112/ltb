@@ -1,15 +1,17 @@
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "prisma/config";
 import { config as loadEnvFile } from "dotenv";
 
-for (const path of [
-  "../../.env.dev",
-  "../../.env.local",
-  "../../.env",
-  ".env.dev",
-  ".env.local",
-  ".env",
-]) {
-  loadEnvFile({ path, override: false, quiet: true });
+const configDirectory = dirname(fileURLToPath(import.meta.url));
+const repositoryRoot = resolve(configDirectory, "../..");
+const environmentFiles = [".env.dev", ".env.local", ".env"];
+
+for (const directory of [repositoryRoot, configDirectory]) {
+  for (const filename of environmentFiles) {
+    const path = resolve(directory, filename);
+    loadEnvFile({ path, override: false, quiet: true });
+  }
 }
 
 const databaseUrl =
