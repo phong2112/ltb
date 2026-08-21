@@ -7,6 +7,7 @@ import type { ConfigService } from "@nestjs/config";
 import type { Job } from "bullmq";
 import type { AiService } from "../processing/index.service";
 import type { TalentPoolProcessingService } from "../talent-pool/index.service";
+import { TalentPoolJobBus } from "../talent-pool-job-bus.service";
 import { QuotaExceededError } from "../providers/groq";
 import { AiQueueService } from "./index.service";
 
@@ -34,6 +35,7 @@ describe("AiQueueService", () => {
       createConfig({ AI_PROVIDER: "groq", AI_JOB_ATTEMPTS: 2 }),
       aiService as unknown as AiService,
       createPoolProcessingService() as unknown as TalentPoolProcessingService,
+      createJobBus(),
     );
     const matchQueue = { add: jest.fn().mockResolvedValue(undefined) };
     const internals = service as unknown as QueueServiceInternals;
@@ -64,6 +66,7 @@ describe("AiQueueService", () => {
       createConfig({ AI_PROVIDER: "groq", AI_JOB_ATTEMPTS: 2 }),
       aiService as unknown as AiService,
       createPoolProcessingService() as unknown as TalentPoolProcessingService,
+      createJobBus(),
     );
     const matchQueue = { add: jest.fn().mockResolvedValue(undefined) };
     const internals = service as unknown as QueueServiceInternals;
@@ -88,6 +91,7 @@ describe("AiQueueService", () => {
       createConfig({ AI_PROVIDER: "groq" }),
       createAiService() as unknown as AiService,
       createPoolProcessingService() as unknown as TalentPoolProcessingService,
+      createJobBus(),
     );
     const internals = service as unknown as QueueServiceInternals;
 
@@ -114,6 +118,7 @@ describe("AiQueueService", () => {
       createConfig({ AI_PROVIDER: "groq" }),
       createAiService() as unknown as AiService,
       createPoolProcessingService() as unknown as TalentPoolProcessingService,
+      createJobBus(),
     );
     const loggerError = jest.spyOn(
       (service as unknown as { logger: { error: (message: string) => void } }).logger,
@@ -138,6 +143,7 @@ describe("AiQueueService", () => {
       createConfig({ AI_PROVIDER: "groq" }),
       aiService as unknown as AiService,
       createPoolProcessingService() as unknown as TalentPoolProcessingService,
+      createJobBus(),
     );
 
     await (service as unknown as QueueServiceInternals).processMatchJob(
@@ -155,6 +161,7 @@ describe("AiQueueService", () => {
       createConfig({ AI_PROVIDER: "groq", AI_JOB_ATTEMPTS: 2 }),
       aiService as unknown as AiService,
       createPoolProcessingService() as unknown as TalentPoolProcessingService,
+      createJobBus(),
     );
 
     await expect(
@@ -171,6 +178,7 @@ describe("AiQueueService", () => {
       createConfig({ AI_PROVIDER: "groq", AI_JOB_ATTEMPTS: 2 }),
       aiService as unknown as AiService,
       createPoolProcessingService() as unknown as TalentPoolProcessingService,
+      createJobBus(),
     );
 
     await expect(
@@ -187,6 +195,7 @@ describe("AiQueueService", () => {
       createConfig({ AI_PROVIDER: "groq" }),
       aiService as unknown as AiService,
       createPoolProcessingService() as unknown as TalentPoolProcessingService,
+      createJobBus(),
     );
     const internals = service as unknown as QueueServiceInternals;
 
@@ -210,19 +219,21 @@ describe("AiQueueService", () => {
       createConfig({ AI_PROVIDER: "disabled" }),
       createAiService() as unknown as AiService,
       createPoolProcessingService() as unknown as TalentPoolProcessingService,
+      createJobBus(),
     );
 
     await expect(service.enqueuePoolEntry("entry-1")).resolves.toBe(false);
   });
 
-  it("processes a pool entry and promotes it before enqueueing application matching", async () => {
+  it("emits the extracted event after processing a targeted pool entry", async () => {
     const poolProcessing = createPoolProcessingService();
+    const jobBus = createJobBus();
     const service = new AiQueueService(
       createConfig({ AI_PROVIDER: "groq" }),
       createAiService() as unknown as AiService,
       poolProcessing as unknown as TalentPoolProcessingService,
+      jobBus,
     );
-    const enqueue = jest.spyOn(service, "enqueue").mockResolvedValue(true);
 
     await (service as unknown as QueueServiceInternals).processPoolExtractionJob({
       data: { talentPoolEntryId: "entry-1", targetJobId: "job-1" },
@@ -231,8 +242,10 @@ describe("AiQueueService", () => {
     } as PoolJob);
 
     expect(poolProcessing.processPoolEntry).toHaveBeenCalledWith("entry-1");
-    expect(poolProcessing.promotePoolEntry).toHaveBeenCalledWith("entry-1", "job-1", true);
-    expect(enqueue).toHaveBeenCalledWith("application-1");
+    expect(jobBus.emit).toHaveBeenCalledWith(TalentPoolJobBus.EXTRACTED, {
+      entryId: "entry-1",
+      targetJobId: "job-1",
+    });
   });
 });
 
@@ -247,9 +260,12 @@ function createAiService() {
 function createPoolProcessingService() {
   return {
     processPoolEntry: jest.fn().mockResolvedValue(undefined),
-    promotePoolEntry: jest.fn().mockResolvedValue({ applicationId: "application-1", jobId: "job-1" }),
     markPoolFailed: jest.fn().mockResolvedValue(undefined),
   };
+}
+
+function createJobBus() {
+  return { emit: jest.fn() } as unknown as TalentPoolJobBus;
 }
 
 function createConfig(values: Record<string, unknown>) {

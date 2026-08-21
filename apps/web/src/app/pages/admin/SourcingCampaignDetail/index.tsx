@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Archive, ArrowLeft, BriefcaseBusiness, Check, Copy, ExternalLink, Github, Globe2, Linkedin, LinkIcon, LoaderCircle, MapPin, Search, Sparkles, Users } from "lucide-react";
+import { Archive, ArrowLeft, BriefcaseBusiness, Check, Copy, ExternalLink, Github, Globe2, Linkedin, LinkIcon, LoaderCircle, MapPin, Search, Sparkles, Users, Workflow } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router";
-import type { ApiSourcedProfile, ApiSourcingCampaign, ApiSourcingProfileStatus, ApiSourcingSource } from "@/app/apis/models";
-import { discoverLinkedinProfiles, getSourcingCampaign, importSourcingProfiles, suggestInternalCandidates, updateSourcingProfileStatus } from "@/app/apis/requests";
+import type { ApiSourcedProfile, ApiSourcingCampaign, ApiSourcingOrchestrationResult, ApiSourcingProfileStatus, ApiSourcingSource } from "@/app/apis/models";
+import { discoverLinkedinProfiles, getSourcingCampaign, importSourcingProfiles, runSourcingOrchestration, suggestInternalCandidates, updateSourcingProfileStatus } from "@/app/apis/requests";
 import AdminLayout from "@/app/layouts/AdminLayout";
 
 const STATUS_OPTIONS: Array<{ value: ApiSourcingProfileStatus; label: string }> = [
@@ -104,10 +104,13 @@ export default function SourcingCampaignDetail() {
   const [importing, setImporting] = useState(false);
   const [discovering, setDiscovering] = useState(false);
   const [suggestingInternal, setSuggestingInternal] = useState(false);
+  const [orchestrating, setOrchestrating] = useState(false);
   const [error, setError] = useState("");
   const [importSummary, setImportSummary] = useState("");
   const [discoverySummary, setDiscoverySummary] = useState("");
+  const [discoveryStatus, setDiscoveryStatus] = useState<"COMPLETED" | "DEGRADED" | "UNAVAILABLE">("COMPLETED");
   const [internalSummary, setInternalSummary] = useState("");
+  const [orchestrationResult, setOrchestrationResult] = useState<ApiSourcingOrchestrationResult | null>(null);
   const [copiedId, setCopiedId] = useState("");
   const [activeSource, setActiveSource] = useState<ApiSourcingSource>(() => readSourcingSource(searchParams));
 
@@ -160,9 +163,10 @@ export default function SourcingCampaignDetail() {
     setDiscoverySummary("");
     try {
       const result = await discoverLinkedinProfiles(campaign.id);
+      setDiscoveryStatus(result.providerStatus);
       setCampaign({ ...campaign, profiles: result.profiles, _count: { profiles: result.profiles.length } });
       const parts = [
-        `Đã chạy ${result.queryCount} query`,
+        `Đã chạy ${result.successfulQueryCount}/${result.queryCount} query`,
         `tìm thấy ${result.resultCount} hồ sơ`,
         `thêm mới ${result.createdCount}`,
       ];
@@ -171,6 +175,20 @@ export default function SourcingCampaignDetail() {
       setDiscoverySummary(parts.join(" · "));
     } finally {
       setDiscovering(false);
+    }
+  }
+
+  async function handleOrchestration() {
+    if (!campaign || orchestrating) return;
+
+    setOrchestrating(true);
+    setOrchestrationResult(null);
+    try {
+      const result = await runSourcingOrchestration(campaign.id);
+      setCampaign({ ...campaign, profiles: result.profiles, _count: { profiles: result.profiles.length } });
+      setOrchestrationResult(result);
+    } finally {
+      setOrchestrating(false);
     }
   }
 
@@ -242,6 +260,30 @@ export default function SourcingCampaignDetail() {
                   <p className="mt-0.5 text-xs leading-5 text-muted-foreground">LinkedIn luôn đứng đầu. Có thể chạy discovery tự động từ public search hoặc mở query để kiểm tra thủ công.</p>
                 </div>
               </div>
+              <div className="mb-4 rounded-xl border border-violet-200 bg-violet-50 p-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-black text-foreground">Sourcing orchestration</p>
+                    <p className="mt-0.5 text-xs leading-5 text-muted-foreground">AI mở rộng query từ JD khi khả dụng, đồng thời rà Talent Pool và chạy Brave có retry/fallback. Mọi quyết định vẫn do TA review.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void handleOrchestration()}
+                    disabled={orchestrating || discovering || suggestingInternal}
+                    className="inline-flex h-10 flex-none items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 text-xs font-black text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {orchestrating ? <LoaderCircle size={14} className="animate-spin" /> : <Workflow size={14} />} {orchestrating ? "Đang điều phối..." : "Chạy toàn bộ workflow"}
+                  </button>
+                </div>
+                {orchestrationResult && (
+                  <div className={`mt-3 rounded-lg border bg-white px-3 py-2 text-xs ${orchestrationResult.status === "DEGRADED" ? "border-amber-300 text-amber-900" : "border-emerald-300 text-emerald-800"}`}>
+                    <p className="font-black">{orchestrationResult.status === "DEGRADED" ? "Hoàn tất một phần" : "Hoàn tất"} · thêm {orchestrationResult.createdCount} hồ sơ · {orchestrationResult.aiAssisted ? "có AI planner" : "deterministic fallback"}</p>
+                    <ul className="mt-1.5 space-y-1 font-semibold">
+                      {orchestrationResult.stages.map((stage) => <li key={stage.stage}>• {stage.message}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
               <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
@@ -251,7 +293,7 @@ export default function SourcingCampaignDetail() {
                   <button
                     type="button"
                     onClick={() => void handleInternalSuggestions()}
-                    disabled={suggestingInternal}
+                    disabled={suggestingInternal || orchestrating}
                     className="inline-flex h-10 flex-none items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-xs font-black text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {suggestingInternal ? <LoaderCircle size={14} className="animate-spin" /> : <Archive size={14} />} {suggestingInternal ? "Đang rà..." : "Suggest ứng viên"}
@@ -272,13 +314,13 @@ export default function SourcingCampaignDetail() {
                     <button
                       type="button"
                       onClick={() => void handleLinkedinDiscovery()}
-                      disabled={discovering}
+                      disabled={discovering || orchestrating}
                       className="inline-flex h-10 flex-none items-center justify-center gap-2 rounded-xl bg-[#0a66c2] px-4 text-xs font-black text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {discovering ? <LoaderCircle size={14} className="animate-spin" /> : <Sparkles size={14} />} {discovering ? "Đang tìm..." : "Tìm LinkedIn tự động"}
                     </button>
                   </div>
-                  {discoverySummary && <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">{discoverySummary}</p>}
+                  {discoverySummary && <p className={`mt-3 rounded-lg border px-3 py-2 text-xs font-bold ${discoveryStatus === "COMPLETED" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-900"}`}>{discoverySummary}</p>}
                 </div>
               )}
               <div className="flex gap-2 overflow-x-auto pb-1">
@@ -405,7 +447,7 @@ export default function SourcingCampaignDetail() {
             <BriefItem label="Kỹ năng" values={campaign.brief.skills ?? []} />
             <BriefItem label="Địa điểm" values={campaign.brief.locations ?? []} icon={<MapPin size={12} />} />
             <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
-              AI hỗ trợ tạo query và sắp xếp thông tin. TA vẫn là người xem hồ sơ và quyết định liên hệ.
+              AI chỉ mở rộng query khi có cấu hình; retrieval, dedupe và potential score luôn có fallback deterministic. TA vẫn là người xem hồ sơ và quyết định liên hệ.
             </div>
           </section>
         </aside>

@@ -41,6 +41,19 @@ describe("LinkedIn-first sourcing search", () => {
     expect(queries[0].query).not.toContain('"Vietnam"');
   });
 
+  it("adds bounded AI query enhancements without replacing deterministic JD signals", () => {
+    const queries = buildLinkedinDiscoveryQueries(job, {
+      enhancements: {
+        titleVariants: ["Applied AI Engineer", "ML Platform Engineer"],
+        skillSignals: ["Generative AI", "Model Serving"],
+      },
+    });
+
+    expect(queries[0].query).toContain('"AI Engineer"');
+    expect(queries[0].query).toContain('"Applied AI Engineer"');
+    expect(queries.some((query) => query.query.includes('"Generative AI"'))).toBe(true);
+  });
+
   it("expands business analyst typos and JD tool signals for LinkedIn discovery", () => {
     const queries = buildLinkedinDiscoveryQueries({
       ...job,

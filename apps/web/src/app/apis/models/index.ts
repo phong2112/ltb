@@ -27,6 +27,7 @@ export type {
   ApiSourcingCampaign,
   ApiSourcingDiscoveryLocationScope,
   ApiSourcingImportResult,
+  ApiSourcingOrchestrationResult,
   ApiSourcingProfileStatus,
   ApiSourcingSearchQuery,
   ApiSourcingSource,

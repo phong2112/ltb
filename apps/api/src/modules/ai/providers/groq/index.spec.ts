@@ -182,6 +182,30 @@ describe("GroqAiProvider", () => {
     });
     expect(mockCreate.mock.calls[0][0].messages[1].content).toContain("Đây KHÔNG phải phân tích match");
   });
+
+  it("returns a validated sourcing plan through the task-specific model chain", async () => {
+    mockCreate.mockResolvedValueOnce(response({
+      titleVariants: ["Quality Assurance Engineer", "SDET"],
+      skillSignals: ["Playwright", "API Testing"],
+    }));
+    const provider = createProvider({
+      GROQ_SOURCING_MODEL_CHAIN: "openai/gpt-oss-20b",
+    });
+
+    await expect(provider.planSourcing({
+      jobTitle: "QA Engineer",
+      seniority: "Senior",
+      locations: ["Vietnam"],
+      skills: ["Playwright"],
+      requirements: "Automation testing and API testing",
+    })).resolves.toEqual({
+      titleVariants: ["Quality Assurance Engineer", "SDET"],
+      skillSignals: ["Playwright", "API Testing"],
+    });
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
+      model: "openai/gpt-oss-20b",
+    }), { timeout: 15_000 });
+  });
 });
 
 function createProvider(overrides: Record<string, unknown> = {}) {

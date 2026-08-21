@@ -43,6 +43,19 @@ export type ExtractProfileInput = {
   fileName: string;
 };
 
+export type SourcingPlanInput = {
+  jobTitle: string;
+  seniority: string | null;
+  locations: string[];
+  skills: string[];
+  requirements: string;
+};
+
+export type SourcingPlan = {
+  titleVariants: string[];
+  skillSignals: string[];
+};
+
 export type ApplicationPreviewExtractionInput = {
   cvText: string;
   fileName: string;
@@ -87,4 +100,5 @@ export interface AiProvider {
   analyzeMatch(input: AnalyzeMatchInput): Promise<ProviderMatchAnalysis>;
   summarizeCv(input: SummarizeCvInput): Promise<CvSummary>;
   extractProfile(input: ExtractProfileInput): Promise<ExtractedProfile>;
+  planSourcing(input: SourcingPlanInput): Promise<SourcingPlan>;
 }

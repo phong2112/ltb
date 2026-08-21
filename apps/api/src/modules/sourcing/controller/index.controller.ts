@@ -38,6 +38,12 @@ export class SourcingController {
     return this.sourcingService.discoverLinkedinProfiles(id);
   }
 
+  @ApiCreatedResponse({ description: "Ran the resilient retrieval-first sourcing orchestration workflow." })
+  @Post(":id/run")
+  runOrchestration(@Param("id") id: string) {
+    return this.sourcingService.runOrchestration(id);
+  }
+
   @ApiCreatedResponse({ description: "Suggested existing candidates and talent pool entries that may match the JD." })
   @Post(":id/suggest/internal")
   suggestInternalCandidates(@Param("id") id: string) {

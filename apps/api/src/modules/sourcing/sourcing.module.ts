@@ -1,13 +1,20 @@
 import { Module } from "@nestjs/common";
+import { AiModule } from "../ai/ai.module";
 import { AuthModule } from "../auth";
 import { SourcingController } from "./controller/index.controller";
 import { LinkedinDiscoveryService } from "./discovery/index.service";
 import { InternalCandidateSuggestionService } from "./internal-suggestions/index.service";
+import { SourcingOrchestrationService } from "./orchestration/index.service";
 import { SourcingService } from "./service/index.service";
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, AiModule],
   controllers: [SourcingController],
-  providers: [SourcingService, LinkedinDiscoveryService, InternalCandidateSuggestionService],
+  providers: [
+    SourcingService,
+    LinkedinDiscoveryService,
+    InternalCandidateSuggestionService,
+    SourcingOrchestrationService,
+  ],
 })
 export class SourcingModule {}

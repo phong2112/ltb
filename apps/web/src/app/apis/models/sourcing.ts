@@ -100,11 +100,39 @@ export type ApiSourcingImportResult = {
 
 /** API response after running automatic LinkedIn discovery through the search provider. */
 export type ApiLinkedinDiscoveryResult = {
+  provider: "brave";
+  providerStatus: "COMPLETED" | "DEGRADED" | "UNAVAILABLE";
   createdCount: number;
   duplicateCount: number;
   queryCount: number;
+  successfulQueryCount: number;
   resultCount: number;
   skippedQueries: string[];
+  failures: Array<{
+    queryId: string;
+    code: "AUTHENTICATION" | "INVALID_REQUEST" | "RATE_LIMIT" | "TIMEOUT" | "UPSTREAM" | "NETWORK" | "INVALID_RESPONSE" | "DISABLED" | "CONFIGURATION" | "UNKNOWN";
+    message: string;
+    retryable: boolean;
+    attempts: number;
+    status?: number;
+  }>;
+  profiles: ApiSourcedProfile[];
+};
+
+/** API response from the retrieval-first, human-in-the-loop sourcing workflow. */
+export type ApiSourcingOrchestrationResult = {
+  status: "COMPLETED" | "DEGRADED";
+  strategy: "retrieval_first_human_in_loop";
+  aiAssisted: boolean;
+  createdCount: number;
+  resultCount: number;
+  stages: Array<{
+    stage: "AI_QUERY_PLANNING" | "INTERNAL_DISCOVERY" | "PUBLIC_WEB_DISCOVERY";
+    status: "COMPLETED" | "DEGRADED" | "SKIPPED" | "FAILED";
+    message: string;
+    createdCount?: number;
+    resultCount?: number;
+  }>;
   profiles: ApiSourcedProfile[];
 };
 

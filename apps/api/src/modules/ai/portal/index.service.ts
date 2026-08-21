@@ -7,6 +7,8 @@ import type {
   ExtractProfileInput,
   ExtractedProfile,
   ProviderMatchAnalysis,
+  SourcingPlan,
+  SourcingPlanInput,
   SummarizeCvInput,
 } from "../../../models/ai";
 import { GeminiProvider, type GeminiGenerateInput, type GeminiGenerateResult } from "../providers/gemini";
@@ -44,6 +46,10 @@ export class AiModelPortalService implements AiProvider {
 
   extractProfile(input: ExtractProfileInput): Promise<ExtractedProfile> {
     return this.requireGroq().extractProfile(input);
+  }
+
+  planSourcing(input: SourcingPlanInput): Promise<SourcingPlan> {
+    return this.requireGroq().planSourcing(input);
   }
 
   generatePreviewJson(input: GeminiGenerateInput): Promise<GeminiGenerateResult> {

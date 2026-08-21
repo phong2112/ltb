@@ -2,8 +2,8 @@ import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import Groq from "groq-sdk";
 import { z } from "zod";
-import { buildCvSummaryPrompt, buildExtractProfilePrompt, buildMatchPrompt } from "../../prompts";
-import { cvSummarySchema, extractedProfileSchema, matchAnalysisSchema } from "../../../../schemas/ai";
+import { buildCvSummaryPrompt, buildExtractProfilePrompt, buildMatchPrompt, buildSourcingPlanPrompt } from "../../prompts";
+import { cvSummarySchema, extractedProfileSchema, matchAnalysisSchema, sourcingPlanSchema } from "../../../../schemas/ai";
 import type {
   AiProvider,
   AnalyzeMatchInput,
@@ -11,6 +11,8 @@ import type {
   ExtractProfileInput,
   ExtractedProfile,
   ProviderMatchAnalysis,
+  SourcingPlan,
+  SourcingPlanInput,
   SummarizeCvInput,
 } from "../../../../models/ai";
 
@@ -18,7 +20,7 @@ const MAX_PROFILE_CV_CHARACTERS = 45_000;
 const MAX_SUMMARY_CV_CHARACTERS = 45_000;
 const DEFAULT_MODEL = "openai/gpt-oss-120b";
 
-type GroqTask = "matching" | "profile-extraction" | "cv-summary";
+type GroqTask = "matching" | "profile-extraction" | "cv-summary" | "sourcing-plan";
 
 @Injectable()
 export class GroqAiProvider implements AiProvider {
@@ -27,6 +29,7 @@ export class GroqAiProvider implements AiProvider {
   private readonly client: Groq;
   private readonly logger = new Logger(GroqAiProvider.name);
   private readonly timeoutMs: number;
+  private readonly sourcingTimeoutMs: number;
   private readonly configService: ConfigService;
   private readonly modelCooldowns = new Map<string, number>();
 
@@ -34,6 +37,7 @@ export class GroqAiProvider implements AiProvider {
     this.configService = configService;
     this.model = configService.get<string>("GROQ_MODEL") ?? DEFAULT_MODEL;
     this.timeoutMs = getPositiveIntegerConfig(configService, "GROQ_TIMEOUT_MS", 120_000);
+    this.sourcingTimeoutMs = getPositiveIntegerConfig(configService, "GROQ_SOURCING_TIMEOUT_MS", 15_000);
     this.client = new Groq({
       apiKey: configService.get<string>("GROQ_API_KEY") || "disabled-placeholder",
       timeout: this.timeoutMs,
@@ -175,6 +179,39 @@ export class GroqAiProvider implements AiProvider {
     return this.withModelFallback("cv-summary", model => this.summarizeCvWithModel(input, model));
   }
 
+  async planSourcing(input: SourcingPlanInput): Promise<SourcingPlan> {
+    return this.withModelFallback("sourcing-plan", model => this.planSourcingWithModel(input, model));
+  }
+
+  private async planSourcingWithModel(input: SourcingPlanInput, model: string): Promise<SourcingPlan> {
+    const prompt = buildSourcingPlanPrompt(input);
+    const startedAt = Date.now();
+
+    try {
+      const rawContent = await this.createStructuredCompletion(
+        [
+          {
+            role: "system",
+            content: "Bạn là trợ lý sourcing. Chỉ mở rộng query từ dữ liệu JD và chỉ trả về JSON hợp lệ.",
+          },
+          { role: "user", content: prompt },
+        ],
+        model,
+        this.sourcingTimeoutMs,
+      );
+      const plan = parseStructuredResponse(rawContent, sourcingPlanSchema);
+      this.logger.log(
+        `Groq sourcing plan completed: model=${model} elapsedMs=${Date.now() - startedAt} titles=${plan.titleVariants.length} skills=${plan.skillSignals.length}`,
+      );
+      return plan;
+    } catch (error) {
+      this.logger.warn(
+        `Groq sourcing plan failed: model=${model} elapsedMs=${Date.now() - startedAt} error=${toSafeLogMessage(error)}`,
+      );
+      throw error;
+    }
+  }
+
   private async summarizeCvWithModel(input: SummarizeCvInput, model: string): Promise<CvSummary> {
     const prompt = buildCvSummaryPrompt({
       cvText: input.cvText.slice(0, MAX_SUMMARY_CV_CHARACTERS),
@@ -229,14 +266,18 @@ export class GroqAiProvider implements AiProvider {
   private async createStructuredCompletion(
     messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
     model: string,
+    timeoutMs?: number,
   ) {
     try {
-      const response = await this.client.chat.completions.create({
+      const request = {
         model,
         messages,
         temperature: 0,
-        response_format: { type: "json_object" },
-      });
+        response_format: { type: "json_object" as const },
+      };
+      const response = timeoutMs
+        ? await this.client.chat.completions.create(request, { timeout: timeoutMs })
+        : await this.client.chat.completions.create(request);
 
       return response.choices[0]?.message?.content?.trim() ?? "";
     } catch (error) {
@@ -273,6 +314,7 @@ export class GroqAiProvider implements AiProvider {
       matching: "GROQ_MATCH_MODEL_CHAIN",
       "profile-extraction": "GROQ_EXTRACTION_MODEL_CHAIN",
       "cv-summary": "GROQ_SUMMARY_MODEL_CHAIN",
+      "sourcing-plan": "GROQ_SOURCING_MODEL_CHAIN",
     }[task];
     const taskChain = parseModelChain(this.configService.get<string>(taskKey));
     if (taskChain.length) return taskChain;

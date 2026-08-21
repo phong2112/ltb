@@ -64,6 +64,7 @@ describe("CandidatesService", () => {
         currentTitle: "Frontend Engineer",
         totalExperience: "4 năm",
         keySkills: ["React"],
+        workExperiences: [],
         workCompanies: ["FPT Software"],
         workHighlights: ["Xây dashboard."],
         education: [],

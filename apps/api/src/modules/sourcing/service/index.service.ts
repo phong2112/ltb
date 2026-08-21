@@ -5,6 +5,7 @@ import { LinkedinDiscoveryService } from "../discovery/index.service";
 import { CreateSourcingCampaignDto } from "../dto/create/index.dto";
 import { ImportSourcingProfilesDto } from "../dto/import-linkedin/index.dto";
 import { InternalCandidateSuggestionService } from "../internal-suggestions/index.service";
+import { SourcingOrchestrationService } from "../orchestration/index.service";
 import {
   buildSourcingQueries,
   buildSourcingBrief,
@@ -35,6 +36,7 @@ export class SourcingService {
     private readonly prisma: PrismaService,
     private readonly linkedinDiscoveryService: LinkedinDiscoveryService,
     private readonly internalSuggestionService: InternalCandidateSuggestionService,
+    private readonly orchestrationService: SourcingOrchestrationService,
   ) {}
 
   listCampaigns() {
@@ -169,6 +171,21 @@ export class SourcingService {
     if (!campaign) throw new NotFoundException("Không tìm thấy chiến dịch sourcing.");
 
     return this.internalSuggestionService.suggestAndStore(this.prisma, campaign.id, campaign.job);
+  }
+
+  async runOrchestration(campaignId: string) {
+    const campaign = await this.prisma.sourcingCampaign.findUnique({
+      where: { id: campaignId },
+      include: { job: true },
+    });
+    if (!campaign) throw new NotFoundException("Không tìm thấy chiến dịch sourcing.");
+
+    return this.orchestrationService.run(
+      this.prisma,
+      campaign.id,
+      campaign.job,
+      campaign.discoveryLocationScope,
+    );
   }
 
   private async assertCampaignExists(id: string) {

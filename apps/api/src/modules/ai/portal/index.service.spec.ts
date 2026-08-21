@@ -14,30 +14,39 @@ describe("AiModelPortalService", () => {
     analyzeMatch: jest.fn(),
     summarizeCv: jest.fn(),
     extractProfile: jest.fn(),
+    planSourcing: jest.fn(),
   };
   const gemini = { generateJson: jest.fn() };
 
   beforeEach(() => jest.clearAllMocks());
 
-  it("uses the legacy provider as the fallback for core tasks", () => {
+  it("routes all core tasks through Groq when Groq is enabled", async () => {
+    groq.analyzeMatch.mockResolvedValue({ score: 80 });
+    groq.summarizeCv.mockResolvedValue({ overview: "Candidate summary" });
+    groq.extractProfile.mockResolvedValue({ fullName: "Candidate" });
+    groq.planSourcing.mockResolvedValue({ titleVariants: [], skillSignals: [] });
     const portal = new AiModelPortalService(createConfig({ AI_PROVIDER: "groq" }), groq as unknown as GroqAiProvider, gemini as unknown as GeminiProvider);
 
-    expect(portal.getTaskProvider("matching")).toBe("groq");
-    expect(portal.getTaskProvider("summary")).toBe("groq");
-    expect(portal.getTaskProvider("profile")).toBe("groq");
+    await portal.analyzeMatch({} as never);
+    await portal.summarizeCv({} as never);
+    await portal.extractProfile({} as never);
+    await portal.planSourcing({} as never);
+
+    expect(groq.analyzeMatch).toHaveBeenCalledTimes(1);
+    expect(groq.summarizeCv).toHaveBeenCalledTimes(1);
+    expect(groq.extractProfile).toHaveBeenCalledTimes(1);
+    expect(groq.planSourcing).toHaveBeenCalledTimes(1);
   });
 
-  it("allows each core task to select its own provider", () => {
-    const portal = new AiModelPortalService(createConfig({
-      AI_PROVIDER: "groq",
-      AI_MATCH_PROVIDER: "disabled",
-      AI_SUMMARY_PROVIDER: "groq",
-      AI_PROFILE_PROVIDER: "disabled",
-    }), groq as unknown as GroqAiProvider, gemini as unknown as GeminiProvider);
+  it("rejects core tasks when Groq is disabled", async () => {
+    const portal = new AiModelPortalService(
+      createConfig({ AI_PROVIDER: "disabled" }),
+      groq as unknown as GroqAiProvider,
+      gemini as unknown as GeminiProvider,
+    );
 
-    expect(portal.isTaskEnabled("matching")).toBe(false);
-    expect(portal.isTaskEnabled("summary")).toBe(true);
-    expect(portal.isTaskEnabled("profile")).toBe(false);
+    expect(() => portal.analyzeMatch({} as never)).toThrow("Groq AI is disabled");
+    expect(groq.analyzeMatch).not.toHaveBeenCalled();
   });
 
   it("routes preview JSON to Gemini independently from core AI", async () => {

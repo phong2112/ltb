@@ -13,6 +13,7 @@ const integerVariables = [
   "JWT_ACCESS_TOKEN_TTL_SECONDS",
   "JWT_REFRESH_TOKEN_TTL_SECONDS",
   "GROQ_TIMEOUT_MS",
+  "GROQ_SOURCING_TIMEOUT_MS",
   "GEMINI_TIMEOUT_MS",
   "GEMINI_QUOTA_COOLDOWN_MS",
   "AI_JOB_ATTEMPTS",
@@ -26,9 +27,11 @@ const integerVariables = [
   "APPLICATION_RATE_LIMIT_WINDOW_SECONDS",
   "SOURCING_DISCOVERY_MAX_QUERIES_PER_CAMPAIGN",
   "SOURCING_DISCOVERY_RESULTS_PER_QUERY",
+  "SOURCING_DISCOVERY_TIMEOUT_MS",
+  "SOURCING_DISCOVERY_MAX_ATTEMPTS",
 ];
 
-const nonNegativeIntegerVariables = ["TRUST_PROXY_HOPS"];
+const nonNegativeIntegerVariables = ["TRUST_PROXY_HOPS", "SOURCING_DISCOVERY_MIN_INTERVAL_MS"];
 
 export function validateEnv(config: Record<string, unknown>) {
   const validated = { ...config };

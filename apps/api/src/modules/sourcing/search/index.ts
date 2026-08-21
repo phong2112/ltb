@@ -33,6 +33,11 @@ export type SourcingImportSource = SourcingSearchSource | "MANUAL" | "REFERRAL";
 
 export type SourcingDiscoveryLocationScope = "VIETNAM" | "GLOBAL";
 
+export type SourcingDiscoveryEnhancements = {
+  titleVariants?: string[];
+  skillSignals?: string[];
+};
+
 const TITLE_EQUIVALENTS: Array<[RegExp, string[]]> = [
   [/software engineer|software developer/iu, ["Software Engineer", "Software Developer"]],
   [/business analyst|analystic|\bba\b/iu, ["Business Analyst", "BA", "Product Owner", "System Analyst"]],
@@ -195,10 +200,19 @@ export const buildLinkedinQueries = buildSourcingQueries;
 
 export function buildLinkedinDiscoveryQueries(
   job: SourcingJobInput,
-  options: { locationScope?: SourcingDiscoveryLocationScope } = {},
+  options: {
+    locationScope?: SourcingDiscoveryLocationScope;
+    enhancements?: SourcingDiscoveryEnhancements;
+  } = {},
 ): SourcingSearchQuery[] {
-  const titles = titleVariants(job.title);
-  const skills = unique(job.tags.map(cleanPhrase).filter(Boolean)).slice(0, 8);
+  const titles = unique([
+    ...titleVariants(job.title),
+    ...(options.enhancements?.titleVariants ?? []).map(cleanPhrase).filter(Boolean),
+  ]).slice(0, 10);
+  const skills = unique([
+    ...job.tags.map(cleanPhrase).filter(Boolean),
+    ...(options.enhancements?.skillSignals ?? []).map(cleanPhrase).filter(Boolean),
+  ]).slice(0, 12);
   const locations = unique(job.locations.map(cleanPhrase).filter(Boolean)).slice(0, 4);
   const seniority = cleanPhrase(job.level ?? "");
   const mustHave = splitRequirements(job.requirements).map(cleanPhrase).filter(Boolean).slice(0, 6);

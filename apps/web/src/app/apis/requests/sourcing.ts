@@ -1,4 +1,4 @@
-import type { ApiInternalCandidateSuggestionResult, ApiLinkedinDiscoveryResult, ApiSourcedProfile, ApiSourcingCampaign, ApiSourcingDiscoveryLocationScope, ApiSourcingImportResult, ApiSourcingProfileStatus, ApiSourcingSource } from "@/app/apis/models/sourcing";
+import type { ApiInternalCandidateSuggestionResult, ApiLinkedinDiscoveryResult, ApiSourcedProfile, ApiSourcingCampaign, ApiSourcingDiscoveryLocationScope, ApiSourcingImportResult, ApiSourcingOrchestrationResult, ApiSourcingProfileStatus, ApiSourcingSource } from "@/app/apis/models/sourcing";
 import { apiRequest } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
 
@@ -46,6 +46,18 @@ export function discoverLinkedinProfiles(campaignId: string) {
       loading: "Đang tìm ứng viên LinkedIn từ JD...",
       success: "Đã cập nhật shortlist LinkedIn",
       error: "Không thể chạy LinkedIn discovery",
+    },
+  });
+}
+
+/** Runs AI-assisted query planning, internal retrieval, and resilient public-web discovery. */
+export function runSourcingOrchestration(campaignId: string) {
+  return apiRequest<ApiSourcingOrchestrationResult>(API_ENDPOINTS.sourcing.run(campaignId), {
+    method: "POST",
+    notification: {
+      loading: "Đang chạy sourcing orchestration...",
+      success: "Workflow sourcing đã hoàn tất",
+      error: "Không thể chạy sourcing orchestration",
     },
   });
 }

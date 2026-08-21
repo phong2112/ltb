@@ -1,4 +1,5 @@
 import type { SourcingSearchQuery } from "../search";
+import type { BraveSearchFailureCode } from "./brave-linkedin.adapter";
 
 export type LinkedinDiscoveryResult = {
   source: "LINKEDIN";
@@ -26,9 +27,22 @@ export type LinkedinPotentialScore = {
 };
 
 export type LinkedinDiscoverySummary = {
+  provider: "brave";
+  providerStatus: "COMPLETED" | "DEGRADED" | "UNAVAILABLE";
   createdCount: number;
   duplicateCount: number;
   queryCount: number;
+  successfulQueryCount: number;
   resultCount: number;
   skippedQueries: string[];
+  failures: LinkedinDiscoveryFailure[];
+};
+
+export type LinkedinDiscoveryFailure = {
+  queryId: string;
+  code: BraveSearchFailureCode | "DISABLED" | "CONFIGURATION" | "UNKNOWN";
+  message: string;
+  retryable: boolean;
+  attempts: number;
+  status?: number;
 };

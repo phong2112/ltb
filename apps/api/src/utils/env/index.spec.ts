@@ -20,6 +20,10 @@ describe("validateEnv", () => {
       OCR_MIN_CONFIDENCE: "55",
       POOL_EXTRACTION_CONCURRENCY: "2",
       TRUST_PROXY_HOPS: "0",
+      SOURCING_DISCOVERY_MIN_INTERVAL_MS: "1100",
+      SOURCING_DISCOVERY_TIMEOUT_MS: "10000",
+      SOURCING_DISCOVERY_MAX_ATTEMPTS: "3",
+      GROQ_SOURCING_TIMEOUT_MS: "15000",
     });
 
     expect(result).toMatchObject({
@@ -29,12 +33,39 @@ describe("validateEnv", () => {
       OCR_MIN_CONFIDENCE: 55,
       POOL_EXTRACTION_CONCURRENCY: 2,
       TRUST_PROXY_HOPS: 0,
+      SOURCING_DISCOVERY_MIN_INTERVAL_MS: 1100,
+      SOURCING_DISCOVERY_TIMEOUT_MS: 10000,
+      SOURCING_DISCOVERY_MAX_ATTEMPTS: 3,
+      GROQ_SOURCING_TIMEOUT_MS: 15000,
     });
   });
 
   it("rejects negative proxy hop counts", () => {
     expect(() => validateEnv({ ...requiredConfig, TRUST_PROXY_HOPS: "-1" }))
       .toThrow("TRUST_PROXY_HOPS must be a non-negative integer");
+  });
+
+  it("allows zero Brave pacing only when explicitly configured", () => {
+    expect(validateEnv({
+      ...requiredConfig,
+      SOURCING_DISCOVERY_MIN_INTERVAL_MS: "0",
+    })).toMatchObject({ SOURCING_DISCOVERY_MIN_INTERVAL_MS: 0 });
+    expect(() => validateEnv({
+      ...requiredConfig,
+      SOURCING_DISCOVERY_MIN_INTERVAL_MS: "-1",
+    })).toThrow("SOURCING_DISCOVERY_MIN_INTERVAL_MS must be a non-negative integer");
+  });
+
+  it("requires a Brave API key only when public sourcing discovery is enabled", () => {
+    expect(() => validateEnv({
+      ...requiredConfig,
+      SOURCING_DISCOVERY_ENABLED: "true",
+    })).toThrow("BRAVE_SEARCH_API_KEY is required when SOURCING_DISCOVERY_ENABLED=true");
+    expect(() => validateEnv({
+      ...requiredConfig,
+      SOURCING_DISCOVERY_ENABLED: "true",
+      BRAVE_SEARCH_API_KEY: "brave-key",
+    })).not.toThrow();
   });
 
   it("rejects unsupported email providers", () => {

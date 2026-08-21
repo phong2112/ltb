@@ -93,16 +93,49 @@ Not implemented yet:
 
 ### Phase 7: Sourcing Campaigns
 
-Planned as a core product capability:
+Implemented foundation:
 
-- Generate sourcing briefs and Boolean search strings from JDs.
-- Import sourced candidates into Talent Pool from TA-provided links, CSV rows, and CV uploads.
-- Match sourced candidates against target jobs.
-- Rank candidates by fit, evidence confidence, source quality, and contact readiness.
+- Generate sourcing briefs and multi-source Boolean search strings from JDs.
+- Run resilient LinkedIn public-profile discovery through Brave Search.
+- Suggest matching Talent Pool entries and previous applicants.
+- Import TA-provided profile URLs with normalization and campaign dedupe.
+- Score public snippets deterministically and track candidate funnel status.
+
+Still planned:
+
+- Promote sourced public profiles into complete Talent Pool records with CV/contact enrichment.
+- Rank candidates by richer CV evidence, source quality, and contact readiness.
 - Draft personalized outreach and follow-up messages.
-- Track sourcing campaign funnel metrics.
+- Add campaign-level funnel analytics.
 
 Public web discovery must be narrow and auditable. Use official APIs where possible, respect robots.txt, rate limits, and source terms, do not bypass access controls, and make each source adapter explicitly configurable.
+
+### Sourcing Orchestration
+
+The campaign detail screen can run one retrieval-first workflow:
+
+1. Ask Groq for bounded title/skill query expansions when core AI is enabled.
+2. Search existing Talent Pool and previous applications independently.
+3. Run LinkedIn X-Ray queries through the official Brave Web Search API.
+4. Deduplicate profiles, calculate a deterministic potential score, and leave the final review to TA.
+
+AI query planning is optional. Invalid AI output, quota errors, or a disabled AI provider fall back to deterministic JD queries. Brave requests are serialized, paced, bounded by a timeout, and retried for transient/rate-limit responses. Provider failures return a `DEGRADED`/`UNAVAILABLE` stage with any valid partial results instead of failing the whole sourcing workflow.
+
+Relevant backend settings:
+
+```text
+SOURCING_DISCOVERY_ENABLED=true
+BRAVE_SEARCH_API_KEY=...
+SOURCING_DISCOVERY_MAX_QUERIES_PER_CAMPAIGN=12
+SOURCING_DISCOVERY_RESULTS_PER_QUERY=10
+SOURCING_DISCOVERY_MIN_INTERVAL_MS=1100
+SOURCING_DISCOVERY_TIMEOUT_MS=10000
+SOURCING_DISCOVERY_MAX_ATTEMPTS=3
+GROQ_SOURCING_MODEL_CHAIN=openai/gpt-oss-120b,qwen/qwen3.6-27b,openai/gpt-oss-20b
+GROQ_SOURCING_TIMEOUT_MS=15000
+```
+
+Keep the default 1.1-second Brave interval for plans limited to one request per second. Lower it only when the active Brave plan explicitly allows a higher request rate.
 
 ## Running Dev With One Command
 

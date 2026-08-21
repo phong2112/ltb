@@ -40,6 +40,7 @@ export {
   getSourcingCampaign,
   importSourcingProfiles,
   listSourcingCampaigns,
+  runSourcingOrchestration,
   suggestInternalCandidates,
   updateSourcingProfileStatus,
 } from "./sourcing";

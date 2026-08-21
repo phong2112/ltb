@@ -76,6 +76,7 @@ describe("AiService", () => {
         notesForTa: ["CV không nêu TypeScript."],
       }),
       extractProfile: jest.fn(),
+      planSourcing: jest.fn(),
     };
     const service = new AiService(
       prisma as unknown as PrismaService,
@@ -177,6 +178,7 @@ describe("AiService", () => {
         notesForTa: [],
       }),
       extractProfile: jest.fn(),
+      planSourcing: jest.fn(),
     };
     const service = new AiService(
       prisma as unknown as PrismaService,

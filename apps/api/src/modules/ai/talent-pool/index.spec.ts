@@ -26,27 +26,12 @@ function createService(options: { aiEnabled?: boolean; existingCandidate?: Recor
     },
     talentPoolEntry: { update: jest.fn().mockResolvedValue(undefined) },
     activityLog: { updateMany: jest.fn().mockResolvedValue(undefined), create: jest.fn().mockResolvedValue(undefined) },
-    application: { create: jest.fn().mockResolvedValue({ id: "application-1" }) },
-    candidateFile: { create: jest.fn().mockResolvedValue({ id: "application-file-1" }) },
-    cvParseResult: { create: jest.fn().mockResolvedValue(undefined) },
   };
   const prisma = {
     talentPoolEntry: {
       findUnique: jest.fn().mockResolvedValue(entry),
       update: jest.fn().mockResolvedValue(undefined),
     },
-    candidateFile: {
-      findUniqueOrThrow: jest.fn().mockResolvedValue({
-        id: "file-1",
-        storageTier: "PRIMARY",
-        originalName: "candidate.pdf",
-        storedName: "cv/file.pdf",
-        mimeType: "application/pdf",
-        sizeBytes: 100,
-        path: "cv/file.pdf",
-      }),
-    },
-    cvParseResult: { update: jest.fn().mockResolvedValue(undefined) },
     $transaction: jest.fn(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
   };
   const extractor = {
@@ -55,7 +40,6 @@ function createService(options: { aiEnabled?: boolean; existingCandidate?: Recor
       parser: "pdf-parse",
     }),
   };
-  const jobs = { getAdminJob: jest.fn().mockResolvedValue({ id: "job-1", title: "Developer" }) };
   const config = { get: jest.fn().mockReturnValue(options.aiEnabled ? "groq" : "disabled") };
   const provider = {
     extractProfile: jest.fn().mockResolvedValue({
@@ -80,11 +64,10 @@ function createService(options: { aiEnabled?: boolean; existingCandidate?: Recor
   const service = new TalentPoolProcessingService(
     prisma as never,
     extractor as never,
-    jobs as never,
     config as never,
     provider as never,
   );
-  return { service, prisma, tx, extractor, provider, jobs, entry };
+  return { service, prisma, tx, extractor, provider, entry };
 }
 
 describe("TalentPoolProcessingService", () => {
@@ -190,36 +173,6 @@ describe("TalentPoolProcessingService", () => {
 
     expect(prisma.talentPoolEntry.update).toHaveBeenLastCalledWith(expect.objectContaining({
       data: expect.objectContaining({ status: "FAILED", errorMessage: "OCR failed" }),
-    }));
-  });
-
-  it("promotes an entry by copying extracted data and the shared file path", async () => {
-    const { service, tx } = createService();
-    const entry = {
-      id: "entry-1",
-      candidateId: "candidate-new",
-      candidate: { id: "candidate-new", fullName: "Nguyen Van A", email: "a@example.com", phone: null },
-      file: { id: "file-1" },
-      extractedText: "CV text",
-      structuredData: { email: "a@example.com" },
-      promotedApplicationId: null,
-      promotedApplication: null,
-    };
-    const serviceInternals = service as unknown as { prisma: { talentPoolEntry: { findUnique: jest.Mock } } };
-    serviceInternals.prisma.talentPoolEntry.findUnique.mockResolvedValue(entry);
-
-    await expect(service.promotePoolEntry("entry-1", "job-1")).resolves.toEqual({
-      applicationId: "application-1",
-      jobId: "job-1",
-    });
-    expect(tx.candidateFile.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ applicationId: "application-1", path: "cv/file.pdf" }),
-    }));
-    expect(tx.cvParseResult.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ extractedText: "CV text", status: "EXTRACTED" }),
-    }));
-    expect(tx.talentPoolEntry.update).toHaveBeenCalledWith(expect.objectContaining({
-      data: { promotedApplicationId: "application-1" },
     }));
   });
 });

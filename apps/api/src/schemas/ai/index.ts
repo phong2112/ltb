@@ -61,3 +61,10 @@ export const cvSummarySchema = z.object({
   languages: z.array(z.string()).max(6),
   notesForTa: z.array(z.string()).max(5),
 });
+
+const sourcingSignalSchema = z.string().trim().min(1).max(80);
+
+export const sourcingPlanSchema = z.object({
+  titleVariants: z.array(sourcingSignalSchema).max(8),
+  skillSignals: z.array(sourcingSignalSchema).max(12),
+});

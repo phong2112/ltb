@@ -72,8 +72,26 @@ services:
         value: "openai/gpt-oss-120b,qwen/qwen3.6-27b,openai/gpt-oss-20b"
       - key: GROQ_SUMMARY_MODEL_CHAIN
         value: "openai/gpt-oss-120b,qwen/qwen3.6-27b,openai/gpt-oss-20b"
+      - key: GROQ_SOURCING_MODEL_CHAIN
+        value: "openai/gpt-oss-120b,qwen/qwen3.6-27b,openai/gpt-oss-20b"
       - key: GROQ_TIMEOUT_MS
         value: "120000"
+      - key: GROQ_SOURCING_TIMEOUT_MS
+        value: "15000"
+      - key: SOURCING_DISCOVERY_ENABLED
+        value: "false"
+      - key: BRAVE_SEARCH_API_KEY
+        sync: false
+      - key: SOURCING_DISCOVERY_MAX_QUERIES_PER_CAMPAIGN
+        value: "12"
+      - key: SOURCING_DISCOVERY_RESULTS_PER_QUERY
+        value: "10"
+      - key: SOURCING_DISCOVERY_MIN_INTERVAL_MS
+        value: "1100"
+      - key: SOURCING_DISCOVERY_TIMEOUT_MS
+        value: "10000"
+      - key: SOURCING_DISCOVERY_MAX_ATTEMPTS
+        value: "3"
       - key: PREVIEW_AI_PROVIDER
         value: "gemini"
       - key: GEMINI_API_KEY
