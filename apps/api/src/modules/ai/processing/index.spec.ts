@@ -47,7 +47,7 @@ describe("AiService", () => {
     };
     const textExtractor = {
       extract: jest.fn().mockResolvedValue({
-        text: "Nguyen Van Candidate\ncandidate@example.com\nFrontend Engineer with five years of React experience.",
+        text: "Nguyen Van Candidate\ncandidate@example.com\nFrontend Engineer with five years of React experience.\nWork Experience\nJan 2020 – Nov 2022 FPT Software",
         parser: "tesseract-ocr",
         ocrPages: 2,
         ocrConfidence: 42,
@@ -90,6 +90,12 @@ describe("AiService", () => {
     expect(provider.summarizeCv).toHaveBeenCalledTimes(1);
     expect(provider.summarizeCv).toHaveBeenCalledWith(expect.objectContaining({
       cvText: expect.not.stringContaining("candidate@example.com"),
+    }));
+    expect(provider.summarizeCv).toHaveBeenCalledWith(expect.objectContaining({
+      cvText: expect.stringContaining("Jan 2020 – Nov 2022 FPT Software"),
+    }));
+    expect(provider.summarizeCv).toHaveBeenCalledWith(expect.objectContaining({
+      cvText: expect.not.stringContaining("CV_INPUT_DA_CHUAN_HOA"),
     }));
     expect(provider.analyzeMatch).toHaveBeenCalledWith(expect.objectContaining({
       cvText: expect.not.stringContaining("candidate@example.com"),

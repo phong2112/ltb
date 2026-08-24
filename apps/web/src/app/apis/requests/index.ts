@@ -1,4 +1,4 @@
-export { API_BASE, ApiRequestError, apiRequest } from "./client";
+export { API_BASE, ApiRequestError, apiDownload, apiRequest } from "./client";
 export {
   getAuthSession,
   loginRequest,
@@ -12,6 +12,7 @@ export {
 } from "./jobs";
 export {
   deleteCandidateRequest,
+  exportCandidateCvs,
   getAdminCandidates,
   getApplicationAnalysis,
   retryApplicationAnalysis,

@@ -55,6 +55,15 @@ enum SourcingCampaignStatus {
   CLOSED
 }
 
+enum SourcingOrchestrationStatus {
+  IDLE
+  QUEUED
+  RUNNING
+  COMPLETED
+  DEGRADED
+  FAILED
+}
+
 enum SourcingProfileStatus {
   SOURCED
   QUALIFIED
@@ -136,6 +145,12 @@ model SourcingCampaign {
   discoveryLocationScope SourcingDiscoveryLocationScope @default(VIETNAM)
   brief                  Json
   searchQueries          Json
+  orchestrationStatus    SourcingOrchestrationStatus    @default(IDLE)
+  orchestrationRunId     String?
+  orchestrationResult    Json?
+  orchestrationError     String?
+  orchestrationStartedAt DateTime?
+  orchestrationFinishedAt DateTime?
   job                    Job                            @relation(fields: [jobId], references: [id], onDelete: Restrict)
   profiles               SourcedProfile[]
   createdAt              DateTime                       @default(now())
@@ -144,6 +159,7 @@ model SourcingCampaign {
   @@index([jobId])
   @@index([status])
   @@index([discoveryLocationScope])
+  @@index([orchestrationStatus])
   @@index([createdAt])
 }
 

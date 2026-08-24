@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
-import { ApiCookieAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import { ApiAcceptedResponse, ApiCookieAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import { ACCESS_TOKEN_SECURITY_NAME } from "../../../utils/swagger";
 import { JwtAuthGuard } from "../../auth/guards/index.guard";
 import { CreateSourcingCampaignDto } from "../dto/create/index.dto";
@@ -38,10 +38,11 @@ export class SourcingController {
     return this.sourcingService.discoverLinkedinProfiles(id);
   }
 
-  @ApiCreatedResponse({ description: "Ran the resilient retrieval-first sourcing orchestration workflow." })
+  @ApiAcceptedResponse({ description: "Queued the resilient retrieval-first sourcing orchestration workflow." })
+  @HttpCode(HttpStatus.ACCEPTED)
   @Post(":id/run")
   runOrchestration(@Param("id") id: string) {
-    return this.sourcingService.runOrchestration(id);
+    return this.sourcingService.queueOrchestration(id);
   }
 
   @ApiCreatedResponse({ description: "Suggested existing candidates and talent pool entries that may match the JD." })

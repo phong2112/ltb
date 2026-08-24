@@ -65,6 +65,24 @@ describe("BraveLinkedinDiscoveryAdapter", () => {
     expect(sleep).toHaveBeenCalledWith(1_000);
   });
 
+  it("honors a Retry-After value longer than the local backoff cap", async () => {
+    const fetchMock = jest.fn()
+      .mockResolvedValueOnce(jsonResponse({}, 429, { "retry-after": "60" }))
+      .mockResolvedValueOnce(jsonResponse({ web: { results: [] } }));
+    const sleep = jest.fn().mockResolvedValue(undefined);
+    const adapter = new BraveLinkedinDiscoveryAdapter("token", {
+      fetch: fetchMock as typeof fetch,
+      maxAttempts: 2,
+      minRequestIntervalMs: 0,
+      sleep,
+      now: () => 0,
+    });
+
+    await expect(adapter.discover(query(), 10)).resolves.toEqual([]);
+
+    expect(sleep).toHaveBeenCalledWith(60_000);
+  });
+
   it("does not retry rejected credentials", async () => {
     const fetchMock = jest.fn().mockResolvedValue(jsonResponse({}, 401));
     const adapter = createAdapter(fetchMock, 3);

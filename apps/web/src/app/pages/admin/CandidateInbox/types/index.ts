@@ -22,6 +22,7 @@ export type UnifiedCandidateRow = {
   status: CandidateStatus;
   applicationsCount: number;
   hasNew: boolean;
+  hasExportableCv: boolean;
   href: string;
   candidate?: CandidateProfile;
   poolEntry?: ApiTalentPoolListItem;

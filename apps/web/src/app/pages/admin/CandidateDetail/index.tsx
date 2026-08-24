@@ -53,7 +53,7 @@ import {
   CANDIDATE_WORKFLOW_STATUSES,
   type CandidateStatus,
 } from "@/app/utils/configs/status-config";
-import { formatWorkExperience, getWorkExperienceItems, removeRedactedPhoneMarker, type WorkExperienceDisplayItem } from "@/app/utils/cv-summary";
+import { cleanCvSummaryDisplayText, formatWorkExperience, getWorkExperienceItems, removeRedactedPhoneMarker, type WorkExperienceDisplayItem } from "@/app/utils/cv-summary";
 import { safeAdminReturnTo } from "@/app/utils/navigation";
 
 export default function CandidateDetail() {
@@ -499,17 +499,11 @@ function CvSummarySection({ application }: { application: ReturnType<typeof useD
 
   return (
     <section className="rounded-2xl border border-border/80 bg-white p-5 shadow-[0_10px_30px_rgba(120,70,86,0.04)]">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <SectionHeading icon={<FileText size={16} />} title="Tóm tắt CV" />
-          <p className="mt-3 max-w-4xl text-sm leading-6 text-foreground">
-            {summary ? removeRedactedPhoneMarker(summary.overview) : (application.aiStatus === "failed" ? "AI chưa tóm tắt được CV này. TA có thể mở file CV để xem trực tiếp." : "Tóm tắt CV sẽ hiển thị sau khi AI đọc xong hồ sơ.")}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2 sm:justify-end">
-          {summary?.currentTitle && removeRedactedPhoneMarker(summary.currentTitle) && <SummaryPill label={removeRedactedPhoneMarker(summary.currentTitle)} />}
-          {summary?.totalExperience && removeRedactedPhoneMarker(summary.totalExperience) && <SummaryPill label={removeRedactedPhoneMarker(summary.totalExperience)} />}
-        </div>
+      <div>
+        <SectionHeading icon={<FileText size={16} />} title="Tóm tắt CV" />
+        <p className="mt-3 max-w-4xl text-sm leading-6 text-foreground">
+          {summary ? removeRedactedPhoneMarker(summary.overview) : (application.aiStatus === "failed" ? "AI chưa tóm tắt được CV này. TA có thể mở file CV để xem trực tiếp." : "Tóm tắt CV sẽ hiển thị sau khi AI đọc xong hồ sơ.")}
+        </p>
       </div>
 
       {summary && (
@@ -529,14 +523,6 @@ function CvSummarySection({ application }: { application: ReturnType<typeof useD
         </div>
       )}
     </section>
-  );
-}
-
-function SummaryPill({ label }: { label: string }) {
-  return (
-    <span className="inline-flex max-w-full items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-bold text-primary">
-      <span className="truncate">{label}</span>
-    </span>
   );
 }
 
@@ -572,7 +558,7 @@ function CvSummaryList({ icon, title, items, inline = false }: {
   items: string[];
   inline?: boolean;
 }) {
-  const visibleItems = items.map(removeRedactedPhoneMarker).filter(Boolean);
+  const visibleItems = items.map(cleanCvSummaryDisplayText).filter(Boolean);
 
   return (
     <div className="min-w-0 rounded-xl border border-border/80 bg-background/60 p-4">

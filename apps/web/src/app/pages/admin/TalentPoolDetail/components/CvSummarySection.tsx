@@ -1,7 +1,7 @@
 import { Briefcase, Building2, FileText, GraduationCap, Languages, NotebookPen, Sparkles } from "lucide-react";
 import { SectionHeading } from "@/app/components/CandidateDetailSections";
 import type { CvSummary } from "@/app/data";
-import { formatWorkExperience, getWorkExperienceItems, removeRedactedPhoneMarker, type WorkExperienceDisplayItem } from "@/app/utils/cv-summary";
+import { cleanCvSummaryDisplayText, formatWorkExperience, getWorkExperienceItems, removeRedactedPhoneMarker, type WorkExperienceDisplayItem } from "@/app/utils/cv-summary";
 
 export function CvSummarySection({ summary }: { summary: CvSummary }) {
   const workExperiences = getWorkExperienceItems(summary);
@@ -51,7 +51,7 @@ function WorkExperienceList({ icon, title, items }: { icon: React.ReactNode; tit
 }
 
 function SummaryList({ icon, title, items, inline = false }: { icon: React.ReactNode; title: string; items: string[]; inline?: boolean }) {
-  const visibleItems = items.map(removeRedactedPhoneMarker).filter(Boolean);
+  const visibleItems = items.map(cleanCvSummaryDisplayText).filter(Boolean);
 
   return (
     <div className="min-w-0 rounded-xl border border-border/80 bg-background/60 p-4">

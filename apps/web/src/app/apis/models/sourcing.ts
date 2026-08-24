@@ -84,6 +84,7 @@ export type ApiSourcingCampaign = {
     locations: string[];
   };
   profiles?: ApiSourcedProfile[];
+  orchestration: ApiSourcingOrchestrationState;
   _count: { profiles: number };
   createdAt: string;
   updatedAt: string;
@@ -133,7 +134,22 @@ export type ApiSourcingOrchestrationResult = {
     createdCount?: number;
     resultCount?: number;
   }>;
-  profiles: ApiSourcedProfile[];
+};
+
+/** Persistent state for a background sourcing orchestration run. */
+export type ApiSourcingOrchestrationState = {
+  status: "IDLE" | "QUEUED" | "RUNNING" | "COMPLETED" | "DEGRADED" | "FAILED";
+  runId?: string | null;
+  result?: ApiSourcingOrchestrationResult | null;
+  error?: string | null;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+};
+
+/** API response after accepting or deduplicating a sourcing orchestration request. */
+export type ApiSourcingOrchestrationQueueResult = {
+  queued: boolean;
+  campaign: ApiSourcingCampaign;
 };
 
 /** API response after suggesting existing internal candidates for a sourcing campaign. */

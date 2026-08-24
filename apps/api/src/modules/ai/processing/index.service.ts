@@ -2,7 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { CvParseStatus, FileKind, Prisma } from "@prisma/client";
 import sanitizeHtml from "sanitize-html";
 import { PrismaService } from "../../prisma";
-import { prepareCvMatchInputForAi } from "../cv/cleaner";
+import { prepareCvMatchInputForAi, prepareCvTextForAi } from "../cv/cleaner";
 import { CvTextExtractorService, type ExtractedCvText } from "../cv/extractor/index.service";
 import {
   AI_PROVIDER,
@@ -193,12 +193,17 @@ export class AiService {
       criteria,
       [application.submittedFullName],
     );
+    const summaryReadyCv = prepareCvTextForAi(
+      extractedText,
+      MAX_AI_CV_CHARACTERS,
+      [application.submittedFullName],
+    );
     const extractionMetadata = asInputJsonObject(application.cvParseResult?.structuredData);
     let cvSummary = readStoredCvSummary(extractionMetadata.cvSummary);
 
     if (!cvSummary) {
       cvSummary = sanitizeCvSummary(await this.provider.summarizeCv({
-        cvText: aiReadyCv.text,
+        cvText: summaryReadyCv.text,
       }));
 
       await this.prisma.cvParseResult.update({

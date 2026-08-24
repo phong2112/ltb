@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useSearchParams } from "react-router";
 import { useData } from "@/app/data";
+import { exportCandidateCvs } from "@/app/apis/requests";
+import { notificationService } from "@/app/services/notification.service";
 import { useLanguage } from "@/app/services/i18n-service";
 import ListPagination from "../ListPagination";
 import { ApplicantList, ApplicantSearch, ApplicantsEmptyState, ApplicantsHeader } from "./components";
@@ -15,6 +17,7 @@ export default function JobApplicantsAside({ jobId }: JobApplicantsAsideProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(() => searchParams.get("applicantQ") ?? "");
   const [page, setPage] = useState(() => readPositivePage(searchParams, "applicantPage"));
+  const [isExporting, setIsExporting] = useState(false);
 
   const jobCandidates = useMemo(
     () => getSortedJobCandidates(candidates, jobId),
@@ -25,6 +28,21 @@ export default function JobApplicantsAside({ jobId }: JobApplicantsAsideProps) {
     [jobCandidates, search],
   );
   const { activePage, visibleCandidates } = paginateApplicants(filteredCandidates, page, APPLICANTS_PER_PAGE);
+  const exportableCount = jobCandidates.filter(candidate => Boolean(candidate.cvFile)).length;
+
+  async function handleExport() {
+    if (!exportableCount || isExporting) return;
+    setIsExporting(true);
+    const toastId = notificationService.loading("Đang tạo file ZIP CV...");
+    try {
+      await exportCandidateCvs({ scope: "job", jobId });
+      notificationService.success("Đã tải file ZIP CV", toastId);
+    } catch (error) {
+      notificationService.error(error, "Không thể xuất CV", toastId);
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   useEffect(() => {
     setPage(1);
@@ -46,7 +64,7 @@ export default function JobApplicantsAside({ jobId }: JobApplicantsAsideProps) {
 
   return (
     <aside className="self-start overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_10px_30px_rgba(120,70,86,0.06)] xl:sticky xl:top-20 xl:col-start-2 xl:row-start-1 xl:row-span-2 xl:max-h-[calc(100vh-6rem)]">
-      <ApplicantsHeader count={jobCandidates.length} subtitle={t("admin.applications")} title={t("admin.jobApplicants")} />
+      <ApplicantsHeader count={jobCandidates.length} subtitle={t("admin.applications")} title={t("admin.jobApplicants")} exportableCount={exportableCount} exporting={isExporting} onExport={() => void handleExport()} />
 
       {jobCandidates.length > 0 ? (
         <>

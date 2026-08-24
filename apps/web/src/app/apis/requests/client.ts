@@ -69,6 +69,24 @@ export async function apiRequest<T>(path: string, init: ApiRequestInit = {}) {
   }
 }
 
+/** Downloads an authenticated binary response while retaining the normal token-refresh behavior. */
+export async function apiDownload(path: string, init: ApiRequestInit = {}) {
+  const { skipAuthRefresh, ...requestInit } = init;
+  let response = await sendRequest(path, requestInit);
+  if (response.status === 401 && !skipAuthRefresh && shouldAttemptAuthRefresh(path)) {
+    const refreshed = await refreshAccessToken(API_BASE);
+    if (refreshed) response = await sendRequest(path, requestInit);
+  }
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new ApiRequestError(parseApiErrorMessage(body) || `Request failed with status ${response.status}`, response.status);
+  }
+  return {
+    blob: await response.blob(),
+    filename: readDownloadFilename(response.headers.get("Content-Disposition")),
+  };
+}
+
 /** Sends one fetch request with tenant and JSON headers applied consistently. */
 function sendRequest(path: string, init: RequestInit) {
   const bodyIsFormData = init.body instanceof FormData;
@@ -126,4 +144,10 @@ function resolveApiBase(configuredBase: string | undefined) {
 /** Distinguishes configured absolute API URLs from same-origin API base paths. */
 function isAbsoluteUrl(value: string) {
   return /^https?:\/\//i.test(value);
+}
+
+function readDownloadFilename(header: string | null) {
+  const utf8 = header?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  if (utf8) return decodeURIComponent(utf8);
+  return header?.match(/filename="?([^";]+)"?/i)?.[1] || "cv-ung-vien.zip";
 }

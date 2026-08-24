@@ -8,6 +8,8 @@ import { JwtAuthGuard } from "../../auth/guards/index.guard";
 import { CreateCandidateMessageDto } from "../dto/message/index.dto";
 import { normalizeApplicationStatusInput, UpdateApplicationStatusDto } from "../dto/status/index.dto";
 import { CandidatesService } from "../service/index.service";
+import { CvExportService } from "../export/cv-export.service";
+import { CreateCvExportDto } from "../dto/export/index.dto";
 
 @ApiTags("Candidates")
 @ApiCookieAuth(ACCESS_TOKEN_SECURITY_NAME)
@@ -18,6 +20,7 @@ export class CandidatesController {
   constructor(
     private readonly candidatesService: CandidatesService,
     private readonly configService: ConfigService,
+    private readonly cvExportService: CvExportService,
   ) {}
 
   @ApiOperation({ summary: "List candidates for the TA inbox" })
@@ -33,6 +36,13 @@ export class CandidatesController {
   @Get()
   listCandidates(@Query("status") status?: string) {
     return this.candidatesService.listCandidates(parseApplicationStatus(status));
+  }
+
+  @ApiOperation({ summary: "Export candidate CV files as a private ZIP archive" })
+  @ApiProduces("application/zip")
+  @Post("cv-exports")
+  async exportCvs(@Body() dto: CreateCvExportDto, @Res() response: Response) {
+    await this.cvExportService.export(dto, response);
   }
 
   @ApiOperation({ summary: "Stream an uploaded candidate CV file" })

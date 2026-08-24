@@ -112,7 +112,7 @@ Public web discovery must be narrow and auditable. Use official APIs where possi
 
 ### Sourcing Orchestration
 
-The campaign detail screen can run one retrieval-first workflow:
+The campaign detail screen can queue one retrieval-first workflow:
 
 1. Ask Groq for bounded title/skill query expansions when core AI is enabled.
 2. Search existing Talent Pool and previous applications independently.
@@ -120,6 +120,8 @@ The campaign detail screen can run one retrieval-first workflow:
 4. Deduplicate profiles, calculate a deterministic potential score, and leave the final review to TA.
 
 AI query planning is optional. Invalid AI output, quota errors, or a disabled AI provider fall back to deterministic JD queries. Brave requests are serialized, paced, bounded by a timeout, and retried for transient/rate-limit responses. Provider failures return a `DEGRADED`/`UNAVAILABLE` stage with any valid partial results instead of failing the whole sourcing workflow.
+
+The run endpoint returns `202 Accepted` after placing work on a Redis-backed BullMQ queue. Each campaign persists its latest run state (`QUEUED`, `RUNNING`, `COMPLETED`, `DEGRADED`, or `FAILED`), so the UI can poll safely and a second request cannot duplicate an active run. A completed run stores the stage summary, not the candidate profile payload.
 
 Relevant backend settings:
 

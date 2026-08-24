@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizeWorkExperienceDuration } from "@hr-copilot/shared";
 
 export const extractedProfileSchema = z.object({
   fullName: z.string().nullable(),
@@ -53,7 +54,7 @@ export const cvSummarySchema = z.object({
   workExperiences: z.array(z.object({
     company: z.string().min(1).max(120),
     title: z.string().min(1).max(120).nullable(),
-    duration: z.string().min(1).max(120).nullable(),
+    duration: z.string().min(1).max(120).nullable().transform(value => normalizeWorkExperienceDuration(value)),
   })).max(8).optional().default([]),
   workCompanies: z.array(z.string()).max(8),
   workHighlights: z.array(z.string()).max(6),

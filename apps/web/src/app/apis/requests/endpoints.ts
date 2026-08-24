@@ -32,6 +32,7 @@ export const API_ENDPOINTS = {
     applicationAnalysis: (applicationId: string) => `${API_ENDPOINTS.candidates.application(applicationId)}/analysis`,
     applicationRetry: (applicationId: string) => `${API_ENDPOINTS.candidates.application(applicationId)}/ai/retry`,
     applicationMessages: (applicationId: string) => `${API_ENDPOINTS.candidates.application(applicationId)}/messages`,
+    cvExports: `${ADMIN_CANDIDATES_ENDPOINT}/cv-exports`,
   },
   sourcing: {
     campaigns: ADMIN_SOURCING_ENDPOINT,

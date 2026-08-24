@@ -1,11 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { SourcingDiscoveryLocationScope, SourcingProfileStatus } from "@prisma/client";
+import { Prisma, SourcingDiscoveryLocationScope, SourcingOrchestrationStatus, SourcingProfileStatus } from "@prisma/client";
+import { randomUUID } from "crypto";
 import { PrismaService } from "../../prisma";
 import { LinkedinDiscoveryService } from "../discovery/index.service";
 import { CreateSourcingCampaignDto } from "../dto/create/index.dto";
 import { ImportSourcingProfilesDto } from "../dto/import-linkedin/index.dto";
 import { InternalCandidateSuggestionService } from "../internal-suggestions/index.service";
-import { SourcingOrchestrationService } from "../orchestration/index.service";
+import { SourcingOrchestrationQueueService } from "../queue/index.service";
 import {
   buildSourcingQueries,
   buildSourcingBrief,
@@ -26,6 +27,15 @@ const campaignListInclude = {
   _count: { select: { profiles: true } },
 };
 
+type CampaignRunFields = {
+  orchestrationStatus: SourcingOrchestrationStatus;
+  orchestrationRunId: string | null;
+  orchestrationResult: Prisma.JsonValue | null;
+  orchestrationError: string | null;
+  orchestrationStartedAt: Date | null;
+  orchestrationFinishedAt: Date | null;
+};
+
 function discoveryLocationScope(value: string | undefined) {
   return value === "GLOBAL" ? SourcingDiscoveryLocationScope.GLOBAL : SourcingDiscoveryLocationScope.VIETNAM;
 }
@@ -36,14 +46,15 @@ export class SourcingService {
     private readonly prisma: PrismaService,
     private readonly linkedinDiscoveryService: LinkedinDiscoveryService,
     private readonly internalSuggestionService: InternalCandidateSuggestionService,
-    private readonly orchestrationService: SourcingOrchestrationService,
+    private readonly orchestrationQueueService: SourcingOrchestrationQueueService,
   ) {}
 
-  listCampaigns() {
-    return this.prisma.sourcingCampaign.findMany({
+  async listCampaigns() {
+    const campaigns = await this.prisma.sourcingCampaign.findMany({
       orderBy: { createdAt: "desc" },
       include: campaignListInclude,
     });
+    return campaigns.map(campaign => withOrchestration(campaign));
   }
 
   async getCampaign(id: string) {
@@ -57,7 +68,7 @@ export class SourcingService {
     });
 
     if (!campaign) throw new NotFoundException("Không tìm thấy chiến dịch sourcing.");
-    return campaign;
+    return withOrchestration(campaign);
   }
 
   async createCampaign(dto: CreateSourcingCampaignDto) {
@@ -65,7 +76,7 @@ export class SourcingService {
     if (!job) throw new NotFoundException("Không tìm thấy vị trí tuyển dụng.");
 
     const name = dto.name?.trim() || `Sourcing · ${job.title}`;
-    return this.prisma.sourcingCampaign.create({
+    const campaign = await this.prisma.sourcingCampaign.create({
       data: {
         jobId: job.id,
         name,
@@ -75,6 +86,7 @@ export class SourcingService {
       },
       include: campaignListInclude,
     });
+    return withOrchestration(campaign);
   }
 
   async importProfiles(campaignId: string, dto: ImportSourcingProfilesDto) {
@@ -173,19 +185,49 @@ export class SourcingService {
     return this.internalSuggestionService.suggestAndStore(this.prisma, campaign.id, campaign.job);
   }
 
-  async runOrchestration(campaignId: string) {
-    const campaign = await this.prisma.sourcingCampaign.findUnique({
-      where: { id: campaignId },
-      include: { job: true },
+  async queueOrchestration(campaignId: string) {
+    await this.assertCampaignExists(campaignId);
+    const runId = randomUUID();
+    const queued = await this.prisma.sourcingCampaign.updateMany({
+      where: {
+        id: campaignId,
+        orchestrationStatus: {
+          notIn: [SourcingOrchestrationStatus.QUEUED, SourcingOrchestrationStatus.RUNNING],
+        },
+      },
+      data: {
+        orchestrationStatus: SourcingOrchestrationStatus.QUEUED,
+        orchestrationRunId: runId,
+        orchestrationResult: Prisma.DbNull,
+        orchestrationError: null,
+        orchestrationStartedAt: null,
+        orchestrationFinishedAt: null,
+      },
     });
-    if (!campaign) throw new NotFoundException("Không tìm thấy chiến dịch sourcing.");
 
-    return this.orchestrationService.run(
-      this.prisma,
-      campaign.id,
-      campaign.job,
-      campaign.discoveryLocationScope,
-    );
+    if (!queued.count) {
+      return { queued: false, campaign: await this.getCampaign(campaignId) };
+    }
+
+    try {
+      await this.orchestrationQueueService.enqueue(campaignId, runId);
+    } catch (error) {
+      await this.prisma.sourcingCampaign.updateMany({
+        where: {
+          id: campaignId,
+          orchestrationRunId: runId,
+          orchestrationStatus: SourcingOrchestrationStatus.QUEUED,
+        },
+        data: {
+          orchestrationStatus: SourcingOrchestrationStatus.FAILED,
+          orchestrationError: "Không thể xếp workflow sourcing. Hãy thử chạy lại.",
+          orchestrationFinishedAt: new Date(),
+        },
+      });
+      throw error;
+    }
+
+    return { queued: true, campaign: await this.getCampaign(campaignId) };
   }
 
   private async assertCampaignExists(id: string) {
@@ -195,4 +237,28 @@ export class SourcingService {
     });
     if (!campaign) throw new NotFoundException("Không tìm thấy chiến dịch sourcing.");
   }
+}
+
+function withOrchestration<T extends CampaignRunFields>(campaign: T) {
+  const {
+    orchestrationStatus,
+    orchestrationRunId,
+    orchestrationResult,
+    orchestrationError,
+    orchestrationStartedAt,
+    orchestrationFinishedAt,
+    ...value
+  } = campaign;
+
+  return {
+    ...value,
+    orchestration: {
+      status: orchestrationStatus,
+      runId: orchestrationRunId,
+      result: orchestrationResult,
+      error: orchestrationError,
+      startedAt: orchestrationStartedAt,
+      finishedAt: orchestrationFinishedAt,
+    },
+  };
 }

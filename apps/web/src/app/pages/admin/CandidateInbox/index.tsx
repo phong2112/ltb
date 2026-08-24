@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
-import { AlertCircle, CheckCircle2, FileText, Upload, X } from "lucide-react";
+import { AlertCircle, CheckCircle2, Download, FileText, Upload, X } from "lucide-react";
 import { cvAcceptAttribute } from "@hr-copilot/shared";
 import { useData, type CandidateStatus } from "@/app/data";
 import { useLanguage } from "@/app/services/i18n-service";
@@ -9,6 +9,7 @@ import AdminLayout from "@/app/layouts/AdminLayout";
 import { notificationService } from "@/app/services/notification.service";
 import {
   deleteTalentPoolEntry,
+  exportCandidateCvs,
   listTalentPool,
   uploadTalentPoolFiles,
 } from "@/app/apis/requests";
@@ -72,6 +73,10 @@ export default function CandidateInbox() {
   const [candidateToDelete, setCandidateToDelete] = useState<(typeof candidateProfiles)[number] | null>(null);
   const [poolEntryToDelete, setPoolEntryToDelete] = useState<ApiTalentPoolListItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<Set<string>>(new Set());
+  const [allFilteredSelected, setAllFilteredSelected] = useState(false);
+  const [excludedRowKeys, setExcludedRowKeys] = useState<Set<string>>(new Set());
+  const [isExporting, setIsExporting] = useState(false);
 
   const loadPoolEntries = useCallback(async () => {
     const response = await listTalentPool({ page: 1, pageSize: TALENT_POOL_FETCH_SIZE });
@@ -102,6 +107,7 @@ export default function CandidateInbox() {
       status: latestApplication.status,
       applicationsCount: candidate.applications.length,
       hasNew: candidate.applications.some(application => application.status === "new"),
+      hasExportableCv: matchingApplications.some(application => Boolean(application.cvFile)),
       href: appendReturnTo(`/admin/candidates/${candidate.id}?application=${latestApplication.applicationId}`, returnTo),
       candidate,
     });
@@ -128,6 +134,7 @@ export default function CandidateInbox() {
       status: TALENT_POOL_STATUS,
       applicationsCount: 0,
       hasNew: false,
+      hasExportableCv: Boolean(entry.fileId),
       href: appendReturnTo(`/admin/talent-pool/${entry.id}`, returnTo),
       poolEntry: entry,
     });
@@ -144,6 +151,8 @@ export default function CandidateInbox() {
     (activePage - 1) * ITEMS_PER_PAGE,
     activePage * ITEMS_PER_PAGE,
   );
+  const selectedRows = filtered.filter(row => row.hasExportableCv && (allFilteredSelected ? !excludedRowKeys.has(row.key) : selectedRowKeys.has(row.key)));
+  const allExportableSelected = allFilteredSelected || (filtered.filter(row => row.hasExportableCv).length > 0 && filtered.filter(row => row.hasExportableCv).every(row => selectedRowKeys.has(row.key)));
 
   useEffect(() => {
     setCurrentPage(page => Math.min(page, totalPages));
@@ -156,6 +165,12 @@ export default function CandidateInbox() {
     setSortOrder(readUrlSort(searchParams));
     setCurrentPage(readUrlPage(searchParams));
   }, [searchParams]);
+
+  useEffect(() => {
+    setSelectedRowKeys(new Set());
+    setAllFilteredSelected(false);
+    setExcludedRowKeys(new Set());
+  }, [search, statusFilter, jobFilter, sortOrder]);
 
   useEffect(() => {
     const next = new URLSearchParams(searchParams);
@@ -267,6 +282,60 @@ export default function CandidateInbox() {
       notificationService.error(error, t("talentPool.deleteError"), toastId);
     } finally {
       setIsDeleting(false);
+    }
+  }
+
+  async function handleExportRows(rows = selectedRows) {
+    if (!rows.length || isExporting) return;
+    setIsExporting(true);
+    const toastId = notificationService.loading("Đang tạo file ZIP CV...");
+    try {
+      await exportCandidateCvs(allFilteredSelected && rows === selectedRows ? {
+        scope: "filtered",
+        excludedCandidateIds: filtered.filter(row => excludedRowKeys.has(row.key) && row.kind === "application").map(row => row.candidate!.id),
+        excludedTalentPoolEntryIds: filtered.filter(row => excludedRowKeys.has(row.key) && row.kind === "pool").map(row => row.poolEntry!.id),
+        filters: { q: search || undefined, status: statusFilter === "all" ? undefined : statusFilter.toUpperCase(), jobId: jobFilter === "all" ? undefined : jobFilter },
+      } : {
+        scope: "selected",
+        candidateIds: rows.filter(row => row.kind === "application").map(row => row.candidate!.id),
+        talentPoolEntryIds: rows.filter(row => row.kind === "pool").map(row => row.poolEntry!.id),
+        filters: { q: search || undefined, status: statusFilter === "all" ? undefined : statusFilter.toUpperCase(), jobId: jobFilter === "all" ? undefined : jobFilter },
+      });
+      notificationService.success("Đã tải file ZIP CV", toastId);
+    } catch (error) {
+      notificationService.error(error, "Không thể xuất CV", toastId);
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  function toggleRow(row: UnifiedCandidateRow) {
+    if (!row.hasExportableCv) return;
+    if (allFilteredSelected) {
+      setExcludedRowKeys(current => {
+        const next = new Set(current);
+        if (next.has(row.key)) next.delete(row.key); else next.add(row.key);
+        return next;
+      });
+      return;
+    }
+    setSelectedRowKeys(current => {
+      const next = new Set(current);
+      if (next.has(row.key)) next.delete(row.key); else next.add(row.key);
+      return next;
+    });
+  }
+
+  function toggleAllExportable() {
+    const keys = filtered.filter(row => row.hasExportableCv).map(row => row.key);
+    if (allExportableSelected) {
+      setAllFilteredSelected(false);
+      setSelectedRowKeys(new Set());
+      setExcludedRowKeys(new Set());
+    } else {
+      setAllFilteredSelected(true);
+      setSelectedRowKeys(new Set(keys));
+      setExcludedRowKeys(new Set());
     }
   }
 
@@ -416,7 +485,21 @@ export default function CandidateInbox() {
         t={t}
         onDeleteApplicationCandidate={row => setCandidateToDelete(row.candidate ?? null)}
         onDeletePoolEntry={row => setPoolEntryToDelete(row.poolEntry ?? null)}
+        selectedKeys={new Set(selectedRows.map(row => row.key))}
+        allExportableSelected={allExportableSelected}
+        onToggleRow={toggleRow}
+        onToggleAll={toggleAllExportable}
+        onExportRow={row => void handleExportRows([row])}
       />
+
+      {selectedRows.length > 0 && (
+        <div className="sticky bottom-4 z-20 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/20 bg-white p-3 shadow-lg">
+          <span className="text-sm font-bold text-foreground">Đã chọn {selectedRows.length} hồ sơ có CV</span>
+          <button type="button" disabled={isExporting} onClick={() => void handleExportRows()} className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-white disabled:opacity-60">
+            <Download size={15} /> {isExporting ? "Đang xuất..." : "Xuất CV (.zip)"}
+          </button>
+        </div>
+      )}
 
       {/* Candidate Pagination */}
       <ListPagination

@@ -107,7 +107,7 @@ export class BraveLinkedinDiscoveryAdapter implements LinkedinDiscoveryAdapter {
       if (!response.ok) {
         lastError = responseError(response.status, attempt, retryAfterMs);
         if (!lastError.retryable || attempt === this.maxAttempts) throw lastError;
-        await this.sleep(Math.min(retryAfterMs || retryDelayMs(attempt), MAX_RETRY_DELAY_MS));
+        await this.sleep(retryAfterMs || retryDelayMs(attempt));
         continue;
       }
 
@@ -141,7 +141,7 @@ export class BraveLinkedinDiscoveryAdapter implements LinkedinDiscoveryAdapter {
   }
 
   private reserveNextRequestSlot(providerRetryAfterMs = 0) {
-    const waitMs = Math.max(this.minRequestIntervalMs, Math.min(providerRetryAfterMs, MAX_RETRY_DELAY_MS));
+    const waitMs = Math.max(this.minRequestIntervalMs, providerRetryAfterMs);
     this.nextRequestAt = Math.max(this.nextRequestAt, this.now() + waitMs);
   }
 }

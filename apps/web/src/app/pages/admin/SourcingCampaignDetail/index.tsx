@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Archive, ArrowLeft, BriefcaseBusiness, Check, Copy, ExternalLink, Github, Globe2, Linkedin, LinkIcon, LoaderCircle, MapPin, Search, Sparkles, Users, Workflow } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router";
-import type { ApiSourcedProfile, ApiSourcingCampaign, ApiSourcingOrchestrationResult, ApiSourcingProfileStatus, ApiSourcingSource } from "@/app/apis/models";
+import type { ApiSourcedProfile, ApiSourcingCampaign, ApiSourcingProfileStatus, ApiSourcingSource } from "@/app/apis/models";
 import { discoverLinkedinProfiles, getSourcingCampaign, importSourcingProfiles, runSourcingOrchestration, suggestInternalCandidates, updateSourcingProfileStatus } from "@/app/apis/requests";
 import AdminLayout from "@/app/layouts/AdminLayout";
 
@@ -104,13 +104,11 @@ export default function SourcingCampaignDetail() {
   const [importing, setImporting] = useState(false);
   const [discovering, setDiscovering] = useState(false);
   const [suggestingInternal, setSuggestingInternal] = useState(false);
-  const [orchestrating, setOrchestrating] = useState(false);
   const [error, setError] = useState("");
   const [importSummary, setImportSummary] = useState("");
   const [discoverySummary, setDiscoverySummary] = useState("");
   const [discoveryStatus, setDiscoveryStatus] = useState<"COMPLETED" | "DEGRADED" | "UNAVAILABLE">("COMPLETED");
   const [internalSummary, setInternalSummary] = useState("");
-  const [orchestrationResult, setOrchestrationResult] = useState<ApiSourcingOrchestrationResult | null>(null);
   const [copiedId, setCopiedId] = useState("");
   const [activeSource, setActiveSource] = useState<ApiSourcingSource>(() => readSourcingSource(searchParams));
 
@@ -125,6 +123,25 @@ export default function SourcingCampaignDetail() {
   useEffect(() => {
     setActiveSource(readSourcingSource(searchParams));
   }, [searchParams]);
+
+  useEffect(() => {
+    const status = campaign?.orchestration?.status;
+    if (!campaign || (status !== "QUEUED" && status !== "RUNNING")) return;
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void getSourcingCampaign(campaign.id)
+        .then(nextCampaign => {
+          if (!cancelled) setCampaign(nextCampaign);
+        })
+        .catch(() => undefined);
+    }, 2_000);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [campaign]);
 
   useEffect(() => {
     const next = new URLSearchParams(searchParams);
@@ -179,17 +196,10 @@ export default function SourcingCampaignDetail() {
   }
 
   async function handleOrchestration() {
-    if (!campaign || orchestrating) return;
+    if (!campaign || isOrchestrationActive(campaign)) return;
 
-    setOrchestrating(true);
-    setOrchestrationResult(null);
-    try {
-      const result = await runSourcingOrchestration(campaign.id);
-      setCampaign({ ...campaign, profiles: result.profiles, _count: { profiles: result.profiles.length } });
-      setOrchestrationResult(result);
-    } finally {
-      setOrchestrating(false);
-    }
+    const result = await runSourcingOrchestration(campaign.id);
+    setCampaign(result.campaign);
   }
 
   async function handleInternalSuggestions() {
@@ -230,6 +240,9 @@ export default function SourcingCampaignDetail() {
   const activeSourceMeta = sourceMeta(activeSource);
   const activeQueries = queries.filter((query) => query.source === activeSource);
   const profiles = campaign.profiles ?? [];
+  const orchestration = campaign.orchestration;
+  const orchestrating = isOrchestrationActive(campaign);
+  const orchestrationResult = orchestration.result ?? null;
 
   return (
     <AdminLayout>
@@ -275,7 +288,19 @@ export default function SourcingCampaignDetail() {
                     {orchestrating ? <LoaderCircle size={14} className="animate-spin" /> : <Workflow size={14} />} {orchestrating ? "Đang điều phối..." : "Chạy toàn bộ workflow"}
                   </button>
                 </div>
-                {orchestrationResult && (
+                {orchestrating && (
+                  <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
+                    <p className="font-black">{orchestration.status === "QUEUED" ? "Workflow đang chờ chạy" : "Workflow đang chạy"}</p>
+                    <p className="mt-1 font-semibold">Trang sẽ tự cập nhật khi workflow hoàn tất.</p>
+                  </div>
+                )}
+                {orchestration.status === "FAILED" && orchestration.error && (
+                  <div className="mt-3 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-900">
+                    <p className="font-black">Workflow chưa hoàn tất</p>
+                    <p className="mt-1 font-semibold">{orchestration.error}</p>
+                  </div>
+                )}
+                {orchestrationResult && !orchestrating && (
                   <div className={`mt-3 rounded-lg border bg-white px-3 py-2 text-xs ${orchestrationResult.status === "DEGRADED" ? "border-amber-300 text-amber-900" : "border-emerald-300 text-emerald-800"}`}>
                     <p className="font-black">{orchestrationResult.status === "DEGRADED" ? "Hoàn tất một phần" : "Hoàn tất"} · thêm {orchestrationResult.createdCount} hồ sơ · {orchestrationResult.aiAssisted ? "có AI planner" : "deterministic fallback"}</p>
                     <ul className="mt-1.5 space-y-1 font-semibold">
@@ -552,4 +577,8 @@ function sourceMeta(source: ApiSourcingSource) {
 function readSourcingSource(searchParams: URLSearchParams): ApiSourcingSource {
   const value = searchParams.get("source");
   return value && IMPORT_SOURCES.some((item) => item.value === value) ? value as ApiSourcingSource : "LINKEDIN";
+}
+
+function isOrchestrationActive(campaign: ApiSourcingCampaign) {
+  return campaign.orchestration.status === "QUEUED" || campaign.orchestration.status === "RUNNING";
 }

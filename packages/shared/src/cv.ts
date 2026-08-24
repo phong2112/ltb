@@ -28,6 +28,24 @@ export const maxApplicationCvFiles = 1;
 export const maxTalentPoolCvFiles = 20;
 export const maxScreeningAnswerLength = 1000;
 
+const WORK_DURATION_RANGE_SEPARATOR = /(?:\s[-–—]\s|\bto\b|\bđến\b|\bthrough\b|\buntil\b)/iu;
+const COMPACT_YEAR_RANGE = /\b(?:19|20)\d{2}\s*[-–—]\s*(?:(?:19|20)\d{2}|present|current|now|nay|hiện tại)\b/iu;
+const CURRENT_WORK_MARKER = /\b(?:present|current|now|nay|hiện tại)\b/iu;
+const ROUGH_TENURE = /\b\d+(?:[.,]\d+)?\+?\s*(?:năm|tháng|years?|yrs?|months?)\b/iu;
+const FOUR_DIGIT_YEAR = /\b(?:19|20)\d{2}\b/gu;
+
+/** Keeps only complete work periods, preventing a lone date from being displayed as a date range. */
+export function normalizeWorkExperienceDuration(value?: string | null) {
+  const normalized = value?.replace(/\s+/gu, " ").trim() ?? "";
+  if (!normalized) return null;
+  if (ROUGH_TENURE.test(normalized)) return normalized;
+  if (COMPACT_YEAR_RANGE.test(normalized)) return normalized;
+  if (!WORK_DURATION_RANGE_SEPARATOR.test(normalized)) return null;
+
+  const years = normalized.match(FOUR_DIGIT_YEAR)?.length ?? 0;
+  return years >= 2 || (years >= 1 && CURRENT_WORK_MARKER.test(normalized)) ? normalized : null;
+}
+
 export type CvSummary = {
   overview: string;
   currentTitle: string | null;

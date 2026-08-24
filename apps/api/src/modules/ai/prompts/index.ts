@@ -7,7 +7,7 @@ import type {
 } from "../../../models/ai";
 
 export const MATCH_PROMPT_VERSION = "cv-jd-match-v6";
-export const CV_SUMMARY_PROMPT_VERSION = "cv-summary-v1";
+export const CV_SUMMARY_PROMPT_VERSION = "cv-summary-v3";
 export const APPLICATION_PREVIEW_PROMPT_VERSION = "application-preview-v1";
 export const SOURCING_PLAN_PROMPT_VERSION = "sourcing-plan-v1";
 
@@ -202,6 +202,10 @@ Quy tắc bắt buộc:
 - Không đưa email, số điện thoại, địa chỉ, tuổi, giới tính, tình trạng hôn nhân hoặc URL cá nhân vào kết quả.
 - Viết tiếng Việt, ngắn gọn, ưu tiên thông tin giúp TA hiểu nhanh nền tảng ứng viên.
 - Nếu một phần không có dữ liệu rõ trong CV, trả về [] hoặc null phù hợp.
+- Chỉ đưa vào các từ/cụm từ hoàn chỉnh. Bỏ qua ký tự đứng riêng và dữ liệu OCR bị cắt cụt như "J", "Frontend D", "React Hook F", "Hà N"; không tự đoán phần còn thiếu.
+- Mỗi kỹ năng phải là tên đầy đủ, có ít nhất 2 ký tự và không được là một ký tự đơn lẻ.
+- totalExperience chỉ ghi khi có cả con số và đơn vị thời gian rõ ràng (năm/tháng); nếu chỉ có dữ liệu cụt như "hơn 4" thì trả về null.
+- duration phải có cả mốc bắt đầu và kết thúc, hoặc mốc bắt đầu và "hiện tại". Không trả về một mốc đơn lẻ như "Nov 2025"; nếu không đủ hai mốc thì để null.
 - Chỉ trả về JSON object hợp lệ, không markdown, không giải thích.
 
 JSON bắt buộc:

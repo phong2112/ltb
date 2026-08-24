@@ -1,3 +1,5 @@
+import { normalizeWorkExperienceDuration } from "@hr-copilot/shared";
+
 type CvSummaryLike = {
   currentTitle?: string | null;
   workExperiences?: Array<{
@@ -16,6 +18,13 @@ export function removeRedactedPhoneMarker(value: string) {
   return cleaned.split(" ").filter(Boolean).join(" ");
 }
 
+/** Cleans summary text and hides malformed fragments already stored by older AI runs. */
+export function cleanCvSummaryDisplayText(value: string) {
+  const cleaned = removeRedactedPhoneMarker(value);
+  if (cleaned.length < 2) return "";
+  return /(?:^|\s)\p{Lu}$/u.test(cleaned) ? "" : cleaned;
+}
+
 export type WorkExperienceDisplayItem = {
   company: string;
   title: string | null;
@@ -28,7 +37,7 @@ export function getWorkExperienceItems(summary: CvSummaryLike): WorkExperienceDi
     .map(item => ({
       company: cleanNullable(item.company) ?? "",
       title: cleanNullable(item.title),
-      duration: cleanNullable(item.duration),
+      duration: normalizeWorkExperienceDuration(cleanNullable(item.duration)),
     }))
     .filter((item): item is WorkExperienceDisplayItem => Boolean(item.company));
 
@@ -63,7 +72,8 @@ export function getWorkExperienceItems(summary: CvSummaryLike): WorkExperienceDi
 
 /** Formats one work experience row for compact table/list display. */
 export function formatWorkExperience(item: WorkExperienceDisplayItem) {
-  return `${item.company}: ${item.title || "—"} - ${item.duration || "—"}`;
+  const details = [item.title, item.duration].filter((value): value is string => Boolean(value));
+  return details.length ? `${item.company}: ${details.join(" - ")}` : item.company;
 }
 
 /** Finds the free-text highlight that mentions a known company. */
@@ -109,7 +119,7 @@ function stripLeadingRoleWords(value: string) {
 
 /** Normalizes optional strings and converts blank values to null for UI consistency. */
 function cleanNullable(value?: string | null) {
-  const cleaned = value ? removeRedactedPhoneMarker(value) : "";
+  const cleaned = value ? cleanCvSummaryDisplayText(value) : "";
   return cleaned || null;
 }
 
