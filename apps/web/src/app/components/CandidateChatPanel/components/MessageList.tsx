@@ -1,6 +1,6 @@
 import { Clock, MessageCircle } from "lucide-react";
 import type { Candidate } from "@/app/data";
-import { formatTime, iconForChannel, labelForChannel } from "../utils";
+import { formatTime, iconForChannel, labelForChannel } from "@/app/components/CandidateChatPanel/utils";
 
 type MessageListProps = {
   candidate: Candidate;

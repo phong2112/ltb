@@ -3,7 +3,7 @@ jest.mock("sanitize-html", () => ({
   default: (value: string) => value.replace(/<[^>]+>/g, ""),
 }));
 
-import type { AiQueueService } from "../../ai/queue/index.service";
+import type { AiQueueService } from "@/modules/ai/queue/index.service";
 import { HealthController } from "./index.controller";
 
 describe("HealthController", () => {

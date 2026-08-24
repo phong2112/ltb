@@ -1,6 +1,6 @@
 import { Controller, Get } from "@nestjs/common";
 import { ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { AiQueueService } from "../../ai/queue/index.service";
+import { AiQueueService } from "@/modules/ai/queue/index.service";
 
 @ApiTags("Health")
 @Controller("health")

@@ -8,11 +8,11 @@ import {
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import type { Request, Response } from "express";
-import { ACCESS_TOKEN_SECURITY_NAME, REFRESH_TOKEN_SECURITY_NAME } from "../../../utils/swagger";
-import { AuthService } from "../service/index.service";
-import { AuthenticatedRequest } from "../../../models/auth";
-import { LoginDto } from "../dto/login/index.dto";
-import { ACCESS_TOKEN_COOKIE_NAME, JwtAuthGuard, readCookie, REFRESH_TOKEN_COOKIE_NAME } from "../guards/index.guard";
+import { ACCESS_TOKEN_SECURITY_NAME, REFRESH_TOKEN_SECURITY_NAME } from "@/utils/swagger";
+import { AuthService } from "@/modules/auth/service/index.service";
+import { AuthenticatedRequest } from "@/models/auth";
+import { LoginDto } from "@/modules/auth/dto/login/index.dto";
+import { ACCESS_TOKEN_COOKIE_NAME, JwtAuthGuard, readCookie, REFRESH_TOKEN_COOKIE_NAME } from "@/modules/auth/guards/index.guard";
 
 @ApiTags("Auth")
 @Controller("auth")

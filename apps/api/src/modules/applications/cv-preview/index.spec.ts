@@ -1,6 +1,6 @@
 import { BadRequestException } from "@nestjs/common";
 import type { ConfigService } from "@nestjs/config";
-import type { CvTextExtractorService } from "../../ai/cv/extractor/index.service";
+import type { CvTextExtractorService } from "@/modules/ai/cv/extractor/index.service";
 import type { ApplicationCvPreviewAiService } from "./ai.service";
 import { ApplicationCvPreviewService } from "./index.service";
 

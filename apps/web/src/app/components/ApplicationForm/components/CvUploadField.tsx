@@ -1,8 +1,8 @@
 import type { ChangeEvent, RefObject } from "react";
 import { FileText, Sparkles, UploadCloud, X } from "lucide-react";
 import { cvAcceptAttribute } from "@hr-copilot/shared";
-import type { CvPreviewState, Translate } from "../types";
-import { formatFileSize } from "../utils";
+import type { CvPreviewState, Translate } from "@/app/components/ApplicationForm/types";
+import { formatFileSize } from "@/app/components/ApplicationForm/utils";
 
 type CvUploadFieldProps = {
   cvFile: File | null;

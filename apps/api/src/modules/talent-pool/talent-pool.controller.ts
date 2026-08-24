@@ -15,9 +15,9 @@ import {
 } from "@nestjs/common";
 import { FilesInterceptor } from "@nestjs/platform-express";
 import { ApiBadRequestResponse, ApiConsumes, ApiCookieAuth, ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
-import type { AuthenticatedRequest } from "../auth";
-import { JwtAuthGuard } from "../auth/guards/index.guard";
-import { ACCESS_TOKEN_SECURITY_NAME } from "../../utils/swagger";
+import type { AuthenticatedRequest } from "@/modules/auth";
+import { JwtAuthGuard } from "@/modules/auth/guards/index.guard";
+import { ACCESS_TOKEN_SECURITY_NAME } from "@/utils/swagger";
 import { ListTalentPoolDto } from "./dto/list-talent-pool.dto";
 import { PromoteTalentPoolEntryDto } from "./dto/promote-talent-pool.dto";
 import { UpdateTalentPoolEntryDto } from "./dto/update-talent-pool.dto";

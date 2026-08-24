@@ -4,7 +4,7 @@ import type {
   ExtractProfileInput,
   SourcingPlanInput,
   SummarizeCvInput,
-} from "../../../models/ai";
+} from "@/models/ai";
 
 export const MATCH_PROMPT_VERSION = "cv-jd-match-v6";
 export const CV_SUMMARY_PROMPT_VERSION = "cv-summary-v3";

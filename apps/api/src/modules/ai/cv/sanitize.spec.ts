@@ -1,4 +1,4 @@
-import type { CvSummary } from "../../../models/ai";
+import type { CvSummary } from "@/models/ai";
 import { sanitizeCvSummary } from "./sanitize";
 
 describe("sanitizeCvSummary", () => {

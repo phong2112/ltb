@@ -4,7 +4,7 @@ import { useData } from "@/app/data";
 import { exportCandidateCvs } from "@/app/apis/requests";
 import { notificationService } from "@/app/services/notification.service";
 import { useLanguage } from "@/app/services/i18n-service";
-import ListPagination from "../ListPagination";
+import ListPagination from "@/app/components/ListPagination";
 import { ApplicantList, ApplicantSearch, ApplicantsEmptyState, ApplicantsHeader } from "./components";
 import { APPLICANTS_PER_PAGE } from "./constants";
 import type { JobApplicantsAsideProps } from "./types";

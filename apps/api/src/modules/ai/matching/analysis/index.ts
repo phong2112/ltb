@@ -1,4 +1,4 @@
-import type { CriterionEvaluation, MatchCriterion } from "../../../../models/ai";
+import type { CriterionEvaluation, MatchCriterion } from "@/models/ai";
 
 const MAX_INSIGHTS = 6;
 const MAX_EVIDENCE_LENGTH = 240;

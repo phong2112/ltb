@@ -1,4 +1,4 @@
-import type { CriterionEvaluation, CriterionStatus, MatchCriterion } from "../../../../models/ai";
+import type { CriterionEvaluation, CriterionStatus, MatchCriterion } from "@/models/ai";
 
 const MAX_MATCH_CRITERIA = 15;
 const PROSE_LINE_LENGTH = 140;

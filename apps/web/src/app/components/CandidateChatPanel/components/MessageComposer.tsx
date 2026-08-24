@@ -1,6 +1,6 @@
 import type { FormEvent } from "react";
 import { Send } from "lucide-react";
-import type { ChannelOption } from "../types";
+import type { ChannelOption } from "@/app/components/CandidateChatPanel/types";
 
 type MessageComposerProps = {
   activeChannel: ChannelOption;

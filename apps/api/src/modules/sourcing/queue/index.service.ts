@@ -2,8 +2,8 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/commo
 import { ConfigService } from "@nestjs/config";
 import { SourcingOrchestrationStatus } from "@prisma/client";
 import { type ConnectionOptions, type Job, Queue, Worker } from "bullmq";
-import { PrismaService } from "../../prisma";
-import { SourcingOrchestrationService } from "../orchestration/index.service";
+import { PrismaService } from "@/modules/prisma";
+import { SourcingOrchestrationService } from "@/modules/sourcing/orchestration/index.service";
 
 const SOURCING_ORCHESTRATION_QUEUE = "sourcing-orchestration";
 const SOURCING_ORCHESTRATION_JOB = "run-campaign" as const;
@@ -25,7 +25,7 @@ export class SourcingOrchestrationQueueService implements OnModuleInit, OnModule
     private readonly orchestrationService: SourcingOrchestrationService,
   ) {}
 
-  onModuleInit() {
+  async onModuleInit() {
     const connection = parseRedisConnection(this.configService.getOrThrow<string>("REDIS_URL"));
     this.queue = new Queue(SOURCING_ORCHESTRATION_QUEUE, { connection });
     this.worker = new Worker(
@@ -36,6 +36,7 @@ export class SourcingOrchestrationQueueService implements OnModuleInit, OnModule
     this.worker.on("error", error => {
       this.logger.error(`Sourcing orchestration worker connection error: ${safeErrorMessage(error)}`);
     });
+    await this.recoverStaleRuns();
   }
 
   async enqueue(campaignId: string, runId: string) {
@@ -116,6 +117,44 @@ export class SourcingOrchestrationQueueService implements OnModuleInit, OnModule
       });
     }
   }
+
+  private async recoverStaleRuns() {
+    const staleMinutes = positiveInteger(
+      this.configService.get<number | string>("SOURCING_ORCHESTRATION_STALE_MINUTES"),
+      30,
+    );
+    const cutoff = new Date(Date.now() - staleMinutes * 60_000);
+    const recovered = await this.prisma.sourcingCampaign.updateMany({
+      where: {
+        OR: [
+          {
+            orchestrationStatus: SourcingOrchestrationStatus.QUEUED,
+            updatedAt: { lt: cutoff },
+          },
+          {
+            orchestrationStatus: SourcingOrchestrationStatus.RUNNING,
+            OR: [
+              { orchestrationStartedAt: { lt: cutoff } },
+              { orchestrationStartedAt: null, updatedAt: { lt: cutoff } },
+            ],
+          },
+        ],
+      },
+      data: {
+        orchestrationStatus: SourcingOrchestrationStatus.FAILED,
+        orchestrationError: "Workflow sourcing bị gián đoạn. Hãy chạy lại.",
+        orchestrationFinishedAt: new Date(),
+      },
+    });
+    if (recovered.count) {
+      this.logger.warn(`Recovered ${recovered.count} stale sourcing orchestration run(s).`);
+    }
+  }
+}
+
+function positiveInteger(value: number | string | undefined, fallback: number) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 function parseRedisConnection(value: string): ConnectionOptions {

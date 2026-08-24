@@ -1,7 +1,7 @@
 import { FileStorageTier } from "@prisma/client";
-import type { PrismaService } from "../../prisma";
+import type { PrismaService } from "@/modules/prisma";
 import { CvStorageLifecycleService } from "./index.service";
-import type { CvStorageService } from "../storage/index.service";
+import type { CvStorageService } from "@/modules/files/storage/index.service";
 
 const candidateFile = {
   id: "file-1",

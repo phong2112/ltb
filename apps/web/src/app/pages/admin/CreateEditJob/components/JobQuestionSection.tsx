@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import type { Job } from "@/app/data";
-import { MAX } from "../constants";
-import type { FormErrors } from "../types";
+import { MAX } from "@/app/pages/admin/CreateEditJob/constants";
+import type { FormErrors } from "@/app/pages/admin/CreateEditJob/types";
 import { FormField } from "./FormField";
 
 type JobQuestionSectionProps = {

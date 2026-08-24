@@ -44,4 +44,6 @@ export {
   runSourcingOrchestration,
   suggestInternalCandidates,
   updateSourcingProfileStatus,
+  updateSourcingProfileFeedback,
+  updateSourcingCampaignStatus,
 } from "./sourcing";

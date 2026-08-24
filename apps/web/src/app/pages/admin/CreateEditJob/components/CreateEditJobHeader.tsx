@@ -4,8 +4,8 @@ import type { Job } from "@/app/data";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/app/components/Common/dropdown-menu";
 import { translateJobStatus, type Language, type TranslationKey } from "@/app/services/i18n-service";
 import { URGENT_BADGE_CLASS } from "@/app/utils/configs/status-config";
-import { statusDotClass } from "../constants";
-import type { JobForm, SavingAction } from "../types";
+import { statusDotClass } from "@/app/pages/admin/CreateEditJob/constants";
+import type { JobForm, SavingAction } from "@/app/pages/admin/CreateEditJob/types";
 
 type CreateEditJobHeaderProps = {
   existing?: Job;

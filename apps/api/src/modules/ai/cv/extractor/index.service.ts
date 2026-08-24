@@ -4,9 +4,9 @@ import * as mammoth from "mammoth";
 import { extname } from "node:path";
 import { PDFParse } from "pdf-parse";
 import WordExtractor = require("word-extractor");
-import { CvStorageService } from "../../../files/storage/index.service";
-import { calculateTextQuality, cleanExtractedCvText } from "../cleaner";
-import { CvOcrService } from "../ocr/index.service";
+import { CvStorageService } from "@/modules/files/storage/index.service";
+import { calculateTextQuality, cleanExtractedCvText } from "@/modules/ai/cv/cleaner";
+import { CvOcrService } from "@/modules/ai/cv/ocr/index.service";
 
 export type CandidateFileForExtraction = {
   originalName: string;

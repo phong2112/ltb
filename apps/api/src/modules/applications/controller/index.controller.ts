@@ -3,10 +3,10 @@ import { ConfigService } from "@nestjs/config";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ThrottlerGuard } from "@nestjs/throttler";
 import { ApiBadRequestResponse, ApiBody, ApiConflictResponse, ApiConsumes, ApiCreatedResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { hasAllowedFileSignature } from "../../files/signature";
-import { ApplicationCvPreviewService } from "../cv-preview/index.service";
-import { CreateApplicationDto } from "../dto/create/index.dto";
-import { ApplicationsService } from "../service/index.service";
+import { hasAllowedFileSignature } from "@/modules/files/signature";
+import { ApplicationCvPreviewService } from "@/modules/applications/cv-preview/index.service";
+import { CreateApplicationDto } from "@/modules/applications/dto/create/index.dto";
+import { ApplicationsService } from "@/modules/applications/service/index.service";
 
 @ApiTags("Applications")
 @Controller("applications")

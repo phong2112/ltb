@@ -1,5 +1,5 @@
 import { Mail, Linkedin, MessageCircle, MessagesSquare, Smartphone } from "lucide-react";
-import type { ChannelOption } from "../types";
+import type { ChannelOption } from "@/app/components/CandidateChatPanel/types";
 
 export const CHANNELS: ChannelOption[] = [
   { value: "system", label: "Hệ thống", status: "Nội bộ", icon: <MessagesSquare size={14} /> },

@@ -10,8 +10,8 @@ import {
   SALARY_CURRENCIES,
   TAG_PATTERN,
   TEXT_PATTERN,
-} from "../constants";
-import type { FormErrors, JobForm, SalaryCurrency } from "../types";
+} from "@/app/pages/admin/CreateEditJob/constants";
+import type { FormErrors, JobForm, SalaryCurrency } from "@/app/pages/admin/CreateEditJob/types";
 
 /** Splits a saved salary string into editable amount and currency fields. */
 export function parseSalary(value: string): { amount: string; currency: SalaryCurrency } {

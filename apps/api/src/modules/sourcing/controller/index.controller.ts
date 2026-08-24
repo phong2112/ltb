@@ -1,11 +1,13 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards } from "@nestjs/common";
 import { ApiAcceptedResponse, ApiCookieAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
-import { ACCESS_TOKEN_SECURITY_NAME } from "../../../utils/swagger";
-import { JwtAuthGuard } from "../../auth/guards/index.guard";
-import { CreateSourcingCampaignDto } from "../dto/create/index.dto";
-import { ImportSourcingProfilesDto } from "../dto/import-linkedin/index.dto";
-import { UpdateSourcingProfileStatusDto } from "../dto/status/index.dto";
-import { SourcingService } from "../service/index.service";
+import { ACCESS_TOKEN_SECURITY_NAME } from "@/utils/swagger";
+import { JwtAuthGuard } from "@/modules/auth/guards/index.guard";
+import { CreateSourcingCampaignDto } from "@/modules/sourcing/dto/create/index.dto";
+import { ImportSourcingProfilesDto } from "@/modules/sourcing/dto/import-linkedin/index.dto";
+import { UpdateSourcingProfileStatusDto } from "@/modules/sourcing/dto/status/index.dto";
+import { UpdateSourcingCampaignStatusDto } from "@/modules/sourcing/dto/campaign-status/index.dto";
+import { UpdateSourcingProfileFeedbackDto } from "@/modules/sourcing/dto/feedback/index.dto";
+import { SourcingService } from "@/modules/sourcing/service/index.service";
 
 @ApiTags("Sourcing")
 @ApiCookieAuth(ACCESS_TOKEN_SECURITY_NAME)
@@ -30,6 +32,18 @@ export class SourcingController {
   @Get(":id")
   getCampaign(@Param("id") id: string) {
     return this.sourcingService.getCampaign(id);
+  }
+
+  @ApiOkResponse({ description: "TA feedback coverage and ranking precision for the campaign." })
+  @Get(":id/evaluation")
+  getCampaignEvaluation(@Param("id") id: string) {
+    return this.sourcingService.getCampaignEvaluation(id);
+  }
+
+  @ApiOkResponse({ description: "Updated sourcing campaign lifecycle status." })
+  @Patch(":id/status")
+  updateCampaignStatus(@Param("id") id: string, @Body() dto: UpdateSourcingCampaignStatusDto) {
+    return this.sourcingService.updateCampaignStatus(id, dto.status);
   }
 
   @ApiCreatedResponse({ description: "Discovered LinkedIn public profiles through the configured search API." })
@@ -65,5 +79,16 @@ export class SourcingController {
     @Body() dto: UpdateSourcingProfileStatusDto,
   ) {
     return this.sourcingService.updateProfileStatus(id, profileId, dto.status);
+  }
+
+
+  @ApiOkResponse({ description: "Recorded TA relevance feedback used to evaluate sourcing ranking." })
+  @Patch(":id/profiles/:profileId/feedback")
+  updateProfileFeedback(
+    @Param("id") id: string,
+    @Param("profileId") profileId: string,
+    @Body() dto: UpdateSourcingProfileFeedbackDto,
+  ) {
+    return this.sourcingService.updateProfileFeedback(id, profileId, dto.feedback);
   }
 }

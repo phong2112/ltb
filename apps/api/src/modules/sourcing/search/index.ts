@@ -38,6 +38,11 @@ export type SourcingDiscoveryEnhancements = {
   skillSignals?: string[];
 };
 
+export type PreparedSourcingProfileUrl = {
+  profileUrl: string;
+  normalizedProfileUrl: string;
+};
+
 const TITLE_EQUIVALENTS: Array<[RegExp, string[]]> = [
   [/software engineer|software developer/iu, ["Software Engineer", "Software Developer"]],
   [/business analyst|analystic|\bba\b/iu, ["Business Analyst", "BA", "Product Owner", "System Analyst"]],
@@ -72,6 +77,13 @@ export function buildSourcingBrief(job: SourcingJobInput) {
       "STACK_OVERFLOW",
       "REFERRAL",
     ],
+  };
+}
+
+export function buildSourcingCampaignSnapshot(job: SourcingJobInput) {
+  return {
+    brief: buildSourcingBrief(job),
+    searchQueries: buildSourcingQueries(job),
   };
 }
 
@@ -248,6 +260,13 @@ export function buildLinkedinDiscoveryQueries(
 }
 
 export function normalizeSourcingProfileUrl(value: string, source: SourcingImportSource) {
+  return prepareSourcingProfileUrl(value, source)?.normalizedProfileUrl ?? null;
+}
+
+export function prepareSourcingProfileUrl(
+  value: string,
+  source: SourcingImportSource,
+): PreparedSourcingProfileUrl | null {
   const raw = value.trim();
   if (!raw) return null;
 
@@ -260,21 +279,27 @@ export function normalizeSourcingProfileUrl(value: string, source: SourcingImpor
 
   const hostname = parsed.hostname.toLowerCase().replace(/^www\./u, "").replace(/^m\./u, "");
   const path = normalizedPath(parsed);
+  let normalizedProfileUrl: string | null = null;
 
-  if (source === "LINKEDIN") return normalizeLinkedinParsedUrl(hostname, path);
-  if (source === "GITHUB") return normalizeHostPathUrl(hostname, path, ["github.com"], isGithubProfilePath);
-  if (source === "GITLAB") return normalizeHostPathUrl(hostname, path, ["gitlab.com"], isSingleSegmentPath);
-  if (source === "STACK_OVERFLOW") return normalizeHostPathUrl(hostname, path, ["stackoverflow.com"], isStackOverflowUserPath);
+  if (source === "LINKEDIN") normalizedProfileUrl = normalizeLinkedinParsedUrl(hostname, path);
+  if (source === "GITHUB") normalizedProfileUrl = normalizeHostPathUrl(hostname, path, ["github.com"], isGithubProfilePath);
+  if (source === "GITLAB") normalizedProfileUrl = normalizeHostPathUrl(hostname, path, ["gitlab.com"], isSingleSegmentPath);
+  if (source === "STACK_OVERFLOW") normalizedProfileUrl = normalizeHostPathUrl(hostname, path, ["stackoverflow.com"], isStackOverflowUserPath);
   if (source === "FACEBOOK") {
-    return normalizeHostPathUrl(hostname, path, ["facebook.com", "fb.com"], (parts) => parts.length >= 1, cleanedSearch(parsed));
+    normalizedProfileUrl = normalizeHostPathUrl(hostname, path, ["facebook.com", "fb.com"], (parts) => parts.length >= 1, cleanedSearch(parsed));
   }
-  if (source === "ITVIEC") return normalizeHostPathUrl(hostname, path, ["itviec.com"], (parts) => parts.length >= 1);
-  if (source === "VIETNAMWORKS") return normalizeHostPathUrl(hostname, path, ["vietnamworks.com"], (parts) => parts.length >= 1);
+  if (source === "ITVIEC") normalizedProfileUrl = normalizeHostPathUrl(hostname, path, ["itviec.com"], (parts) => parts.length >= 1);
+  if (source === "VIETNAMWORKS") normalizedProfileUrl = normalizeHostPathUrl(hostname, path, ["vietnamworks.com"], (parts) => parts.length >= 1);
   if (source === "PUBLIC_WEB" || source === "MANUAL" || source === "REFERRAL") {
     if (!["http:", "https:"].includes(parsed.protocol)) return null;
-    return `https://${hostname}/${path.join("/")}${cleanedSearch(parsed)}`.replace(/\/$/u, "");
+    normalizedProfileUrl = `https://${hostname}/${path.join("/")}${cleanedSearch(parsed)}`.replace(/\/$/u, "");
   }
-  return null;
+  if (!normalizedProfileUrl) return null;
+
+  return {
+    profileUrl: source === "LINKEDIN" ? normalizedProfileUrl : cleanedOriginalUrl(parsed),
+    normalizedProfileUrl,
+  };
 }
 
 export function normalizeLinkedinProfileUrl(value: string) {
@@ -398,6 +423,11 @@ function cleanedSearch(parsed: URL) {
   if (!params.length) return "";
   const normalized = new URLSearchParams(params);
   return `?${normalized.toString()}`;
+}
+
+function cleanedOriginalUrl(parsed: URL) {
+  const hostname = parsed.hostname.toLowerCase();
+  return `https://${hostname}${parsed.pathname}${cleanedSearch(parsed)}`.replace(/\/$/u, "");
 }
 
 function normalizedPath(parsed: URL) {

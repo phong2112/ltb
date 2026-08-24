@@ -32,6 +32,10 @@ export type ApiSourcingSource =
 /** API location scope used when automatic LinkedIn discovery builds search queries. */
 export type ApiSourcingDiscoveryLocationScope = "VIETNAM" | "GLOBAL";
 
+export type ApiSourcingCampaignStatus = "ACTIVE" | "PAUSED" | "CLOSED";
+
+export type ApiSourcingProfileFeedback = "RELEVANT" | "MAYBE" | "NOT_RELEVANT";
+
 /** API search query generated from a JD for one sourcing source. */
 export type ApiSourcingSearchQuery = {
   id: string;
@@ -54,6 +58,8 @@ export type ApiSourcedProfile = {
   location?: string | null;
   notes?: string | null;
   status: ApiSourcingProfileStatus;
+  feedback?: ApiSourcingProfileFeedback | null;
+  feedbackAt?: string | null;
   extractionMethod: string;
   createdAt: string;
   updatedAt: string;
@@ -64,7 +70,7 @@ export type ApiSourcingCampaign = {
   id: string;
   jobId: string;
   name: string;
-  status: "ACTIVE" | "PAUSED" | "CLOSED";
+  status: ApiSourcingCampaignStatus;
   discoveryLocationScope: ApiSourcingDiscoveryLocationScope;
   brief: {
     targetRole?: string;

@@ -146,7 +146,9 @@ export default function SourcingCampaigns() {
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-bold">
                       <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-muted-foreground"><Users size={11} /> {campaign._count.profiles} ứng viên</span>
-                      <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-700">Đang chạy</span>
+                      <span className={`rounded-full px-2.5 py-1 ${campaignStatusMeta(campaign.status).className}`}>
+                        {campaignStatusMeta(campaign.status).label}
+                      </span>
                       <span className="rounded-full bg-amber-50 px-2.5 py-1 text-amber-700">{campaign.discoveryLocationScope === "GLOBAL" ? "All location" : "Việt Nam"}</span>
                       <span className="rounded-full bg-[#eef6ff] px-2.5 py-1 text-[#0a66c2]">Multi-source</span>
                     </div>
@@ -159,4 +161,10 @@ export default function SourcingCampaigns() {
       </div>
     </AdminLayout>
   );
+}
+
+function campaignStatusMeta(status: ApiSourcingCampaign["status"]) {
+  if (status === "PAUSED") return { label: "Tạm dừng", className: "bg-amber-50 text-amber-700" };
+  if (status === "CLOSED") return { label: "Đã đóng", className: "bg-slate-100 text-slate-600" };
+  return { label: "Đang hoạt động", className: "bg-emerald-50 text-emerald-700" };
 }

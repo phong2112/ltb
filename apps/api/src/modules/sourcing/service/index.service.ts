@@ -1,18 +1,18 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { Prisma, SourcingDiscoveryLocationScope, SourcingOrchestrationStatus, SourcingProfileStatus } from "@prisma/client";
+import { Prisma, SourcingCampaignStatus, SourcingDiscoveryLocationScope, SourcingOrchestrationStatus, SourcingProfileFeedback, SourcingProfileStatus } from "@prisma/client";
 import { randomUUID } from "crypto";
-import { PrismaService } from "../../prisma";
-import { LinkedinDiscoveryService } from "../discovery/index.service";
-import { CreateSourcingCampaignDto } from "../dto/create/index.dto";
-import { ImportSourcingProfilesDto } from "../dto/import-linkedin/index.dto";
-import { InternalCandidateSuggestionService } from "../internal-suggestions/index.service";
-import { SourcingOrchestrationQueueService } from "../queue/index.service";
+import { PrismaService } from "@/modules/prisma";
+import { LinkedinDiscoveryService } from "@/modules/sourcing/discovery/index.service";
+import { CreateSourcingCampaignDto } from "@/modules/sourcing/dto/create/index.dto";
+import { ImportSourcingProfilesDto } from "@/modules/sourcing/dto/import-linkedin/index.dto";
+import { InternalCandidateSuggestionService } from "@/modules/sourcing/internal-suggestions/index.service";
+import { SourcingOrchestrationQueueService } from "@/modules/sourcing/queue/index.service";
 import {
-  buildSourcingQueries,
-  buildSourcingBrief,
-  normalizeSourcingProfileUrl,
+  buildSourcingCampaignSnapshot,
+  prepareSourcingProfileUrl,
   type SourcingImportSource,
-} from "../search";
+  type SourcingJobInput,
+} from "@/modules/sourcing/search";
 
 const campaignListInclude = {
   job: {
@@ -71,6 +71,26 @@ export class SourcingService {
     return withOrchestration(campaign);
   }
 
+  async updateCampaignStatus(id: string, status: SourcingCampaignStatus) {
+    const updated = await this.prisma.sourcingCampaign.updateMany({
+      where: {
+        id,
+        ...(status === SourcingCampaignStatus.ACTIVE
+          ? {}
+          : {
+              orchestrationStatus: {
+                notIn: [SourcingOrchestrationStatus.QUEUED, SourcingOrchestrationStatus.RUNNING],
+              },
+            }),
+      },
+      data: { status },
+    });
+    if (updated.count) return this.getCampaign(id);
+
+    await this.assertCampaignExists(id);
+    throw new BadRequestException("Không thể tạm dừng hoặc đóng khi workflow sourcing đang chạy.");
+  }
+
   async createCampaign(dto: CreateSourcingCampaignDto) {
     const job = await this.prisma.job.findUnique({ where: { id: dto.jobId } });
     if (!job) throw new NotFoundException("Không tìm thấy vị trí tuyển dụng.");
@@ -81,8 +101,7 @@ export class SourcingService {
         jobId: job.id,
         name,
         discoveryLocationScope: discoveryLocationScope(dto.discoveryLocationScope),
-        brief: buildSourcingBrief(job),
-        searchQueries: buildSourcingQueries(job),
+        ...buildSourcingCampaignSnapshot(job),
       },
       include: campaignListInclude,
     });
@@ -93,24 +112,22 @@ export class SourcingService {
     await this.assertCampaignExists(campaignId);
 
     const source = dto.source as SourcingImportSource;
-    const normalizedByInput = dto.urls.map((profileUrl) => ({
+    const preparedByInput = dto.urls.map((profileUrl) => ({
       input: profileUrl.trim(),
-      normalized: normalizeSourcingProfileUrl(profileUrl, source),
+      prepared: prepareSourcingProfileUrl(profileUrl, source),
     }));
-    const invalidUrls = normalizedByInput
-      .filter((item) => !item.normalized)
+    const invalidUrls = preparedByInput
+      .filter((item) => !item.prepared)
       .map((item) => item.input)
       .filter(Boolean);
-    const validUrls = normalizedByInput.filter(
-      (item): item is { input: string; normalized: string } => Boolean(item.normalized),
-    );
-    const uniqueUrls = [...new Map(validUrls.map((item) => [item.normalized, item])).values()];
+    const validUrls = preparedByInput.flatMap(item => item.prepared ? [{ input: item.input, ...item.prepared }] : []);
+    const uniqueUrls = [...new Map(validUrls.map((item) => [item.normalizedProfileUrl, item])).values()];
 
     if (!uniqueUrls.length) {
       throw new BadRequestException("Không có URL hồ sơ hợp lệ để thêm.");
     }
 
-    const normalizedUrls = uniqueUrls.map((item) => item.normalized);
+    const normalizedUrls = uniqueUrls.map((item) => item.normalizedProfileUrl);
     const [existingInCampaign, existingInOtherCampaigns] = await Promise.all([
       this.prisma.sourcedProfile.findMany({
         where: { campaignId, normalizedProfileUrl: { in: normalizedUrls } },
@@ -127,13 +144,13 @@ export class SourcingService {
       }),
     ]);
     const existingSet = new Set(existingInCampaign.map((item) => item.normalizedProfileUrl));
-    const profilesToCreate = uniqueUrls.filter((item) => !existingSet.has(item.normalized));
+    const profilesToCreate = uniqueUrls.filter((item) => !existingSet.has(item.normalizedProfileUrl));
     const created = await this.prisma.sourcedProfile.createMany({
       data: profilesToCreate.map((item) => ({
         campaignId,
         source: dto.source,
-        profileUrl: item.normalized,
-        normalizedProfileUrl: item.normalized,
+        profileUrl: item.profileUrl,
+        normalizedProfileUrl: item.normalizedProfileUrl,
         extractionMethod: "ta_provided_url",
       })),
       skipDuplicates: true,
@@ -163,13 +180,37 @@ export class SourcingService {
     });
   }
 
+  async updateProfileFeedback(campaignId: string, profileId: string, feedback: SourcingProfileFeedback | null) {
+    const updated = await this.prisma.sourcedProfile.updateMany({
+      where: { id: profileId, campaignId },
+      data: {
+        feedback,
+        feedbackAt: feedback ? new Date() : null,
+      },
+    });
+    if (!updated.count) throw new NotFoundException("Không tìm thấy hồ sơ trong chiến dịch.");
+
+    return this.prisma.sourcedProfile.findUniqueOrThrow({ where: { id: profileId } });
+  }
+
+  async getCampaignEvaluation(campaignId: string) {
+    await this.assertCampaignExists(campaignId);
+    const profiles = await this.prisma.sourcedProfile.findMany({
+      where: { campaignId },
+      select: { id: true, feedback: true, notes: true },
+    });
+    return buildCampaignEvaluation(profiles);
+  }
+
   async discoverLinkedinProfiles(campaignId: string) {
     const campaign = await this.prisma.sourcingCampaign.findUnique({
       where: { id: campaignId },
       include: { job: true },
     });
     if (!campaign) throw new NotFoundException("Không tìm thấy chiến dịch sourcing.");
+    this.assertAutomaticDiscoveryAllowed(campaign.status);
 
+    await this.refreshCampaignSnapshot(campaign.id, campaign.job);
     return this.linkedinDiscoveryService.discoverAndStore(this.prisma, campaign.id, campaign.job, {
       locationScope: campaign.discoveryLocationScope,
     });
@@ -181,16 +222,24 @@ export class SourcingService {
       include: { job: true },
     });
     if (!campaign) throw new NotFoundException("Không tìm thấy chiến dịch sourcing.");
+    this.assertAutomaticDiscoveryAllowed(campaign.status);
 
+    await this.refreshCampaignSnapshot(campaign.id, campaign.job);
     return this.internalSuggestionService.suggestAndStore(this.prisma, campaign.id, campaign.job);
   }
 
   async queueOrchestration(campaignId: string) {
-    await this.assertCampaignExists(campaignId);
+    const campaign = await this.prisma.sourcingCampaign.findUnique({
+      where: { id: campaignId },
+      select: { id: true, status: true },
+    });
+    if (!campaign) throw new NotFoundException("Không tìm thấy chiến dịch sourcing.");
+    this.assertAutomaticDiscoveryAllowed(campaign.status);
     const runId = randomUUID();
     const queued = await this.prisma.sourcingCampaign.updateMany({
       where: {
         id: campaignId,
+        status: SourcingCampaignStatus.ACTIVE,
         orchestrationStatus: {
           notIn: [SourcingOrchestrationStatus.QUEUED, SourcingOrchestrationStatus.RUNNING],
         },
@@ -206,7 +255,9 @@ export class SourcingService {
     });
 
     if (!queued.count) {
-      return { queued: false, campaign: await this.getCampaign(campaignId) };
+      const currentCampaign = await this.getCampaign(campaignId);
+      this.assertAutomaticDiscoveryAllowed(currentCampaign.status);
+      return { queued: false, campaign: currentCampaign };
     }
 
     try {
@@ -236,6 +287,61 @@ export class SourcingService {
       select: { id: true },
     });
     if (!campaign) throw new NotFoundException("Không tìm thấy chiến dịch sourcing.");
+  }
+
+  private async refreshCampaignSnapshot(id: string, job: SourcingJobInput) {
+    await this.prisma.sourcingCampaign.update({
+      where: { id },
+      data: buildSourcingCampaignSnapshot(job),
+    });
+  }
+
+  private assertAutomaticDiscoveryAllowed(status: SourcingCampaignStatus) {
+    if (status !== SourcingCampaignStatus.ACTIVE) {
+      throw new BadRequestException("Chỉ có thể chạy discovery khi chiến dịch đang hoạt động.");
+    }
+  }
+}
+
+type EvaluationProfile = {
+  id: string;
+  feedback: SourcingProfileFeedback | null;
+  notes: string | null;
+};
+
+function buildCampaignEvaluation(profiles: EvaluationProfile[]) {
+  const ranked = [...profiles].sort((left, right) => readPotentialScore(right.notes) - readPotentialScore(left.notes));
+  const top10 = ranked.slice(0, 10);
+  const top10Labeled = top10.filter(profile => profile.feedback !== null);
+  const relevantAt10 = top10Labeled.filter(profile => profile.feedback === SourcingProfileFeedback.RELEVANT).length;
+  const feedbackCounts = {
+    relevant: profiles.filter(profile => profile.feedback === SourcingProfileFeedback.RELEVANT).length,
+    maybe: profiles.filter(profile => profile.feedback === SourcingProfileFeedback.MAYBE).length,
+    notRelevant: profiles.filter(profile => profile.feedback === SourcingProfileFeedback.NOT_RELEVANT).length,
+  };
+  const labeledCount = feedbackCounts.relevant + feedbackCounts.maybe + feedbackCounts.notRelevant;
+
+  return {
+    totalProfiles: profiles.length,
+    labeledCount,
+    coverage: profiles.length ? Number((labeledCount / profiles.length).toFixed(3)) : 0,
+    feedbackCounts,
+    ranking: {
+      top10Count: top10.length,
+      top10LabeledCount: top10Labeled.length,
+      top10RelevantCount: relevantAt10,
+      precisionAt10: top10Labeled.length ? Number((relevantAt10 / top10Labeled.length).toFixed(3)) : null,
+    },
+  };
+}
+
+function readPotentialScore(notes: string | null) {
+  if (!notes) return -1;
+  try {
+    const parsed = JSON.parse(notes) as { potentialScore?: unknown };
+    return typeof parsed.potentialScore === "number" ? parsed.potentialScore : -1;
+  } catch {
+    return -1;
   }
 }
 

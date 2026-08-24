@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import { validateEnv } from "../utils/env";
+import { validateEnv } from "@/utils/env";
 import { ApplicationsModule } from "./applications";
 import { AuthModule } from "./auth";
 import { CandidatesModule } from "./candidates";

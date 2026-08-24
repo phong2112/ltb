@@ -10,11 +10,11 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
-import { ACCESS_TOKEN_SECURITY_NAME } from "../../../utils/swagger";
-import { JwtAuthGuard } from "../../auth/guards/index.guard";
-import { CreateTemplateDto } from "../dto/create/index.dto";
-import { UpdateTemplateDto } from "../dto/update/index.dto";
-import { TemplatesService } from "../service/index.service";
+import { ACCESS_TOKEN_SECURITY_NAME } from "@/utils/swagger";
+import { JwtAuthGuard } from "@/modules/auth/guards/index.guard";
+import { CreateTemplateDto } from "@/modules/templates/dto/create/index.dto";
+import { UpdateTemplateDto } from "@/modules/templates/dto/update/index.dto";
+import { TemplatesService } from "@/modules/templates/service/index.service";
 
 @ApiTags("Message Templates")
 @ApiCookieAuth(ACCESS_TOKEN_SECURITY_NAME)

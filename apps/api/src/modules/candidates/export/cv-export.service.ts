@@ -5,9 +5,9 @@ import type { Response } from "express";
 import { finished } from "node:stream/promises";
 import { extname } from "node:path";
 import { randomUUID } from "node:crypto";
-import { CvStorageService } from "../../files/storage/index.service";
-import { PrismaService } from "../../prisma";
-import { CreateCvExportDto, CvExportScope } from "../dto/export/index.dto";
+import { CvStorageService } from "@/modules/files/storage/index.service";
+import { PrismaService } from "@/modules/prisma";
+import { CreateCvExportDto, CvExportScope } from "@/modules/candidates/dto/export/index.dto";
 
 type ExportFile = {
   id: string;

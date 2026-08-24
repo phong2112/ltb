@@ -5,9 +5,9 @@ jest.mock("../service/index.service", () => ({
 import { BadRequestException } from "@nestjs/common";
 import type { ConfigService } from "@nestjs/config";
 import { ApplicationsController } from "./index.controller";
-import type { ApplicationCvPreviewService } from "../cv-preview/index.service";
-import type { ApplicationsService } from "../service/index.service";
-import type { CreateApplicationDto } from "../dto/create/index.dto";
+import type { ApplicationCvPreviewService } from "@/modules/applications/cv-preview/index.service";
+import type { ApplicationsService } from "@/modules/applications/service/index.service";
+import type { CreateApplicationDto } from "@/modules/applications/dto/create/index.dto";
 
 describe("ApplicationsController CV signature validation", () => {
   const dto: CreateApplicationDto = {

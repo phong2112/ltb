@@ -1,4 +1,4 @@
-import type { CriterionEvaluation } from "../../../../models/ai";
+import type { CriterionEvaluation } from "@/models/ai";
 import { calculateConfidence, calculateMatchScore, extractMatchCriteria } from ".";
 
 describe("AI match scoring", () => {

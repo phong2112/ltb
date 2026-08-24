@@ -9,11 +9,11 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
-import { ACCESS_TOKEN_SECURITY_NAME } from "../../../utils/swagger";
-import { JwtAuthGuard } from "../../auth/guards/index.guard";
-import { CreateJobDto } from "../dto/create/index.dto";
-import { UpdateJobDto } from "../dto/update/index.dto";
-import { JobsService } from "../service/index.service";
+import { ACCESS_TOKEN_SECURITY_NAME } from "@/utils/swagger";
+import { JwtAuthGuard } from "@/modules/auth/guards/index.guard";
+import { CreateJobDto } from "@/modules/jobs/dto/create/index.dto";
+import { UpdateJobDto } from "@/modules/jobs/dto/update/index.dto";
+import { JobsService } from "@/modules/jobs/service/index.service";
 
 @ApiTags("Jobs")
 @Controller()

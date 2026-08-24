@@ -1,10 +1,10 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { type ConnectionOptions, Job, Queue, Worker } from "bullmq";
-import { AiService } from "../processing/index.service";
-import { QuotaExceededError } from "../providers/groq";
-import { TalentPoolJobBus } from "../talent-pool-job-bus.service";
-import { TalentPoolProcessingService } from "../talent-pool/index.service";
+import { AiService } from "@/modules/ai/processing/index.service";
+import { QuotaExceededError } from "@/modules/ai/providers/groq";
+import { TalentPoolJobBus } from "@/modules/ai/talent-pool-job-bus.service";
+import { TalentPoolProcessingService } from "@/modules/ai/talent-pool/index.service";
 
 const CV_EXTRACTION_QUEUE = "cv-extraction";
 const CV_EXTRACTION_JOB = "extract-cv" as const;

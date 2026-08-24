@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { ArrowLeft, Briefcase, Mail, Phone, UserRound } from "lucide-react";
 import type { Candidate } from "@/app/data";
-import { formatCandidateName } from "../utils";
+import { formatCandidateName } from "@/app/components/CandidateChatPanel/utils";
 
 type ConversationHeaderProps = {
   candidate: Candidate;

@@ -79,6 +79,12 @@ enum SourcingProfileStatus {
   NOT_A_FIT
 }
 
+enum SourcingProfileFeedback {
+  RELEVANT
+  MAYBE
+  NOT_RELEVANT
+}
+
 enum SourcingSource {
   LINKEDIN
   TALENT_POOL
@@ -174,6 +180,8 @@ model SourcedProfile {
   location             String?
   notes                String?
   status               SourcingProfileStatus @default(SOURCED)
+  feedback             SourcingProfileFeedback?
+  feedbackAt           DateTime?
   extractionMethod     String                @default("ta_provided_url")
   fetchedAt            DateTime?
   campaign             SourcingCampaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
@@ -183,6 +191,7 @@ model SourcedProfile {
   @@unique([campaignId, normalizedProfileUrl])
   @@index([source, normalizedProfileUrl])
   @@index([campaignId, status])
+  @@index([campaignId, feedback])
   @@index([createdAt])
 }
 

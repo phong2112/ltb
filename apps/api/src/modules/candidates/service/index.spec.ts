@@ -3,9 +3,9 @@ jest.mock("sanitize-html", () => ({
   default: (value: string) => value.replace(/<[^>]+>/g, ""),
 }));
 
-import type { PrismaService } from "../../prisma";
-import type { CvStorageService } from "../../files/storage/index.service";
-import { CandidatesService } from "../service/index.service";
+import type { PrismaService } from "@/modules/prisma";
+import type { CvStorageService } from "@/modules/files/storage/index.service";
+import { CandidatesService } from "@/modules/candidates/service/index.service";
 
 describe("CandidatesService", () => {
   it("returns a lightweight application analysis without extracted CV text", async () => {

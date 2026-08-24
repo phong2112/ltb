@@ -1,7 +1,7 @@
 import { JobStatus } from "@prisma/client";
-import type { CvStorageLifecycleService } from "../../files/storage-lifecycle/index.service";
-import type { PrismaService } from "../../prisma";
-import { JobsService } from "../service/index.service";
+import type { CvStorageLifecycleService } from "@/modules/files/storage-lifecycle/index.service";
+import type { PrismaService } from "@/modules/prisma";
+import { JobsService } from "@/modules/jobs/service/index.service";
 
 describe("JobsService storage lifecycle", () => {
   it("archives job CV files after the job enters ARCHIVED status", async () => {

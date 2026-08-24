@@ -1,6 +1,6 @@
 import { Clock, MapPin } from "lucide-react";
 import { translateJobLevel, translateJobType } from "@/app/services/i18n-service";
-import type { JobDetailSharedProps } from "../types";
+import type { JobDetailSharedProps } from "@/app/components/JobDetailPanel/types";
 
 type JobPanelHeaderProps = JobDetailSharedProps & {
   actions: React.ReactNode;

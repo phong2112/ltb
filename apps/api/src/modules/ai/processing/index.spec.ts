@@ -3,9 +3,9 @@ jest.mock("sanitize-html", () => ({
   default: (value: string) => value.replace(/<[^>]+>/g, ""),
 }));
 
-import type { PrismaService } from "../../prisma";
-import type { CvTextExtractorService } from "../cv/extractor/index.service";
-import type { AiProvider } from "../../../models/ai";
+import type { PrismaService } from "@/modules/prisma";
+import type { CvTextExtractorService } from "@/modules/ai/cv/extractor/index.service";
+import type { AiProvider } from "@/models/ai";
 import { AiService } from "./index.service";
 
 describe("AiService", () => {

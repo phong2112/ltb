@@ -1,7 +1,7 @@
 import type { ConfigService } from "@nestjs/config";
 import Groq from "groq-sdk";
 import { z } from "zod";
-import type { AnalyzeMatchInput, ProviderMatchAnalysis } from "../../../../models/ai";
+import type { AnalyzeMatchInput, ProviderMatchAnalysis } from "@/models/ai";
 import { GroqAiProvider, parseStructuredResponse } from ".";
 
 const mockCreate = jest.fn();

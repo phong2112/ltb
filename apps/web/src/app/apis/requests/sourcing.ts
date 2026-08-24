@@ -1,4 +1,4 @@
-import type { ApiInternalCandidateSuggestionResult, ApiLinkedinDiscoveryResult, ApiSourcedProfile, ApiSourcingCampaign, ApiSourcingDiscoveryLocationScope, ApiSourcingImportResult, ApiSourcingOrchestrationQueueResult, ApiSourcingProfileStatus, ApiSourcingSource } from "@/app/apis/models/sourcing";
+import type { ApiInternalCandidateSuggestionResult, ApiLinkedinDiscoveryResult, ApiSourcedProfile, ApiSourcingCampaign, ApiSourcingCampaignStatus, ApiSourcingDiscoveryLocationScope, ApiSourcingImportResult, ApiSourcingOrchestrationQueueResult, ApiSourcingProfileFeedback, ApiSourcingProfileStatus, ApiSourcingSource } from "@/app/apis/models/sourcing";
 import { apiRequest } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
 
@@ -10,6 +10,19 @@ export function listSourcingCampaigns() {
 /** Loads one sourcing campaign with its job, queries, and sourced profiles. */
 export function getSourcingCampaign(id: string) {
   return apiRequest<ApiSourcingCampaign>(API_ENDPOINTS.sourcing.campaign(id));
+}
+
+/** Updates whether a sourcing campaign can run automatic discovery. */
+export function updateSourcingCampaignStatus(campaignId: string, status: ApiSourcingCampaignStatus) {
+  return apiRequest<ApiSourcingCampaign>(API_ENDPOINTS.sourcing.campaignStatus(campaignId), {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+    notification: {
+      loading: "Đang cập nhật chiến dịch...",
+      success: "Đã cập nhật chiến dịch",
+      error: "Không thể cập nhật chiến dịch",
+    },
+  });
 }
 
 /** Creates a sourcing campaign from a target job and optional discovery scope. */
@@ -87,6 +100,23 @@ export function updateSourcingProfileStatus(
       loading: "Đang cập nhật trạng thái...",
       success: "Đã cập nhật trạng thái",
       error: "Không thể cập nhật trạng thái",
+    },
+  });
+}
+
+/** Records TA relevance feedback independently from the recruiting funnel status. */
+export function updateSourcingProfileFeedback(
+  campaignId: string,
+  profileId: string,
+  feedback: ApiSourcingProfileFeedback | null,
+) {
+  return apiRequest<ApiSourcedProfile>(API_ENDPOINTS.sourcing.profileFeedback(campaignId, profileId), {
+    method: "PATCH",
+    body: JSON.stringify({ feedback }),
+    notification: {
+      loading: "Đang lưu đánh giá...",
+      success: "Đã lưu đánh giá",
+      error: "Không thể lưu đánh giá",
     },
   });
 }

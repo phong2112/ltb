@@ -1,7 +1,7 @@
 import { AiModelPortalService } from "./index.service";
 import type { ConfigService } from "@nestjs/config";
-import type { GroqAiProvider } from "../providers/groq";
-import type { GeminiProvider } from "../providers/gemini";
+import type { GroqAiProvider } from "@/modules/ai/providers/groq";
+import type { GeminiProvider } from "@/modules/ai/providers/gemini";
 
 function createConfig(values: Record<string, string>) {
   return { get: <T>(key: string) => values[key] as T | undefined } as unknown as ConfigService;

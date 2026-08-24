@@ -1,5 +1,5 @@
 import type { CandidateMessageChannel } from "@/app/data";
-import { CHANNELS } from "../constants";
+import { CHANNELS } from "@/app/components/CandidateChatPanel/constants";
 
 type ChannelSelectorProps = {
   channel: CandidateMessageChannel;

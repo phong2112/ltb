@@ -1,13 +1,13 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { SourcingDiscoveryLocationScope } from "@prisma/client";
-import type { SourcingPlan } from "../../../models/ai";
-import type { PrismaService } from "../../prisma";
-import { AiModelPortalService } from "../../ai/portal/index.service";
-import { SOURCING_PLAN_PROMPT_VERSION } from "../../ai/prompts";
-import { LinkedinDiscoveryService } from "../discovery/index.service";
-import type { LinkedinDiscoverySummary } from "../discovery/types";
-import { InternalCandidateSuggestionService } from "../internal-suggestions/index.service";
-import type { SourcingJobInput } from "../search";
+import type { SourcingPlan } from "@/models/ai";
+import type { PrismaService } from "@/modules/prisma";
+import { AiModelPortalService } from "@/modules/ai/portal/index.service";
+import { SOURCING_PLAN_PROMPT_VERSION } from "@/modules/ai/prompts";
+import { LinkedinDiscoveryService } from "@/modules/sourcing/discovery/index.service";
+import type { LinkedinDiscoverySummary } from "@/modules/sourcing/discovery/types";
+import { InternalCandidateSuggestionService } from "@/modules/sourcing/internal-suggestions/index.service";
+import { buildSourcingCampaignSnapshot, type SourcingJobInput } from "@/modules/sourcing/search";
 
 export type SourcingOrchestrationStage = {
   stage: "AI_QUERY_PLANNING" | "INTERNAL_DISCOVERY" | "PUBLIC_WEB_DISCOVERY";
@@ -48,6 +48,10 @@ export class SourcingOrchestrationService {
     job: SourcingJobInput & { id?: string },
     locationScope: SourcingDiscoveryLocationScope,
   ): Promise<SourcingOrchestrationResult> {
+    await prisma.sourcingCampaign.update({
+      where: { id: campaignId },
+      data: buildSourcingCampaignSnapshot(job),
+    });
     const internalPromise = this.runInternalDiscovery(prisma, campaignId, job);
     const publicDiscoveryPromise = this.runPublicDiscovery(prisma, campaignId, job, locationScope);
     const [internal, publicDiscovery] = await Promise.all([internalPromise, publicDiscoveryPromise]);

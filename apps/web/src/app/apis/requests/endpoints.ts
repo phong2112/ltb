@@ -37,12 +37,15 @@ export const API_ENDPOINTS = {
   sourcing: {
     campaigns: ADMIN_SOURCING_ENDPOINT,
     campaign: (campaignId: string) => `${ADMIN_SOURCING_ENDPOINT}/${encodeURIComponent(campaignId)}`,
+    campaignStatus: (campaignId: string) => `${API_ENDPOINTS.sourcing.campaign(campaignId)}/status`,
     run: (campaignId: string) => `${API_ENDPOINTS.sourcing.campaign(campaignId)}/run`,
     profiles: (campaignId: string) => `${API_ENDPOINTS.sourcing.campaign(campaignId)}/profiles`,
     linkedinDiscovery: (campaignId: string) => `${API_ENDPOINTS.sourcing.campaign(campaignId)}/discover/linkedin`,
     internalSuggestions: (campaignId: string) => `${API_ENDPOINTS.sourcing.campaign(campaignId)}/suggest/internal`,
     profileStatus: (campaignId: string, profileId: string) =>
       `${API_ENDPOINTS.sourcing.profiles(campaignId)}/${encodeURIComponent(profileId)}/status`,
+    profileFeedback: (campaignId: string, profileId: string) =>
+      `${API_ENDPOINTS.sourcing.profiles(campaignId)}/${encodeURIComponent(profileId)}/feedback`,
   },
   talentPool: {
     list: ADMIN_TALENT_POOL_ENDPOINT,

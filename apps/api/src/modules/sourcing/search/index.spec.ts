@@ -1,4 +1,4 @@
-import { buildLinkedinDiscoveryQueries, buildSourcingQueries, normalizeLinkedinProfileUrl, normalizeSourcingProfileUrl } from ".";
+import { buildLinkedinDiscoveryQueries, buildSourcingQueries, normalizeLinkedinProfileUrl, normalizeSourcingProfileUrl, prepareSourcingProfileUrl } from ".";
 
 describe("LinkedIn-first sourcing search", () => {
   const job = {
@@ -93,5 +93,15 @@ describe("LinkedIn-first sourcing search", () => {
       "https://example.com/profile/phong",
     );
     expect(normalizeSourcingProfileUrl("https://github.com/features", "GITHUB")).toBeNull();
+  });
+
+  it("preserves a case-sensitive public path while using a canonical dedupe value", () => {
+    expect(prepareSourcingProfileUrl(
+      "https://Portfolio.Example.com/NguyenA/CaseStudy?utm_source=linkedin#work",
+      "PUBLIC_WEB",
+    )).toEqual({
+      profileUrl: "https://portfolio.example.com/NguyenA/CaseStudy",
+      normalizedProfileUrl: "https://portfolio.example.com/nguyena/casestudy",
+    });
   });
 });

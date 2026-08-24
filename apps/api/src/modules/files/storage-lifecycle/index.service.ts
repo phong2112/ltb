@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { FileStorageTier, type Prisma } from "@prisma/client";
-import { PrismaService } from "../../prisma";
-import { CvStorageService, type CvRelocationContext } from "../storage/index.service";
+import { PrismaService } from "@/modules/prisma";
+import { CvStorageService, type CvRelocationContext } from "@/modules/files/storage/index.service";
 
 type CandidateFileForRelocation = Prisma.CandidateFileGetPayload<{
   include: {

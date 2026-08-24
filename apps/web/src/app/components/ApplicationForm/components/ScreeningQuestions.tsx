@@ -1,7 +1,7 @@
 import { maxScreeningAnswerLength } from "@hr-copilot/shared";
-import { fieldControlClassName } from "../constants";
-import type { FormErrors, ScreeningQuestion, Translate } from "../types";
-import { getMeaningfulAnswerLength } from "../utils";
+import { fieldControlClassName } from "@/app/components/ApplicationForm/constants";
+import type { FormErrors, ScreeningQuestion, Translate } from "@/app/components/ApplicationForm/types";
+import { getMeaningfulAnswerLength } from "@/app/components/ApplicationForm/utils";
 
 type ScreeningQuestionsProps = {
   errors: FormErrors;

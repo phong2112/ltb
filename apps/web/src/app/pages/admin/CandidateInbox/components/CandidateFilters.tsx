@@ -6,8 +6,8 @@ import {
   SORT_NEWEST,
   SORT_OLDEST,
   STATUS_OPTS,
-} from "../constants";
-import type { SortOrder } from "../types";
+} from "@/app/pages/admin/CandidateInbox/constants";
+import type { SortOrder } from "@/app/pages/admin/CandidateInbox/types";
 
 type CandidateFiltersProps = {
   filteredCount: number;

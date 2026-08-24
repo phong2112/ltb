@@ -42,6 +42,7 @@ describe("LinkedinDiscoveryService", () => {
           .mockResolvedValueOnce([])
           .mockResolvedValueOnce([{ id: "profile-1" }]),
         createMany: jest.fn().mockResolvedValue({ count: 1 }),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
     };
 
@@ -67,6 +68,52 @@ describe("LinkedinDiscoveryService", () => {
         extractionMethod: "search_api_snippet",
         notes: expect.stringContaining("potentialScore"),
       })],
+    }));
+    const createdNotes = prisma.sourcedProfile.createMany.mock.calls[0][0].data[0].notes;
+    expect(JSON.parse(createdNotes)).not.toHaveProperty("evidence");
+  });
+
+  it("refreshes score evidence for a profile discovered in an earlier run", async () => {
+    const service = new LinkedinDiscoveryService(createConfigService({
+      SOURCING_DISCOVERY_ENABLED: "true",
+      BRAVE_SEARCH_API_KEY: "token",
+      SOURCING_DISCOVERY_MAX_QUERIES_PER_CAMPAIGN: 1,
+    }));
+    jest.spyOn(service, "createAdapter").mockReturnValue({
+      discover: jest.fn().mockResolvedValue([{
+        source: "LINKEDIN",
+        profileUrl: "https://www.linkedin.com/in/a",
+        normalizedProfileUrl: "https://www.linkedin.com/in/a",
+        displayName: "A",
+        headline: "QA Engineer",
+        snippet: "Playwright Vietnam",
+        queryId: "q1",
+        query: "site:linkedin.com/in QA",
+        searchRank: 1,
+        fetchedAt: new Date("2026-08-08T00:00:00.000Z"),
+      }]),
+    });
+    const prisma = {
+      sourcedProfile: {
+        findMany: jest.fn()
+          .mockResolvedValueOnce([{ normalizedProfileUrl: "https://www.linkedin.com/in/a" }])
+          .mockResolvedValueOnce([{ id: "profile-1" }]),
+        createMany: jest.fn().mockResolvedValue({ count: 0 }),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+    };
+
+    await service.discoverAndStore(prisma as never, "campaign-1", {
+      title: "QA Engineer",
+      locations: ["Vietnam"],
+      tags: ["Playwright"],
+      requirements: "Automation testing",
+      description: "Build tests",
+    });
+
+    expect(prisma.sourcedProfile.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { campaignId: "campaign-1", normalizedProfileUrl: "https://www.linkedin.com/in/a" },
+      data: expect.objectContaining({ notes: expect.stringContaining("sourcing-v2") }),
     }));
   });
 

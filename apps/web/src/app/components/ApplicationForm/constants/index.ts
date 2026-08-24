@@ -1,5 +1,5 @@
 import { applicationAreas, defaultMaxCvFileSizeMb } from "@hr-copilot/shared";
-import type { FormState, Translate } from "../types";
+import type { FormState, Translate } from "@/app/components/ApplicationForm/types";
 
 type TranslationKey = Parameters<Translate>[0];
 

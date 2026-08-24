@@ -2,7 +2,7 @@ import { PassThrough, Readable } from "node:stream";
 import { finished } from "node:stream/promises";
 import { BadRequestException } from "@nestjs/common";
 import { CvExportService } from "./cv-export.service";
-import { CvExportScope } from "../dto/export/index.dto";
+import { CvExportScope } from "@/modules/candidates/dto/export/index.dto";
 
 describe("CvExportService", () => {
   it("streams original CV bytes into a ZIP and records an audit entry", async () => {

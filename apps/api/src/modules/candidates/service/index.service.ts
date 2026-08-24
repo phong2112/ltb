@@ -1,10 +1,10 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { ApplicationStatus, CvParseStatus, FileKind, type Prisma } from "@prisma/client";
-import { AiQueueService } from "../../ai/queue/index.service";
-import { CvStorageService } from "../../files/storage/index.service";
-import { PrismaService } from "../../prisma";
-import { CreateCandidateMessageDto } from "../dto/message/index.dto";
-import { UpdateApplicationStatusDto } from "../dto/status/index.dto";
+import { AiQueueService } from "@/modules/ai/queue/index.service";
+import { CvStorageService } from "@/modules/files/storage/index.service";
+import { PrismaService } from "@/modules/prisma";
+import { CreateCandidateMessageDto } from "@/modules/candidates/dto/message/index.dto";
+import { UpdateApplicationStatusDto } from "@/modules/candidates/dto/status/index.dto";
 
 const candidateApplicationInclude = {
   messages: {

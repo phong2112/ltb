@@ -1,7 +1,7 @@
 import { ChevronRight, Clock, Heart, MapPin } from "lucide-react";
 import { Link } from "react-router";
 import type { Job } from "@/app/data";
-import type { JobCardActionsProps } from "../types";
+import type { JobCardActionsProps } from "@/app/components/PublicJobCard/types";
 
 type JobFooterProps = JobCardActionsProps & {
   job: Job;

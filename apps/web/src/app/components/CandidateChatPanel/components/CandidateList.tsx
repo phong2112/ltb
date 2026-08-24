@@ -1,6 +1,6 @@
 import { LoaderCircle, Search } from "lucide-react";
-import type { CandidateListProps } from "../types";
-import { formatCandidateName, formatTime, getLastMessage } from "../utils";
+import type { CandidateListProps } from "@/app/components/CandidateChatPanel/types";
+import { formatCandidateName, formatTime, getLastMessage } from "@/app/components/CandidateChatPanel/utils";
 
 export function CandidateList({
   activeCandidate,

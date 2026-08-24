@@ -1,6 +1,6 @@
 import { applicationAreas, jobEmploymentOptions, jobLevelOptions, jobLogoOptions } from "@hr-copilot/shared";
 import type { Job } from "@/app/data";
-import type { JobForm } from "../types";
+import type { JobForm } from "@/app/pages/admin/CreateEditJob/types";
 
 export const statusDotClass: Record<Job["status"], string> = {
   published: "bg-emerald-500",

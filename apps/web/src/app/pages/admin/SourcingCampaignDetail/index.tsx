@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Archive, ArrowLeft, BriefcaseBusiness, Check, Copy, ExternalLink, Github, Globe2, Linkedin, LinkIcon, LoaderCircle, MapPin, Search, Sparkles, Users, Workflow } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router";
-import type { ApiSourcedProfile, ApiSourcingCampaign, ApiSourcingProfileStatus, ApiSourcingSource } from "@/app/apis/models";
-import { discoverLinkedinProfiles, getSourcingCampaign, importSourcingProfiles, runSourcingOrchestration, suggestInternalCandidates, updateSourcingProfileStatus } from "@/app/apis/requests";
+import type { ApiSourcedProfile, ApiSourcingCampaign, ApiSourcingCampaignStatus, ApiSourcingProfileFeedback, ApiSourcingProfileStatus, ApiSourcingSource } from "@/app/apis/models";
+import { discoverLinkedinProfiles, getSourcingCampaign, importSourcingProfiles, runSourcingOrchestration, suggestInternalCandidates, updateSourcingCampaignStatus, updateSourcingProfileFeedback, updateSourcingProfileStatus } from "@/app/apis/requests";
 import AdminLayout from "@/app/layouts/AdminLayout";
 
 const STATUS_OPTIONS: Array<{ value: ApiSourcingProfileStatus; label: string }> = [
@@ -18,6 +18,12 @@ const STATUS_OPTIONS: Array<{ value: ApiSourcingProfileStatus; label: string }> 
   { value: "HIRED", label: "Đã tuyển" },
   { value: "NOT_A_FIT", label: "Không phù hợp" },
   { value: "REJECTED", label: "Từ chối" },
+];
+
+const FEEDBACK_OPTIONS: Array<{ value: ApiSourcingProfileFeedback; label: string }> = [
+  { value: "RELEVANT", label: "Khớp JD" },
+  { value: "MAYBE", label: "Cần xem thêm" },
+  { value: "NOT_RELEVANT", label: "Không khớp JD" },
 ];
 
 const IMPORT_SOURCES: Array<{ value: ApiSourcingSource; label: string; hint: string; color: string; placeholder: string; icon: React.ReactNode }> = [
@@ -104,6 +110,8 @@ export default function SourcingCampaignDetail() {
   const [importing, setImporting] = useState(false);
   const [discovering, setDiscovering] = useState(false);
   const [suggestingInternal, setSuggestingInternal] = useState(false);
+  const [updatingCampaignStatus, setUpdatingCampaignStatus] = useState(false);
+  const [updatingFeedbackId, setUpdatingFeedbackId] = useState("");
   const [error, setError] = useState("");
   const [importSummary, setImportSummary] = useState("");
   const [discoverySummary, setDiscoverySummary] = useState("");
@@ -218,6 +226,16 @@ export default function SourcingCampaignDetail() {
     }
   }
 
+  async function handleCampaignStatus(status: ApiSourcingCampaignStatus) {
+    if (!campaign || updatingCampaignStatus || status === campaign.status) return;
+    setUpdatingCampaignStatus(true);
+    try {
+      setCampaign(await updateSourcingCampaignStatus(campaign.id, status));
+    } finally {
+      setUpdatingCampaignStatus(false);
+    }
+  }
+
   async function copyQuery(queryId: string, value: string) {
     await navigator.clipboard.writeText(value);
     setCopiedId(queryId);
@@ -233,6 +251,20 @@ export default function SourcingCampaignDetail() {
     });
   }
 
+  async function updateFeedback(profile: ApiSourcedProfile, feedback: ApiSourcingProfileFeedback | null) {
+    if (!campaign || updatingFeedbackId) return;
+    setUpdatingFeedbackId(profile.id);
+    try {
+      const updated = await updateSourcingProfileFeedback(campaign.id, profile.id, feedback);
+      setCampaign({
+        ...campaign,
+        profiles: (campaign.profiles ?? []).map((item) => item.id === updated.id ? updated : item),
+      });
+    } finally {
+      setUpdatingFeedbackId("");
+    }
+  }
+
   if (loading) return <AdminLayout><div className="p-10 text-sm font-semibold text-muted-foreground">Đang tải chiến dịch...</div></AdminLayout>;
   if (error || !campaign) return <AdminLayout><div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{error || "Không tìm thấy chiến dịch."}</div></AdminLayout>;
 
@@ -243,6 +275,7 @@ export default function SourcingCampaignDetail() {
   const orchestration = campaign.orchestration;
   const orchestrating = isOrchestrationActive(campaign);
   const orchestrationResult = orchestration.result ?? null;
+  const campaignActive = campaign.status === "ACTIVE";
 
   return (
     <AdminLayout>
@@ -256,7 +289,20 @@ export default function SourcingCampaignDetail() {
           <h1 className="text-2xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{campaign.name}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{campaign.job.title}{campaign.job.company ? ` · ${campaign.job.company}` : ""}</p>
         </div>
-        <div className="inline-flex w-fit items-center gap-2 rounded-xl border border-border bg-white px-3 py-2 text-sm font-black text-foreground"><Users size={15} className="text-primary" /> {profiles.length} ứng viên</div>
+        <div className="flex w-fit items-center gap-2">
+          <select
+            value={campaign.status}
+            onChange={(event) => void handleCampaignStatus(event.target.value as ApiSourcingCampaignStatus)}
+            disabled={updatingCampaignStatus || orchestrating}
+            aria-label="Trạng thái chiến dịch"
+            className="h-10 rounded-xl border border-border bg-white px-3 text-xs font-black text-foreground outline-none focus:border-primary disabled:opacity-60"
+          >
+            <option value="ACTIVE">Đang hoạt động</option>
+            <option value="PAUSED">Tạm dừng</option>
+            <option value="CLOSED">Đã đóng</option>
+          </select>
+          <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-3 py-2 text-sm font-black text-foreground"><Users size={15} className="text-primary" /> {profiles.length} ứng viên</div>
+        </div>
       </div>
 
       {/* Campaign Workspace */}
@@ -273,6 +319,11 @@ export default function SourcingCampaignDetail() {
                   <p className="mt-0.5 text-xs leading-5 text-muted-foreground">LinkedIn luôn đứng đầu. Có thể chạy discovery tự động từ public search hoặc mở query để kiểm tra thủ công.</p>
                 </div>
               </div>
+              {!campaignActive && (
+                <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
+                  Automatic discovery đang tắt vì campaign {campaign.status === "PAUSED" ? "được tạm dừng" : "đã đóng"}. Chuyển về “Đang hoạt động” để chạy lại.
+                </div>
+              )}
               <div className="mb-4 rounded-xl border border-violet-200 bg-violet-50 p-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
@@ -282,7 +333,7 @@ export default function SourcingCampaignDetail() {
                   <button
                     type="button"
                     onClick={() => void handleOrchestration()}
-                    disabled={orchestrating || discovering || suggestingInternal}
+                    disabled={!campaignActive || orchestrating || discovering || suggestingInternal}
                     className="inline-flex h-10 flex-none items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 text-xs font-black text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {orchestrating ? <LoaderCircle size={14} className="animate-spin" /> : <Workflow size={14} />} {orchestrating ? "Đang điều phối..." : "Chạy toàn bộ workflow"}
@@ -318,7 +369,7 @@ export default function SourcingCampaignDetail() {
                   <button
                     type="button"
                     onClick={() => void handleInternalSuggestions()}
-                    disabled={suggestingInternal || orchestrating}
+                    disabled={!campaignActive || suggestingInternal || orchestrating}
                     className="inline-flex h-10 flex-none items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-xs font-black text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {suggestingInternal ? <LoaderCircle size={14} className="animate-spin" /> : <Archive size={14} />} {suggestingInternal ? "Đang rà..." : "Suggest ứng viên"}
@@ -339,7 +390,7 @@ export default function SourcingCampaignDetail() {
                     <button
                       type="button"
                       onClick={() => void handleLinkedinDiscovery()}
-                      disabled={discovering || orchestrating}
+                      disabled={!campaignActive || discovering || orchestrating}
                       className="inline-flex h-10 flex-none items-center justify-center gap-2 rounded-xl bg-[#0a66c2] px-4 text-xs font-black text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {discovering ? <LoaderCircle size={14} className="animate-spin" /> : <Sparkles size={14} />} {discovering ? "Đang tìm..." : "Tìm LinkedIn tự động"}
@@ -417,13 +468,26 @@ export default function SourcingCampaignDetail() {
                         </div>
                       </div>
                     </div>
-                    <select
-                      value={profile.status}
-                      onChange={(event) => void updateStatus(profile, event.target.value as ApiSourcingProfileStatus)}
-                      className="h-9 w-full rounded-xl border border-border bg-white px-3 text-xs font-bold text-foreground outline-none focus:border-primary sm:w-44"
-                    >
-                      {STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                    </select>
+                    <div className="grid w-full gap-2 sm:w-44">
+                      <select
+                        value={profile.status}
+                        onChange={(event) => void updateStatus(profile, event.target.value as ApiSourcingProfileStatus)}
+                        aria-label="Trạng thái funnel"
+                        className="h-9 w-full rounded-xl border border-border bg-white px-3 text-xs font-bold text-foreground outline-none focus:border-primary"
+                      >
+                        {STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                      </select>
+                      <select
+                        value={profile.feedback ?? ""}
+                        onChange={(event) => void updateFeedback(profile, event.target.value ? event.target.value as ApiSourcingProfileFeedback : null)}
+                        disabled={updatingFeedbackId === profile.id}
+                        aria-label="Đánh giá độ khớp JD"
+                        className="h-9 w-full rounded-xl border border-violet-200 bg-violet-50 px-3 text-xs font-bold text-violet-900 outline-none focus:border-violet-500 disabled:opacity-60"
+                      >
+                        <option value="">Đánh giá độ khớp</option>
+                        {FEEDBACK_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                      </select>
+                    </div>
                     </div>
                     <DiscoveryEvidence profile={profile} />
                   </div>

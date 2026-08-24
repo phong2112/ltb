@@ -1,7 +1,7 @@
 import type { CandidateStatus } from "@/app/data";
 import { stringField, stringList } from "@/app/utils/data";
-import { SORT_NAME_ASC, SORT_NEWEST, SORT_OLDEST, STATUS_OPTS } from "../constants";
-import type { SortOrder, UnifiedCandidateRow } from "../types";
+import { SORT_NAME_ASC, SORT_NEWEST, SORT_OLDEST, STATUS_OPTS } from "@/app/pages/admin/CandidateInbox/constants";
+import type { SortOrder, UnifiedCandidateRow } from "@/app/pages/admin/CandidateInbox/types";
 
 export { stringField, stringList };
 

@@ -1,16 +1,20 @@
 import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Prisma } from "@prisma/client";
-import type { PrismaService } from "../../prisma";
+import type { PrismaService } from "@/modules/prisma";
 import {
   buildLinkedinDiscoveryQueries,
   type SourcingDiscoveryLocationScope,
   type SourcingDiscoveryEnhancements,
   type SourcingJobInput,
   type SourcingSearchQuery,
-} from "../search";
+} from "@/modules/sourcing/search";
 import { BraveLinkedinDiscoveryAdapter, BraveSearchError } from "./brave-linkedin.adapter";
 import { scoreLinkedinDiscoveryResult } from "./scoring";
+import {
+  sourcingJobFingerprint,
+  SOURCING_SCORING_VERSION,
+} from "@/modules/sourcing/scoring/signals";
 import type {
   LinkedinDiscoveryAdapter,
   LinkedinDiscoveryFailure,
@@ -136,22 +140,19 @@ export class LinkedinDiscoveryService {
     });
     const existingSet = new Set(existing.map((item) => item.normalizedProfileUrl));
     const toCreate = [...byUrl.values()].filter((result) => !existingSet.has(result.normalizedProfileUrl));
+    const toRefresh = [...byUrl.values()].filter((result) => existingSet.has(result.normalizedProfileUrl));
+
+    await Promise.all(toRefresh.map((result) => prisma.sourcedProfile.updateMany({
+      where: { campaignId, normalizedProfileUrl: result.normalizedProfileUrl },
+      data: discoveryProfileRefreshData(result, job),
+    })));
 
     const created = await prisma.sourcedProfile.createMany({
-      data: toCreate.map((result) => {
-        const potential = scoreLinkedinDiscoveryResult(result, job);
-        return {
-          campaignId,
-          source: "LINKEDIN",
-          profileUrl: result.profileUrl,
-          normalizedProfileUrl: result.normalizedProfileUrl,
-          displayName: result.displayName,
-          headline: result.headline,
-          notes: buildDiscoveryNotes(result, potential),
-          extractionMethod: "search_api_snippet",
-          fetchedAt: result.fetchedAt,
-        } satisfies Prisma.SourcedProfileCreateManyInput;
-      }),
+      data: toCreate.map((result) => ({
+        campaignId,
+        normalizedProfileUrl: result.normalizedProfileUrl,
+        ...discoveryProfileRefreshData(result, job),
+      } satisfies Prisma.SourcedProfileCreateManyInput)),
       skipDuplicates: true,
     });
 
@@ -253,9 +254,13 @@ function providerConfigurationFailure(error: unknown): LinkedinDiscoveryFailure 
 function buildDiscoveryNotes(
   result: LinkedinDiscoveryResult,
   potential: ReturnType<typeof scoreLinkedinDiscoveryResult>,
+  job: SourcingJobInput,
 ) {
   return JSON.stringify({
     type: "linkedin_discovery",
+    scoringVersion: SOURCING_SCORING_VERSION,
+    jdFingerprint: sourcingJobFingerprint(job),
+    scoredAt: new Date().toISOString(),
     potentialScore: potential.score,
     confidence: potential.confidence,
     matchedSignals: potential.matchedSignals,
@@ -264,6 +269,18 @@ function buildDiscoveryNotes(
     sourceQueryId: result.queryId,
     sourceQuery: result.query,
     searchRank: result.searchRank,
-    evidence: result.snippet,
   });
+}
+
+function discoveryProfileRefreshData(result: LinkedinDiscoveryResult, job: SourcingJobInput) {
+  const potential = scoreLinkedinDiscoveryResult(result, job);
+  return {
+    source: "LINKEDIN" as const,
+    profileUrl: result.profileUrl,
+    displayName: result.displayName,
+    headline: result.headline,
+    notes: buildDiscoveryNotes(result, potential, job),
+    extractionMethod: "search_api_snippet",
+    fetchedAt: result.fetchedAt,
+  };
 }

@@ -1,10 +1,10 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { MulterModule } from "@nestjs/platform-express";
-import { AiModule } from "../ai";
-import { AuthModule } from "../auth";
-import { FilesModule } from "../files";
-import { JobsModule } from "../jobs";
+import { AiModule } from "@/modules/ai";
+import { AuthModule } from "@/modules/auth";
+import { FilesModule } from "@/modules/files";
+import { JobsModule } from "@/modules/jobs";
 import { TalentPoolController } from "./talent-pool.controller";
 import { TalentPoolService } from "./talent-pool.service";
 import { createTalentPoolUploadOptions } from "./talent-pool-upload.options";

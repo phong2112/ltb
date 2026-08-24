@@ -1,5 +1,5 @@
 import { type Prisma } from "@prisma/client";
-import { parseCvProfileFromText } from "../../ai/profile-parser";
+import { parseCvProfileFromText } from "@/modules/ai/profile-parser";
 
 /**
  * Merges a patch object into an existing Prisma JSON value, producing an InputJsonObject.

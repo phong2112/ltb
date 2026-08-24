@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
-import { AiModule } from "../ai";
-import { AuthModule } from "../auth";
-import { FilesModule } from "../files";
+import { AiModule } from "@/modules/ai";
+import { AuthModule } from "@/modules/auth";
+import { FilesModule } from "@/modules/files";
 import { CandidatesController } from "./controller/index.controller";
 import { CandidatesService } from "./service/index.service";
 import { CvExportService } from "./export/cv-export.service";

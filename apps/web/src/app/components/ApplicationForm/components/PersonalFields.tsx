@@ -1,8 +1,8 @@
 import { LoaderCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/Common/select";
-import { APPLICATION_AREA_OPTIONS, fieldControlClassName } from "../constants";
+import { APPLICATION_AREA_OPTIONS, fieldControlClassName } from "@/app/components/ApplicationForm/constants";
 import { Field } from "./Field";
-import type { FormErrors, FormState, TextFieldName, Translate } from "../types";
+import type { FormErrors, FormState, TextFieldName, Translate } from "@/app/components/ApplicationForm/types";
 
 type PersonalFieldsProps = {
   errors: FormErrors;

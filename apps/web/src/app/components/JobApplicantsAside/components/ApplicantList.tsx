@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { translateCandidateStatus } from "@/app/services/i18n-service";
 import { CANDIDATE_STATUS_CONFIG } from "@/app/utils/configs/status-config";
 import { appendReturnTo } from "@/app/utils/navigation";
-import type { ApplicantListProps } from "../types";
+import type { ApplicantListProps } from "@/app/components/JobApplicantsAside/types";
 
 export function ApplicantList({ candidates, language, returnTo }: ApplicantListProps) {
   return (

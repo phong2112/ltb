@@ -1,4 +1,4 @@
-import { normalizePhone } from "../../candidates/contact";
+import { normalizePhone } from "@/modules/candidates/contact";
 
 export type RegexCvProfile = {
   fullName?: string;

@@ -1,6 +1,6 @@
 import { ExternalLink, FileText } from "lucide-react";
-import type { CvDocumentPreviewProps } from "../types";
-import { formatFileSize, formatFileType, withPdfPreviewOptions } from "../utils";
+import type { CvDocumentPreviewProps } from "@/app/components/CandidateDetailSections/types";
+import { formatFileSize, formatFileType, withPdfPreviewOptions } from "@/app/components/CandidateDetailSections/utils";
 
 export function CvDocumentPreview({
   name,

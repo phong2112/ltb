@@ -1,5 +1,5 @@
 import { BadRequestException } from "@nestjs/common";
-import { SourcingOrchestrationStatus } from "@prisma/client";
+import { SourcingCampaignStatus, SourcingOrchestrationStatus, SourcingProfileFeedback } from "@prisma/client";
 import { SourcingService } from "./index.service";
 
 function createService() {
@@ -60,6 +60,22 @@ describe("SourcingService profile import", () => {
       urls: ["https://linkedin.com/company/ltb"],
     })).rejects.toBeInstanceOf(BadRequestException);
   });
+
+  it("keeps the original case-sensitive public URL for navigation", async () => {
+    const { prisma, service } = createService();
+
+    await service.importProfiles("campaign-1", {
+      source: "PUBLIC_WEB",
+      urls: ["https://Portfolio.Example.com/NguyenA/CaseStudy?utm_source=linkedin"],
+    });
+
+    expect(prisma.sourcedProfile.createMany).toHaveBeenCalledWith(expect.objectContaining({
+      data: [expect.objectContaining({
+        profileUrl: "https://portfolio.example.com/NguyenA/CaseStudy",
+        normalizedProfileUrl: "https://portfolio.example.com/nguyena/casestudy",
+      })],
+    }));
+  });
 });
 
 describe("SourcingService orchestration queue", () => {
@@ -105,11 +121,96 @@ describe("SourcingService orchestration queue", () => {
     });
     expect(queue.enqueue).not.toHaveBeenCalled();
   });
+
+  it("does not queue automatic discovery for a paused campaign", async () => {
+    const queue = { enqueue: jest.fn() };
+    const prisma = {
+      sourcingCampaign: {
+        findUnique: jest.fn().mockResolvedValue({ id: "campaign-1", status: "PAUSED" }),
+        updateMany: jest.fn(),
+      },
+    };
+    const service = new SourcingService(prisma as never, {} as never, {} as never, queue as never);
+
+    await expect(service.queueOrchestration("campaign-1")).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.sourcingCampaign.updateMany).not.toHaveBeenCalled();
+    expect(queue.enqueue).not.toHaveBeenCalled();
+  });
+});
+
+describe("SourcingService campaign lifecycle", () => {
+  it("does not pause a campaign while orchestration is active", async () => {
+    const prisma = {
+      sourcingCampaign: {
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+        findUnique: jest.fn().mockResolvedValue({ id: "campaign-1" }),
+      },
+    };
+    const service = new SourcingService(prisma as never, {} as never, {} as never, {} as never);
+
+    await expect(service.updateCampaignStatus("campaign-1", SourcingCampaignStatus.PAUSED))
+      .rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.sourcingCampaign.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        orchestrationStatus: { notIn: ["QUEUED", "RUNNING"] },
+      }),
+    }));
+  });
+});
+
+describe("SourcingService ranking feedback", () => {
+  it("records feedback only for a profile in the requested campaign", async () => {
+    const prisma = {
+      sourcedProfile: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        findUniqueOrThrow: jest.fn().mockResolvedValue({ id: "profile-1", feedback: "RELEVANT" }),
+      },
+    };
+    const service = new SourcingService(prisma as never, {} as never, {} as never, {} as never);
+
+    await expect(service.updateProfileFeedback(
+      "campaign-1",
+      "profile-1",
+      SourcingProfileFeedback.RELEVANT,
+    )).resolves.toMatchObject({ feedback: "RELEVANT" });
+    expect(prisma.sourcedProfile.updateMany).toHaveBeenCalledWith({
+      where: { id: "profile-1", campaignId: "campaign-1" },
+      data: { feedback: "RELEVANT", feedbackAt: expect.any(Date) },
+    });
+  });
+
+  it("reports feedback coverage and labeled precision at 10", async () => {
+    const prisma = {
+      sourcingCampaign: { findUnique: jest.fn().mockResolvedValue({ id: "campaign-1" }) },
+      sourcedProfile: {
+        findMany: jest.fn().mockResolvedValue([
+          { id: "high", feedback: "RELEVANT", notes: JSON.stringify({ potentialScore: 90 }) },
+          { id: "medium", feedback: "NOT_RELEVANT", notes: JSON.stringify({ potentialScore: 70 }) },
+          { id: "unlabeled", feedback: null, notes: JSON.stringify({ potentialScore: 80 }) },
+        ]),
+      },
+    };
+    const service = new SourcingService(prisma as never, {} as never, {} as never, {} as never);
+
+    await expect(service.getCampaignEvaluation("campaign-1")).resolves.toEqual({
+      totalProfiles: 3,
+      labeledCount: 2,
+      coverage: 0.667,
+      feedbackCounts: { relevant: 1, maybe: 0, notRelevant: 1 },
+      ranking: {
+        top10Count: 3,
+        top10LabeledCount: 2,
+        top10RelevantCount: 1,
+        precisionAt10: 0.5,
+      },
+    });
+  });
 });
 
 function campaignWithRunState(status: SourcingOrchestrationStatus) {
   return {
     id: "campaign-1",
+    status: "ACTIVE",
     job: { id: "job-1" },
     profiles: [],
     _count: { profiles: 0 },

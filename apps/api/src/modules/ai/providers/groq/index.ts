@@ -2,8 +2,8 @@ import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import Groq from "groq-sdk";
 import { z } from "zod";
-import { buildCvSummaryPrompt, buildExtractProfilePrompt, buildMatchPrompt, buildSourcingPlanPrompt } from "../../prompts";
-import { cvSummarySchema, extractedProfileSchema, matchAnalysisSchema, sourcingPlanSchema } from "../../../../schemas/ai";
+import { buildCvSummaryPrompt, buildExtractProfilePrompt, buildMatchPrompt, buildSourcingPlanPrompt } from "@/modules/ai/prompts";
+import { cvSummarySchema, extractedProfileSchema, matchAnalysisSchema, sourcingPlanSchema } from "@/schemas/ai";
 import type {
   AiProvider,
   AnalyzeMatchInput,
@@ -14,7 +14,7 @@ import type {
   SourcingPlan,
   SourcingPlanInput,
   SummarizeCvInput,
-} from "../../../../models/ai";
+} from "@/models/ai";
 
 const MAX_PROFILE_CV_CHARACTERS = 45_000;
 const MAX_SUMMARY_CV_CHARACTERS = 45_000;

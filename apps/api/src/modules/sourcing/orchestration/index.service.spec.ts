@@ -1,7 +1,7 @@
 import { SourcingDiscoveryLocationScope } from "@prisma/client";
-import type { AiModelPortalService } from "../../ai/portal/index.service";
-import type { LinkedinDiscoveryService } from "../discovery/index.service";
-import type { InternalCandidateSuggestionService } from "../internal-suggestions/index.service";
+import type { AiModelPortalService } from "@/modules/ai/portal/index.service";
+import type { LinkedinDiscoveryService } from "@/modules/sourcing/discovery/index.service";
+import type { InternalCandidateSuggestionService } from "@/modules/sourcing/internal-suggestions/index.service";
 import { SourcingOrchestrationService } from "./index.service";
 
 describe("SourcingOrchestrationService", () => {
@@ -59,6 +59,10 @@ describe("SourcingOrchestrationService", () => {
         },
       }),
     );
+    expect(prisma.sourcingCampaign.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "campaign-1" },
+      data: expect.objectContaining({ brief: expect.any(Object), searchQueries: expect.any(Array) }),
+    }));
   });
 
   it("falls back to deterministic queries when the AI planner fails", async () => {
@@ -164,6 +168,9 @@ function completedDiscovery() {
 
 function createPrisma() {
   return {
+    sourcingCampaign: {
+      update: jest.fn().mockResolvedValue({ id: "campaign-1" }),
+    },
     sourcedProfile: {
       findMany: jest.fn().mockResolvedValue([{ id: "profile-1" }]),
     },

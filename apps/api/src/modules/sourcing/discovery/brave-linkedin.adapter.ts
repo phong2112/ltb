@@ -1,5 +1,5 @@
-import type { SourcingSearchQuery } from "../search";
-import { normalizeLinkedinProfileUrl } from "../search";
+import type { SourcingSearchQuery } from "@/modules/sourcing/search";
+import { normalizeLinkedinProfileUrl } from "@/modules/sourcing/search";
 import type { LinkedinDiscoveryAdapter, LinkedinDiscoveryResult } from "./types";
 
 const BRAVE_WEB_SEARCH_ENDPOINT = "https://api.search.brave.com/res/v1/web/search";

@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import type { Dispatch, SetStateAction } from "react";
-import type { FormErrors, FormState, Translate } from "../types";
+import type { FormErrors, FormState, Translate } from "@/app/components/ApplicationForm/types";
 
 type ConsentFieldProps = {
   clearErrors: (name: string) => void;

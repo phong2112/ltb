@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
-import { CreateJobDto } from "../create/index.dto";
+import { CreateJobDto } from "@/modules/jobs/dto/create/index.dto";
 
 jest.mock("sanitize-html", () => ({
   __esModule: true,

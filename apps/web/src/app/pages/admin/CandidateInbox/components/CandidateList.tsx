@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import { ChevronRight, Download, Trash2, Users } from "lucide-react";
 import { translateCandidateStatus, type Language, type TranslationKey } from "@/app/services/i18n-service";
 import { CANDIDATE_STATUS_CONFIG } from "@/app/utils/configs/status-config";
-import type { UnifiedCandidateRow } from "../types";
+import type { UnifiedCandidateRow } from "@/app/pages/admin/CandidateInbox/types";
 
 type CandidateListProps = {
   language: Language;

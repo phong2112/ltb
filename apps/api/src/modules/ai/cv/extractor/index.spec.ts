@@ -1,7 +1,7 @@
 import { Readable } from "node:stream";
 import type { ConfigService } from "@nestjs/config";
-import type { CvStorageService } from "../../../files/storage/index.service";
-import type { CvOcrService } from "../ocr/index.service";
+import type { CvStorageService } from "@/modules/files/storage/index.service";
+import type { CvOcrService } from "@/modules/ai/cv/ocr/index.service";
 import { CvTextExtractorService } from "./index.service";
 
 const mockGetText = jest.fn();

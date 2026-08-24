@@ -5,10 +5,10 @@ jest.mock("sanitize-html", () => ({
 
 import type { ConfigService } from "@nestjs/config";
 import type { Job } from "bullmq";
-import type { AiService } from "../processing/index.service";
-import type { TalentPoolProcessingService } from "../talent-pool/index.service";
-import { TalentPoolJobBus } from "../talent-pool-job-bus.service";
-import { QuotaExceededError } from "../providers/groq";
+import type { AiService } from "@/modules/ai/processing/index.service";
+import type { TalentPoolProcessingService } from "@/modules/ai/talent-pool/index.service";
+import { TalentPoolJobBus } from "@/modules/ai/talent-pool-job-bus.service";
+import { QuotaExceededError } from "@/modules/ai/providers/groq";
 import { AiQueueService } from "./index.service";
 
 type ProcessingJob = Job<{ applicationId: string; runId?: string }>;

@@ -3,13 +3,13 @@ import { ConfigService } from "@nestjs/config";
 import { ApiCookieAuth, ApiCreatedResponse, ApiNoContentResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiProduces, ApiQuery, ApiTags, ApiUnauthorizedResponse } from "@nestjs/swagger";
 import { ApplicationStatus } from "@prisma/client";
 import type { Response } from "express";
-import { ACCESS_TOKEN_SECURITY_NAME } from "../../../utils/swagger";
-import { JwtAuthGuard } from "../../auth/guards/index.guard";
-import { CreateCandidateMessageDto } from "../dto/message/index.dto";
-import { normalizeApplicationStatusInput, UpdateApplicationStatusDto } from "../dto/status/index.dto";
-import { CandidatesService } from "../service/index.service";
-import { CvExportService } from "../export/cv-export.service";
-import { CreateCvExportDto } from "../dto/export/index.dto";
+import { ACCESS_TOKEN_SECURITY_NAME } from "@/utils/swagger";
+import { JwtAuthGuard } from "@/modules/auth/guards/index.guard";
+import { CreateCandidateMessageDto } from "@/modules/candidates/dto/message/index.dto";
+import { normalizeApplicationStatusInput, UpdateApplicationStatusDto } from "@/modules/candidates/dto/status/index.dto";
+import { CandidatesService } from "@/modules/candidates/service/index.service";
+import { CvExportService } from "@/modules/candidates/export/cv-export.service";
+import { CreateCvExportDto } from "@/modules/candidates/dto/export/index.dto";
 
 @ApiTags("Candidates")
 @ApiCookieAuth(ACCESS_TOKEN_SECURITY_NAME)

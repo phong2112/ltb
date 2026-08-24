@@ -1,24 +1,24 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { CvParseStatus, FileKind, Prisma } from "@prisma/client";
 import sanitizeHtml from "sanitize-html";
-import { PrismaService } from "../../prisma";
-import { prepareCvMatchInputForAi, prepareCvTextForAi } from "../cv/cleaner";
-import { CvTextExtractorService, type ExtractedCvText } from "../cv/extractor/index.service";
+import { PrismaService } from "@/modules/prisma";
+import { prepareCvMatchInputForAi, prepareCvTextForAi } from "@/modules/ai/cv/cleaner";
+import { CvTextExtractorService, type ExtractedCvText } from "@/modules/ai/cv/extractor/index.service";
 import {
   AI_PROVIDER,
   type AiProvider,
   type CriterionEvaluation,
   type MatchCriterion,
-} from "../../../models/ai";
-import { buildGroundedMatchInsights, groundCriterionEvaluations } from "../matching/analysis";
+} from "@/models/ai";
+import { buildGroundedMatchInsights, groundCriterionEvaluations } from "@/modules/ai/matching/analysis";
 import {
   calculateConfidence,
   calculateMatchScore,
   calculatePotentialMatchScore,
   extractMatchCriteria,
-} from "../matching/scoring";
-import { CV_SUMMARY_PROMPT_VERSION, MATCH_PROMPT_VERSION } from "../prompts";
-import { sanitizeCvSummary } from "../cv/sanitize";
+} from "@/modules/ai/matching/scoring";
+import { CV_SUMMARY_PROMPT_VERSION, MATCH_PROMPT_VERSION } from "@/modules/ai/prompts";
+import { sanitizeCvSummary } from "@/modules/ai/cv/sanitize";
 
 const MAX_AI_CV_CHARACTERS = 45_000;
 const MAX_JOB_DESCRIPTION_CHARACTERS = 12_000;

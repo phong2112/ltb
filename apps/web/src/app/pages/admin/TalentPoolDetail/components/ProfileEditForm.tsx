@@ -1,8 +1,8 @@
 import { BriefcaseBusiness, ExternalLink, Mail, NotebookPen, Phone, Tag, UserRound } from "lucide-react";
 import type { ApiTalentPoolEntry } from "@/app/apis/models";
 import { useLanguage } from "@/app/services/i18n-service";
-import type { ProfileForm } from "../types";
-import { linkField } from "../utils";
+import type { ProfileForm } from "@/app/pages/admin/TalentPoolDetail/types";
+import { linkField } from "@/app/pages/admin/TalentPoolDetail/utils";
 import { Field } from "./Field";
 
 const inputClass = "h-10 w-full rounded-lg border border-border bg-input-background px-3 text-sm text-foreground outline-none focus:border-primary";

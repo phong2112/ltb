@@ -6,7 +6,7 @@ import {
   SORT_NAME_ASC,
   SORT_NEWEST,
   SORT_OLDEST,
-} from "../constants";
+} from "@/app/pages/admin/CandidateInbox/constants";
 
 export type UploadMode = typeof BULK_UPLOAD_MODE | typeof PER_FILE_UPLOAD_MODE;
 export type SortOrder = typeof SORT_NEWEST | typeof SORT_OLDEST | typeof SORT_NAME_ASC;

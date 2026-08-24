@@ -1,12 +1,12 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { ApplicationStatus, CvParseStatus, FileKind, JobStatus, Prisma } from "@prisma/client";
-import { AiQueueService } from "../../ai/queue/index.service";
-import { CvStorageService } from "../../files/storage/index.service";
-import { lockCandidateContacts, normalizeEmail, normalizeLinkedinUrl, normalizePhone } from "../../candidates/contact";
-import { JobsService } from "../../jobs/service/index.service";
-import { EmailService } from "../../notifications/email/index.service";
-import { PrismaService } from "../../prisma";
-import { CreateApplicationDto } from "../dto/create/index.dto";
+import { AiQueueService } from "@/modules/ai/queue/index.service";
+import { CvStorageService } from "@/modules/files/storage/index.service";
+import { lockCandidateContacts, normalizeEmail, normalizeLinkedinUrl, normalizePhone } from "@/modules/candidates/contact";
+import { JobsService } from "@/modules/jobs/service/index.service";
+import { EmailService } from "@/modules/notifications/email/index.service";
+import { PrismaService } from "@/modules/prisma";
+import { CreateApplicationDto } from "@/modules/applications/dto/create/index.dto";
 
 @Injectable()
 export class ApplicationsService {

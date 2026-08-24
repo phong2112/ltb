@@ -2,6 +2,7 @@ import { validateEnv } from ".";
 
 const requiredConfig = {
   DATABASE_URL: "postgresql://localhost/hr_copilot",
+  REDIS_URL: "redis://localhost:6379",
   WEB_ORIGIN: "http://localhost:8080",
   ADMIN_EMAIL: "admin@example.com",
   ADMIN_PASSWORD: "secret",
@@ -23,6 +24,7 @@ describe("validateEnv", () => {
       SOURCING_DISCOVERY_MIN_INTERVAL_MS: "1100",
       SOURCING_DISCOVERY_TIMEOUT_MS: "10000",
       SOURCING_DISCOVERY_MAX_ATTEMPTS: "3",
+      SOURCING_ORCHESTRATION_STALE_MINUTES: "30",
       GROQ_SOURCING_TIMEOUT_MS: "15000",
     });
 
@@ -36,6 +38,7 @@ describe("validateEnv", () => {
       SOURCING_DISCOVERY_MIN_INTERVAL_MS: 1100,
       SOURCING_DISCOVERY_TIMEOUT_MS: 10000,
       SOURCING_DISCOVERY_MAX_ATTEMPTS: 3,
+      SOURCING_ORCHESTRATION_STALE_MINUTES: 30,
       GROQ_SOURCING_TIMEOUT_MS: 15000,
     });
   });
@@ -149,14 +152,15 @@ describe("validateEnv", () => {
       .toThrow("AI_PROVIDER must be one of: disabled, groq");
   });
 
-  it("requires Groq credentials and Redis when AI is enabled", () => {
-    expect(() => validateEnv({ ...requiredConfig, AI_PROVIDER: "groq" }))
-      .toThrow("REDIS_URL is required when AI_PROVIDER=groq");
+  it("requires Redis because background workers are always enabled", () => {
+    expect(() => validateEnv({ ...requiredConfig, REDIS_URL: undefined }))
+      .toThrow("REDIS_URL is required");
+  });
 
+  it("requires Groq credentials when AI is enabled", () => {
     expect(() => validateEnv({
       ...requiredConfig,
       AI_PROVIDER: "groq",
-      REDIS_URL: "redis://localhost:6379",
     })).toThrow("GROQ_API_KEY is required when AI_PROVIDER=groq");
   });
 

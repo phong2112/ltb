@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
-import { AiModule } from "../ai/ai.module";
-import { AuthModule } from "../auth";
+import { AiModule } from "@/modules/ai/ai.module";
+import { AuthModule } from "@/modules/auth";
 import { SourcingController } from "./controller/index.controller";
 import { LinkedinDiscoveryService } from "./discovery/index.service";
 import { InternalCandidateSuggestionService } from "./internal-suggestions/index.service";

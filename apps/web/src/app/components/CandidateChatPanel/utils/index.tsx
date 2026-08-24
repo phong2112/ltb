@@ -1,6 +1,6 @@
 import { MessagesSquare } from "lucide-react";
 import type { Candidate, CandidateMessageChannel } from "@/app/data";
-import { CHANNELS, WIDGET_CHANNEL_KEY } from "../constants";
+import { CHANNELS, WIDGET_CHANNEL_KEY } from "@/app/components/CandidateChatPanel/constants";
 
 /** Returns the newest message because candidate messages are stored chronologically. */
 export function getLastMessage(candidate: Candidate) {

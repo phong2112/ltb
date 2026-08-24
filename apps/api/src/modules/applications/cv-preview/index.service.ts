@@ -1,10 +1,10 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { applicationAreas, type ApplicationArea } from "@hr-copilot/shared";
-import { CvTextExtractorService } from "../../ai/cv/extractor/index.service";
-import { parseCvProfileFromText } from "../../ai/profile-parser";
-import { normalizePhone } from "../../candidates/contact";
-import { hasAllowedFileSignature } from "../../files/signature";
+import { CvTextExtractorService } from "@/modules/ai/cv/extractor/index.service";
+import { parseCvProfileFromText } from "@/modules/ai/profile-parser";
+import { normalizePhone } from "@/modules/candidates/contact";
+import { hasAllowedFileSignature } from "@/modules/files/signature";
 import { ApplicationCvPreviewAiService } from "./ai.service";
 
 type CvPreviewOptions = {

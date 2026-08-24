@@ -1,18 +1,19 @@
-import type { SourcingJobInput } from "../../search";
-import type { LinkedinDiscoveryResult, LinkedinPotentialScore } from "../types";
+import type { SourcingJobInput } from "@/modules/sourcing/search";
+import type { LinkedinDiscoveryResult, LinkedinPotentialScore } from "@/modules/sourcing/discovery/types";
+import { includesSourcingSignal, normalizeSourcingText } from "@/modules/sourcing/scoring/signals";
 
 export function scoreLinkedinDiscoveryResult(
   result: LinkedinDiscoveryResult,
   job: SourcingJobInput,
 ): LinkedinPotentialScore {
-  const evidence = `${result.displayName ?? ""} ${result.headline ?? ""} ${result.snippet}`.toLowerCase();
+  const evidence = normalizeSourcingText(`${result.displayName ?? ""} ${result.headline ?? ""} ${result.snippet}`);
   const titleSignals = buildTitleSignals(job.title);
   const skillSignals = job.tags.map((tag) => tag.trim()).filter(Boolean).slice(0, 8);
   const locationSignals = job.locations.map((location) => location.trim()).filter(Boolean).slice(0, 4);
   const senioritySignals = job.level ? [job.level] : [];
   const positiveSignals = [...titleSignals, ...skillSignals, ...locationSignals, ...senioritySignals];
-  const matchedSignals = unique(positiveSignals.filter((signal) => includesSignal(evidence, signal))).slice(0, 8);
-  const missingSignals = unique([...skillSignals, ...senioritySignals].filter((signal) => !includesSignal(evidence, signal))).slice(0, 5);
+  const matchedSignals = unique(positiveSignals.filter((signal) => includesSourcingSignal(evidence, signal))).slice(0, 8);
+  const missingSignals = unique([...skillSignals, ...senioritySignals].filter((signal) => !includesSourcingSignal(evidence, signal))).slice(0, 5);
 
   let score = 35;
   score += countMatches(evidence, titleSignals) * 14;
@@ -48,12 +49,7 @@ function buildTitleSignals(title: string) {
 }
 
 function countMatches(evidence: string, signals: string[]) {
-  return unique(signals).filter((signal) => includesSignal(evidence, signal)).length;
-}
-
-function includesSignal(evidence: string, signal: string) {
-  const normalized = signal.trim().toLowerCase();
-  return normalized.length > 1 && evidence.includes(normalized);
+  return unique(signals).filter((signal) => includesSourcingSignal(evidence, signal)).length;
 }
 
 function unique(values: string[]) {

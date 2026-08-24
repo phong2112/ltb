@@ -1,5 +1,5 @@
 import type { ConfigService } from "@nestjs/config";
-import type { AiModelPortalService } from "../../ai/portal/index.service";
+import type { AiModelPortalService } from "@/modules/ai/portal/index.service";
 import { ApplicationCvPreviewAiService } from "./ai.service";
 
 describe("ApplicationCvPreviewAiService", () => {

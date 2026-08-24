@@ -1,5 +1,5 @@
 import { CvDocumentPreview } from "./CvDocumentPreview";
-import type { CvPreviewPanelProps } from "../types";
+import type { CvPreviewPanelProps } from "@/app/components/CandidateDetailSections/types";
 
 export function CvPreviewPanel({ candidate, t }: CvPreviewPanelProps) {
   return (

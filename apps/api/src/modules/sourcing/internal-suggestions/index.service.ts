@@ -1,17 +1,25 @@
 import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import type { PrismaService } from "../../prisma";
-import type { SourcingJobInput } from "../search";
+import type { PrismaService } from "@/modules/prisma";
+import type { SourcingJobInput } from "@/modules/sourcing/search";
+import {
+  includesSourcingSignal,
+  normalizeSourcingText,
+  sourcingJobFingerprint,
+  SOURCING_SCORING_VERSION,
+} from "@/modules/sourcing/scoring/signals";
 
 const MAX_INTERNAL_SUGGESTIONS = 30;
+const INTERNAL_SCAN_PAGE_SIZE = 200;
+const INTERNAL_SHORTLIST_BUFFER = MAX_INTERNAL_SUGGESTIONS * 4;
 
 type InternalSuggestion = {
+  candidateId: string;
   profileUrl: string;
   normalizedProfileUrl: string;
   displayName: string;
   headline?: string;
   location?: string;
-  evidence: string;
   sourceKind: "talent_pool" | "previous_application";
   sourceId: string;
   potential: InternalPotentialScore;
@@ -46,20 +54,15 @@ export class InternalCandidateSuggestionService {
     });
     const existingSet = new Set(existing.map((item) => item.normalizedProfileUrl));
     const toCreate = suggestions.filter((suggestion) => !existingSet.has(suggestion.normalizedProfileUrl));
+    const toRefresh = suggestions.filter((suggestion) => existingSet.has(suggestion.normalizedProfileUrl));
+
+    await Promise.all(toRefresh.map((suggestion) => prisma.sourcedProfile.updateMany({
+      where: { campaignId, normalizedProfileUrl: suggestion.normalizedProfileUrl },
+      data: sourcedProfileRefreshData(suggestion, job),
+    })));
 
     const created = await prisma.sourcedProfile.createMany({
-      data: toCreate.map((suggestion) => ({
-        campaignId,
-        source: "TALENT_POOL",
-        profileUrl: suggestion.profileUrl,
-        normalizedProfileUrl: suggestion.normalizedProfileUrl,
-        displayName: suggestion.displayName,
-        headline: suggestion.headline,
-        location: suggestion.location,
-        notes: buildInternalSuggestionNotes(suggestion),
-        extractionMethod: suggestion.sourceKind,
-        fetchedAt: new Date(),
-      } satisfies Prisma.SourcedProfileCreateManyInput)),
+      data: toCreate.map((suggestion) => sourcedProfileCreateData(campaignId, suggestion, job)),
       skipDuplicates: true,
     });
 
@@ -72,28 +75,66 @@ export class InternalCandidateSuggestionService {
   }
 
   private async buildSuggestions(prisma: PrismaService, job: SourcingJobInput & { id?: string }) {
-    const [poolEntries, candidates] = await Promise.all([
-      prisma.talentPoolEntry.findMany({
+    const byCandidateId = new Map<string, InternalSuggestion>();
+    let poolCursor: string | undefined;
+
+    while (true) {
+      const poolEntries = await prisma.talentPoolEntry.findMany({
         where: {
           promotedApplication: job.id ? { isNot: { jobId: job.id } } : undefined,
         },
-        orderBy: { updatedAt: "desc" },
-        take: 80,
+        orderBy: { id: "asc" },
+        take: INTERNAL_SCAN_PAGE_SIZE,
+        ...(poolCursor ? { cursor: { id: poolCursor }, skip: 1 } : {}),
         include: {
           candidate: true,
           file: { select: { originalName: true } },
         },
-      }),
-      prisma.candidate.findMany({
-        where: job.id
-          ? {
-              applications: {
-                none: { jobId: job.id },
-              },
-            }
-          : undefined,
-        orderBy: { updatedAt: "desc" },
-        take: 80,
+      });
+
+      for (const entry of poolEntries) {
+        const structuredData = asRecord(entry.structuredData);
+        const name = readText(structuredData, "fullName") ?? entry.candidate.fullName;
+        const headline = readText(structuredData, "title") ?? entry.summary ?? undefined;
+        const skills = readTextList(structuredData, "skills");
+        const summary = readCvSummaryText(structuredData) ?? entry.summary ?? "";
+        const evidence = joinEvidence([
+          name,
+          headline,
+          skills.join(" "),
+          entry.tags.join(" "),
+          summary,
+          entry.notes,
+          entry.extractedText?.slice(0, 2500),
+        ]);
+        const potential = scoreInternalEvidence(evidence, job);
+        if (potential.score < 45) continue;
+
+        keepBetterSuggestion(byCandidateId, {
+          candidateId: entry.candidateId,
+          profileUrl: `/admin/talent-pool/${entry.id}`,
+          normalizedProfileUrl: `internal://candidate/${entry.candidateId}`,
+          displayName: name,
+          headline,
+          sourceKind: "talent_pool",
+          sourceId: entry.id,
+          potential,
+        });
+      }
+
+      trimSuggestionBuffer(byCandidateId);
+      if (poolEntries.length < INTERNAL_SCAN_PAGE_SIZE) break;
+      poolCursor = poolEntries.at(-1)?.id;
+      if (!poolCursor) break;
+    }
+
+    let candidateCursor: string | undefined;
+    while (true) {
+      const candidates = await prisma.candidate.findMany({
+        where: job.id ? { applications: { none: { jobId: job.id } } } : undefined,
+        orderBy: { id: "asc" },
+        take: INTERNAL_SCAN_PAGE_SIZE,
+        ...(candidateCursor ? { cursor: { id: candidateCursor }, skip: 1 } : {}),
         include: {
           applications: {
             orderBy: { createdAt: "desc" },
@@ -101,80 +142,51 @@ export class InternalCandidateSuggestionService {
             include: {
               job: { select: { title: true, locations: true, tags: true } },
               cvParseResult: { select: { summary: true, structuredData: true, extractedText: true } },
-              matchResult: { select: { score: true, strengths: true, risks: true } },
             },
           },
         },
-      }),
-    ]);
-
-    const byInternalKey = new Map<string, InternalSuggestion>();
-
-    for (const entry of poolEntries) {
-      const structuredData = asRecord(entry.structuredData);
-      const name = readText(structuredData, "fullName") ?? entry.candidate.fullName;
-      const headline = readText(structuredData, "title") ?? entry.summary ?? undefined;
-      const skills = readTextList(structuredData, "skills");
-      const summary = readCvSummaryText(structuredData) ?? entry.summary ?? "";
-      const evidence = joinEvidence([
-        name,
-        headline,
-        skills.join(" "),
-        entry.tags.join(" "),
-        summary,
-        entry.notes,
-        entry.extractedText?.slice(0, 2500),
-      ]);
-      const potential = scoreInternalEvidence(evidence, job);
-      if (potential.score < 45) continue;
-
-      byInternalKey.set(`talent-pool:${entry.id}`, {
-        profileUrl: `/admin/talent-pool/${entry.id}`,
-        normalizedProfileUrl: `internal://talent-pool/${entry.id}`,
-        displayName: name,
-        headline,
-        evidence: evidence.slice(0, 1500),
-        sourceKind: "talent_pool",
-        sourceId: entry.id,
-        potential,
       });
+
+      for (const candidate of candidates) {
+        const bestApplication = candidate.applications
+          .map((application) => {
+            const metadata = asRecord(application.cvParseResult?.structuredData);
+            const evidence = joinEvidence([
+              candidate.fullName,
+              candidate.linkedinUrl,
+              application.submittedPortfolioUrl,
+              application.job.title,
+              application.job.tags.join(" "),
+              application.job.locations.join(" "),
+              application.cvParseResult?.summary,
+              readCvSummaryText(metadata),
+              application.cvParseResult?.extractedText?.slice(0, 2500),
+            ]);
+            return { application, potential: scoreInternalEvidence(evidence, job) };
+          })
+          .filter(item => item.potential.score >= 45)
+          .sort((left, right) => right.potential.score - left.potential.score)[0];
+        if (!bestApplication) continue;
+
+        keepBetterSuggestion(byCandidateId, {
+          candidateId: candidate.id,
+          profileUrl: `/admin/candidates/${candidate.id}?application=${bestApplication.application.id}`,
+          normalizedProfileUrl: `internal://candidate/${candidate.id}`,
+          displayName: candidate.fullName,
+          headline: bestApplication.application.job.title,
+          sourceKind: "previous_application",
+          sourceId: bestApplication.application.id,
+          potential: bestApplication.potential,
+        });
+      }
+
+      trimSuggestionBuffer(byCandidateId);
+      if (candidates.length < INTERNAL_SCAN_PAGE_SIZE) break;
+      candidateCursor = candidates.at(-1)?.id;
+      if (!candidateCursor) break;
     }
 
-    for (const candidate of candidates) {
-      const application = candidate.applications[0];
-      if (!application) continue;
-
-      const metadata = asRecord(application.cvParseResult?.structuredData);
-      const cvSummary = readCvSummaryText(metadata);
-      const strengths = readTextList(asRecord(application.matchResult), "strengths");
-      const evidence = joinEvidence([
-        candidate.fullName,
-        candidate.linkedinUrl,
-        application.submittedPortfolioUrl,
-        application.job.title,
-        application.job.tags.join(" "),
-        application.job.locations.join(" "),
-        application.cvParseResult?.summary,
-        cvSummary,
-        strengths.join(" "),
-        application.cvParseResult?.extractedText?.slice(0, 2500),
-      ]);
-      const potential = scoreInternalEvidence(evidence, job, application.matchResult?.score ?? undefined);
-      if (potential.score < 45) continue;
-
-      byInternalKey.set(`candidate:${candidate.id}`, {
-        profileUrl: `/admin/candidates/${candidate.id}?application=${application.id}`,
-        normalizedProfileUrl: `internal://candidate/${candidate.id}`,
-        displayName: candidate.fullName,
-        headline: application.job.title,
-        evidence: evidence.slice(0, 1500),
-        sourceKind: "previous_application",
-        sourceId: application.id,
-        potential,
-      });
-    }
-
-    return [...byInternalKey.values()]
+    return [...byCandidateId.values()]
       .sort((left, right) => right.potential.score - left.potential.score)
       .slice(0, MAX_INTERNAL_SUGGESTIONS);
   }
@@ -187,18 +199,18 @@ export class InternalCandidateSuggestionService {
   }
 }
 
-function scoreInternalEvidence(evidence: string, job: SourcingJobInput, previousScore?: number): InternalPotentialScore {
-  const normalizedEvidence = evidence.toLowerCase();
+function scoreInternalEvidence(evidence: string, job: SourcingJobInput): InternalPotentialScore {
+  const normalizedEvidence = normalizeSourcingText(evidence);
   const titleSignals = buildTitleSignals(job.title);
   const skillSignals = job.tags.map((tag) => tag.trim()).filter(Boolean).slice(0, 10);
   const requirementSignals = extractRequirementSignals(job.requirements).slice(0, 8);
   const locationSignals = job.locations.map((location) => location.trim()).filter(Boolean);
   const senioritySignals = job.level ? [job.level] : [];
   const positiveSignals = [...titleSignals, ...skillSignals, ...requirementSignals, ...locationSignals, ...senioritySignals];
-  const matchedSignals = unique(positiveSignals.filter((signal) => includesSignal(normalizedEvidence, signal))).slice(0, 10);
-  const missingSignals = unique([...skillSignals, ...senioritySignals].filter((signal) => !includesSignal(normalizedEvidence, signal))).slice(0, 6);
+  const matchedSignals = unique(positiveSignals.filter((signal) => includesSourcingSignal(normalizedEvidence, signal))).slice(0, 10);
+  const missingSignals = unique([...skillSignals, ...senioritySignals].filter((signal) => !includesSourcingSignal(normalizedEvidence, signal))).slice(0, 6);
 
-  let score = previousScore ? Math.round(previousScore * 0.55) : 32;
+  let score = 32;
   score += countMatches(normalizedEvidence, titleSignals) * 12;
   score += countMatches(normalizedEvidence, skillSignals) * 10;
   score += countMatches(normalizedEvidence, requirementSignals) * 5;
@@ -220,9 +232,12 @@ function scoreInternalEvidence(evidence: string, job: SourcingJobInput, previous
   };
 }
 
-function buildInternalSuggestionNotes(suggestion: InternalSuggestion) {
+function buildInternalSuggestionNotes(suggestion: InternalSuggestion, job: SourcingJobInput) {
   return JSON.stringify({
     type: "internal_candidate_suggestion",
+    scoringVersion: SOURCING_SCORING_VERSION,
+    jdFingerprint: sourcingJobFingerprint(job),
+    scoredAt: new Date().toISOString(),
     potentialScore: suggestion.potential.score,
     confidence: suggestion.potential.confidence,
     matchedSignals: suggestion.potential.matchedSignals,
@@ -230,8 +245,51 @@ function buildInternalSuggestionNotes(suggestion: InternalSuggestion) {
     reason: suggestion.potential.reason,
     sourceKind: suggestion.sourceKind,
     sourceId: suggestion.sourceId,
-    evidence: suggestion.evidence,
+    candidateId: suggestion.candidateId,
   });
+}
+
+function keepBetterSuggestion(suggestions: Map<string, InternalSuggestion>, suggestion: InternalSuggestion) {
+  const current = suggestions.get(suggestion.candidateId);
+  if (!current || suggestion.potential.score > current.potential.score) {
+    suggestions.set(suggestion.candidateId, suggestion);
+  }
+}
+
+function trimSuggestionBuffer(suggestions: Map<string, InternalSuggestion>) {
+  if (suggestions.size <= INTERNAL_SHORTLIST_BUFFER) return;
+  const retainedIds = new Set([...suggestions.values()]
+    .sort((left, right) => right.potential.score - left.potential.score)
+    .slice(0, INTERNAL_SHORTLIST_BUFFER)
+    .map(suggestion => suggestion.candidateId));
+  for (const candidateId of suggestions.keys()) {
+    if (!retainedIds.has(candidateId)) suggestions.delete(candidateId);
+  }
+}
+
+function sourcedProfileRefreshData(suggestion: InternalSuggestion, job: SourcingJobInput) {
+  return {
+    source: "TALENT_POOL" as const,
+    profileUrl: suggestion.profileUrl,
+    displayName: suggestion.displayName,
+    headline: suggestion.headline,
+    location: suggestion.location,
+    notes: buildInternalSuggestionNotes(suggestion, job),
+    extractionMethod: suggestion.sourceKind,
+    fetchedAt: new Date(),
+  };
+}
+
+function sourcedProfileCreateData(
+  campaignId: string,
+  suggestion: InternalSuggestion,
+  job: SourcingJobInput,
+): Prisma.SourcedProfileCreateManyInput {
+  return {
+    campaignId,
+    normalizedProfileUrl: suggestion.normalizedProfileUrl,
+    ...sourcedProfileRefreshData(suggestion, job),
+  };
 }
 
 function buildTitleSignals(title: string) {
@@ -284,12 +342,7 @@ function joinEvidence(values: Array<string | null | undefined>) {
 }
 
 function countMatches(evidence: string, signals: string[]) {
-  return unique(signals).filter((signal) => includesSignal(evidence, signal)).length;
-}
-
-function includesSignal(evidence: string, signal: string) {
-  const normalized = signal.trim().toLowerCase();
-  return normalized.length > 1 && evidence.includes(normalized);
+  return unique(signals).filter((signal) => includesSourcingSignal(evidence, signal)).length;
 }
 
 function unique(values: string[]) {

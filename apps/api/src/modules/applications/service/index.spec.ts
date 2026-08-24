@@ -2,12 +2,12 @@ jest.mock("../../ai/queue/index.service", () => ({
   AiQueueService: class AiQueueService {},
 }));
 
-import type { AiQueueService } from "../../ai/queue/index.service";
-import type { CvStorageService } from "../../files/storage/index.service";
-import type { JobsService } from "../../jobs/service/index.service";
-import type { EmailService } from "../../notifications/email/index.service";
-import type { PrismaService } from "../../prisma";
-import { ApplicationsService } from "../service/index.service";
+import type { AiQueueService } from "@/modules/ai/queue/index.service";
+import type { CvStorageService } from "@/modules/files/storage/index.service";
+import type { JobsService } from "@/modules/jobs/service/index.service";
+import type { EmailService } from "@/modules/notifications/email/index.service";
+import type { PrismaService } from "@/modules/prisma";
+import { ApplicationsService } from "@/modules/applications/service/index.service";
 
 describe("ApplicationsService", () => {
   it("removes a stored CV when the database transaction rolls back", async () => {

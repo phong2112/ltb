@@ -1,4 +1,4 @@
-import type { SourcingSearchQuery } from "../search";
+import type { SourcingSearchQuery } from "@/modules/sourcing/search";
 import type { BraveSearchFailureCode } from "./brave-linkedin.adapter";
 
 export type LinkedinDiscoveryResult = {

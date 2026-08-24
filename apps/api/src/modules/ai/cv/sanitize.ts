@@ -1,6 +1,6 @@
 import { type Prisma } from "@prisma/client";
 import { normalizeWorkExperienceDuration } from "@hr-copilot/shared";
-import type { CvSummary } from "../../../models/ai";
+import type { CvSummary } from "@/models/ai";
 
 const PHONE_LIKE_PATTERN = /(?:\+?\d[\d\s.\-()]{7,}\d)/gu;
 

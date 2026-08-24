@@ -2,8 +2,8 @@ import { useId, useRef, useState, type ChangeEvent, type FormEvent } from "react
 import { previewApplicationCv } from "@/app/apis/requests";
 import { useData } from "@/app/data";
 import { useLanguage } from "@/app/services/i18n-service";
-import { initialForm } from "../constants";
-import type { ApplicationFormProps, CvPreviewState, FormErrors, FormState, ScreeningQuestion, TextFieldName } from "../types";
+import { initialForm } from "@/app/components/ApplicationForm/constants";
+import type { ApplicationFormProps, CvPreviewState, FormErrors, FormState, ScreeningQuestion, TextFieldName } from "@/app/components/ApplicationForm/types";
 import { getScreeningAnswerError, validateCvFile } from ".";
 
 /** Owns candidate application form state, validation, CV preview autofill, and submit behavior. */

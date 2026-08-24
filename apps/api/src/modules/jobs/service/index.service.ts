@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { JobStatus, Prisma } from "@prisma/client";
 import slugify from "slugify";
-import { CvStorageLifecycleService } from "../../files/storage-lifecycle/index.service";
-import { PrismaService } from "../../prisma";
-import { CreateJobDto } from "../dto/create/index.dto";
-import { UpdateJobDto } from "../dto/update/index.dto";
+import { CvStorageLifecycleService } from "@/modules/files/storage-lifecycle/index.service";
+import { PrismaService } from "@/modules/prisma";
+import { CreateJobDto } from "@/modules/jobs/dto/create/index.dto";
+import { UpdateJobDto } from "@/modules/jobs/dto/update/index.dto";
 
 const jobInclude = {
   questions: {

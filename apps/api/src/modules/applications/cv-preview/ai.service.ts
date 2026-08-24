@@ -1,10 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { applicationAreas } from "@hr-copilot/shared";
-import { buildApplicationPreviewPrompt } from "../../ai/prompts";
-import { AiModelPortalService } from "../../ai/portal/index.service";
-import { applicationPreviewExtractionSchema } from "../../../schemas/ai";
-import type { ApplicationPreviewExtraction } from "../../../models/ai";
+import { buildApplicationPreviewPrompt } from "@/modules/ai/prompts";
+import { AiModelPortalService } from "@/modules/ai/portal/index.service";
+import { applicationPreviewExtractionSchema } from "@/schemas/ai";
+import type { ApplicationPreviewExtraction } from "@/models/ai";
 
 const MAX_PREVIEW_CV_CHARACTERS = 20_000;
 const DEFAULT_GEMINI_TIMEOUT_MS = 20_000;

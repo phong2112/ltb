@@ -1,11 +1,12 @@
 import type { ConfigService } from "@nestjs/config";
 import { SourcingOrchestrationStatus } from "@prisma/client";
-import type { PrismaService } from "../../prisma";
-import type { SourcingOrchestrationService } from "../orchestration/index.service";
+import type { PrismaService } from "@/modules/prisma";
+import type { SourcingOrchestrationService } from "@/modules/sourcing/orchestration/index.service";
 import { SourcingOrchestrationQueueService } from "./index.service";
 
 type QueueInternals = {
   process: (job: { data: { campaignId: string; runId: string } }) => Promise<void>;
+  recoverStaleRuns: () => Promise<void>;
 };
 
 describe("SourcingOrchestrationQueueService", () => {
@@ -68,6 +69,27 @@ describe("SourcingOrchestrationQueueService", () => {
     expect(orchestration.run).not.toHaveBeenCalled();
     expect(prisma.sourcingCampaign.findFirst).not.toHaveBeenCalled();
   });
+
+  it("marks interrupted queued or running campaigns as failed", async () => {
+    const prisma = {
+      sourcingCampaign: { updateMany: jest.fn().mockResolvedValue({ count: 2 }) },
+    };
+    const service = new SourcingOrchestrationQueueService(
+      createConfig(),
+      prisma as unknown as PrismaService,
+      {} as SourcingOrchestrationService,
+    );
+
+    await (service as unknown as QueueInternals).recoverStaleRuns();
+
+    expect(prisma.sourcingCampaign.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { OR: expect.arrayContaining([
+        expect.objectContaining({ orchestrationStatus: SourcingOrchestrationStatus.QUEUED }),
+        expect.objectContaining({ orchestrationStatus: SourcingOrchestrationStatus.RUNNING }),
+      ]) },
+      data: expect.objectContaining({ orchestrationStatus: SourcingOrchestrationStatus.FAILED }),
+    }));
+  });
 });
 
 function createPrisma(options: { startedCount?: number } = {}) {
@@ -88,5 +110,6 @@ function createPrisma(options: { startedCount?: number } = {}) {
 function createConfig() {
   return {
     getOrThrow: jest.fn().mockReturnValue("redis://localhost:6379"),
+    get: jest.fn().mockReturnValue(30),
   } as unknown as ConfigService;
 }

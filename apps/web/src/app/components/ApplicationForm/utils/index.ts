@@ -1,6 +1,6 @@
 import { isAllowedCvExtension, isAllowedCvMimeType, maxScreeningAnswerLength } from "@hr-copilot/shared";
-import { MAX_CV_FILE_SIZE_BYTES } from "../constants";
-import type { ScreeningQuestion, Translate } from "../types";
+import { MAX_CV_FILE_SIZE_BYTES } from "@/app/components/ApplicationForm/constants";
+import type { ScreeningQuestion, Translate } from "@/app/components/ApplicationForm/types";
 
 /** Counts answer content after trimming and collapsing whitespace for fair length validation. */
 export function getMeaningfulAnswerLength(value: string) {

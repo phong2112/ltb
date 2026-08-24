@@ -1,14 +1,14 @@
 import { BadRequestException, Inject, Injectable } from "@nestjs/common";
 import { CvParseStatus, Prisma } from "@prisma/client";
 import { ConfigService } from "@nestjs/config";
-import { lockCandidateContacts, normalizeEmail, normalizeLinkedinUrl, normalizePhone } from "../../candidates/contact";
-import { PrismaService } from "../../prisma";
-import { prepareCvTextForAi } from "../cv/cleaner";
-import { CvTextExtractorService } from "../cv/extractor/index.service";
-import { AI_PROVIDER, type AiProvider } from "../../../models/ai";
-import { parseCvProfileFromText } from "../profile-parser";
-import { CV_SUMMARY_PROMPT_VERSION } from "../prompts";
-import { sanitizeCvSummary } from "../cv/sanitize";
+import { lockCandidateContacts, normalizeEmail, normalizeLinkedinUrl, normalizePhone } from "@/modules/candidates/contact";
+import { PrismaService } from "@/modules/prisma";
+import { prepareCvTextForAi } from "@/modules/ai/cv/cleaner";
+import { CvTextExtractorService } from "@/modules/ai/cv/extractor/index.service";
+import { AI_PROVIDER, type AiProvider } from "@/models/ai";
+import { parseCvProfileFromText } from "@/modules/ai/profile-parser";
+import { CV_SUMMARY_PROMPT_VERSION } from "@/modules/ai/prompts";
+import { sanitizeCvSummary } from "@/modules/ai/cv/sanitize";
 
 const EXTRACTION_VERSION = "talent-pool-extraction-v2";
 const MAX_AI_CV_CHARACTERS = 45_000;

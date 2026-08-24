@@ -1,4 +1,4 @@
-import type { MatchCriterion } from "../../../../models/ai";
+import type { MatchCriterion } from "@/models/ai";
 
 export type AiReadyCvText = {
   text: string;

@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
 import type { Request } from "express";
-import { AuthService } from "../service/index.service";
-import { AuthenticatedRequest } from "../../../models/auth";
+import { AuthService } from "@/modules/auth/service/index.service";
+import { AuthenticatedRequest } from "@/models/auth";
 
 export const ACCESS_TOKEN_COOKIE_NAME = "access_token";
 export const REFRESH_TOKEN_COOKIE_NAME = "refresh_token";

@@ -10,9 +10,9 @@ import type {
   SourcingPlan,
   SourcingPlanInput,
   SummarizeCvInput,
-} from "../../../models/ai";
-import { GeminiProvider, type GeminiGenerateInput, type GeminiGenerateResult } from "../providers/gemini";
-import { GroqAiProvider } from "../providers/groq";
+} from "@/models/ai";
+import { GeminiProvider, type GeminiGenerateInput, type GeminiGenerateResult } from "@/modules/ai/providers/gemini";
+import { GroqAiProvider } from "@/modules/ai/providers/groq";
 
 /** Routes product AI tasks to the provider/model chain dedicated to that task. */
 @Injectable()
