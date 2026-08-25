@@ -36,6 +36,14 @@ export type ApiSourcingCampaignStatus = "ACTIVE" | "PAUSED" | "CLOSED";
 
 export type ApiSourcingProfileFeedback = "RELEVANT" | "MAYBE" | "NOT_RELEVANT";
 
+export type ApiSourcingLocationEligibility =
+  | "ELIGIBLE"
+  | "NEEDS_VERIFICATION"
+  | "INELIGIBLE"
+  | "NOT_APPLICABLE";
+
+export type ApiSourcingMatchConfidence = "LOW" | "MEDIUM" | "HIGH";
+
 /** API search query generated from a JD for one sourcing source. */
 export type ApiSourcingSearchQuery = {
   id: string;
@@ -56,6 +64,14 @@ export type ApiSourcedProfile = {
   displayName?: string | null;
   headline?: string | null;
   location?: string | null;
+  locationEligibility: ApiSourcingLocationEligibility;
+  locationEvidence?: string | null;
+  potentialScore?: number | null;
+  confidence?: ApiSourcingMatchConfidence | null;
+  scoringVersion?: string | null;
+  jdFingerprint?: string | null;
+  sourceQueryId?: string | null;
+  sourceRank?: number | null;
   notes?: string | null;
   status: ApiSourcingProfileStatus;
   feedback?: ApiSourcingProfileFeedback | null;
@@ -114,6 +130,9 @@ export type ApiLinkedinDiscoveryResult = {
   queryCount: number;
   successfulQueryCount: number;
   resultCount: number;
+  eligibleCount: number;
+  needsVerificationCount: number;
+  ineligibleCount: number;
   skippedQueries: string[];
   failures: Array<{
     queryId: string;

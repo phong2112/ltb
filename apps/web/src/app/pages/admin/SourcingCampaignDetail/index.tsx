@@ -26,6 +26,8 @@ const FEEDBACK_OPTIONS: Array<{ value: ApiSourcingProfileFeedback; label: string
   { value: "NOT_RELEVANT", label: "Không khớp JD" },
 ];
 
+type ProfileView = "SHORTLIST" | "VERIFY" | "EXCLUDED" | "ALL";
+
 const IMPORT_SOURCES: Array<{ value: ApiSourcingSource; label: string; hint: string; color: string; placeholder: string; icon: React.ReactNode }> = [
   {
     value: "LINKEDIN",
@@ -119,6 +121,7 @@ export default function SourcingCampaignDetail() {
   const [internalSummary, setInternalSummary] = useState("");
   const [copiedId, setCopiedId] = useState("");
   const [activeSource, setActiveSource] = useState<ApiSourcingSource>(() => readSourcingSource(searchParams));
+  const [profileView, setProfileView] = useState<ProfileView>("SHORTLIST");
 
   useEffect(() => {
     if (!id) return;
@@ -195,6 +198,9 @@ export default function SourcingCampaignDetail() {
         `tìm thấy ${result.resultCount} hồ sơ`,
         `thêm mới ${result.createdCount}`,
       ];
+      parts.push(campaign.discoveryLocationScope === "GLOBAL" ? `${result.eligibleCount} trong phạm vi` : `${result.eligibleCount} đủ bằng chứng Việt Nam`);
+      if (result.needsVerificationCount) parts.push(`${result.needsVerificationCount} cần xác minh địa điểm`);
+      if (result.ineligibleCount) parts.push(`${result.ineligibleCount} ngoài phạm vi`);
       if (result.duplicateCount) parts.push(`${result.duplicateCount} hồ sơ trùng`);
       if (result.skippedQueries.length) parts.push(`${result.skippedQueries.length} query lỗi`);
       setDiscoverySummary(parts.join(" · "));
@@ -272,6 +278,18 @@ export default function SourcingCampaignDetail() {
   const activeSourceMeta = sourceMeta(activeSource);
   const activeQueries = queries.filter((query) => query.source === activeSource);
   const profiles = campaign.profiles ?? [];
+  const profileCounts = {
+    SHORTLIST: profiles.filter(profile => ["ELIGIBLE", "NOT_APPLICABLE"].includes(profile.locationEligibility)).length,
+    VERIFY: profiles.filter(profile => profile.locationEligibility === "NEEDS_VERIFICATION").length,
+    EXCLUDED: profiles.filter(profile => profile.locationEligibility === "INELIGIBLE").length,
+    ALL: profiles.length,
+  };
+  const visibleProfiles = profiles.filter(profile => {
+    if (profileView === "SHORTLIST") return profile.locationEligibility === "ELIGIBLE" || profile.locationEligibility === "NOT_APPLICABLE";
+    if (profileView === "VERIFY") return profile.locationEligibility === "NEEDS_VERIFICATION";
+    if (profileView === "EXCLUDED") return profile.locationEligibility === "INELIGIBLE";
+    return true;
+  });
   const orchestration = campaign.orchestration;
   const orchestrating = isOrchestrationActive(campaign);
   const orchestrationResult = orchestration.result ?? null;
@@ -283,40 +301,40 @@ export default function SourcingCampaignDetail() {
       <Link to="/admin/sourcing" className="mb-3 inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-primary"><ArrowLeft size={13} /> Tất cả chiến dịch</Link>
 
       {/* Campaign Header */}
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <header className="mb-5 flex flex-col gap-4 rounded-2xl border border-border bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-[#0a66c2] px-3 py-1 text-xs font-black text-white"><Linkedin size={13} /> LINKEDIN · TOP PRIORITY</div>
-          <h1 className="text-2xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{campaign.name}</h1>
+          <div className="mb-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.14em] text-[#0a66c2]"><Linkedin size={13} /> Sourcing campaign</div>
+          <h1 className="text-2xl font-black text-foreground sm:text-3xl" style={{ fontFamily: "'Playfair Display', serif" }}>{campaign.name}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{campaign.job.title}{campaign.job.company ? ` · ${campaign.job.company}` : ""}</p>
         </div>
-        <div className="flex w-fit items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-fit sm:justify-end">
           <select
             value={campaign.status}
             onChange={(event) => void handleCampaignStatus(event.target.value as ApiSourcingCampaignStatus)}
             disabled={updatingCampaignStatus || orchestrating}
             aria-label="Trạng thái chiến dịch"
-            className="h-10 rounded-xl border border-border bg-white px-3 text-xs font-black text-foreground outline-none focus:border-primary disabled:opacity-60"
+            className="h-10 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-xs font-black text-foreground outline-none focus:border-primary disabled:opacity-60 sm:flex-none"
           >
             <option value="ACTIVE">Đang hoạt động</option>
             <option value="PAUSED">Tạm dừng</option>
             <option value="CLOSED">Đã đóng</option>
           </select>
-          <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-3 py-2 text-sm font-black text-foreground"><Users size={15} className="text-primary" /> {profiles.length} ứng viên</div>
+          <div className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary/8 px-3 text-sm font-black text-primary"><Users size={15} /> {profiles.length} hồ sơ</div>
         </div>
-      </div>
+      </header>
 
       {/* Campaign Workspace */}
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         {/* Search Queries And Results */}
-        <div className="space-y-5">
+        <div className="flex min-w-0 flex-col gap-5">
           {/* Query Builder And Discovery Actions */}
-          <section className="overflow-hidden rounded-2xl border border-border bg-white">
+          <section className={`overflow-hidden rounded-2xl border border-border bg-white ${profiles.length ? "order-2" : "order-1"}`}>
             <div className="border-b border-border p-4 sm:p-5">
               <div className="mb-4 flex items-start gap-3">
                 <div className="flex h-10 w-10 flex-none items-center justify-center rounded-xl text-white" style={{ backgroundColor: activeSourceMeta.color }}><Search size={18} /></div>
                 <div>
-                  <h2 className="font-black text-foreground">Bộ tìm kiếm đa nền tảng</h2>
-                  <p className="mt-0.5 text-xs leading-5 text-muted-foreground">LinkedIn luôn đứng đầu. Có thể chạy discovery tự động từ public search hoặc mở query để kiểm tra thủ công.</p>
+                  <h2 className="font-black text-foreground">Tìm thêm ứng viên</h2>
+                  <p className="mt-0.5 text-xs leading-5 text-muted-foreground">Chạy tự động từ JD hoặc dùng query theo từng nguồn khi cần kiểm soát kết quả.</p>
                 </div>
               </div>
               {!campaignActive && (
@@ -324,19 +342,19 @@ export default function SourcingCampaignDetail() {
                   Automatic discovery đang tắt vì campaign {campaign.status === "PAUSED" ? "được tạm dừng" : "đã đóng"}. Chuyển về “Đang hoạt động” để chạy lại.
                 </div>
               )}
-              <div className="mb-4 rounded-xl border border-violet-200 bg-violet-50 p-3">
+              <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 p-3 sm:p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm font-black text-foreground">Sourcing orchestration</p>
-                    <p className="mt-0.5 text-xs leading-5 text-muted-foreground">AI mở rộng query từ JD khi khả dụng, đồng thời rà Talent Pool và chạy Brave có retry/fallback. Mọi quyết định vẫn do TA review.</p>
+                    <p className="text-sm font-black text-foreground">Tìm ứng viên tự động</p>
+                    <p className="mt-0.5 max-w-xl text-xs leading-5 text-muted-foreground">Rà Talent Pool, mở rộng query từ JD và tìm hồ sơ công khai trong một lần chạy. Bạn vẫn review trước khi liên hệ.</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => void handleOrchestration()}
                     disabled={!campaignActive || orchestrating || discovering || suggestingInternal}
-                    className="inline-flex h-10 flex-none items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 text-xs font-black text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-10 flex-none items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-black text-white shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {orchestrating ? <LoaderCircle size={14} className="animate-spin" /> : <Workflow size={14} />} {orchestrating ? "Đang điều phối..." : "Chạy toàn bộ workflow"}
+                    {orchestrating ? <LoaderCircle size={14} className="animate-spin" /> : <Workflow size={14} />} {orchestrating ? "Đang tìm ứng viên..." : "Bắt đầu tìm ứng viên"}
                   </button>
                 </div>
                 {orchestrating && (
@@ -442,19 +460,41 @@ export default function SourcingCampaignDetail() {
           </section>
 
           {/* Campaign Candidate Pipeline */}
-          <section className="overflow-hidden rounded-2xl border border-border bg-white">
-            <div className="flex items-center justify-between border-b border-border p-4 sm:p-5">
-              <div>
-                <h2 className="font-black text-foreground">Ứng viên trong campaign</h2>
-                <p className="mt-0.5 text-xs text-muted-foreground">Theo dõi từ lúc tìm thấy đến khi tuyển.</p>
+          <section className={`overflow-hidden rounded-2xl border border-border bg-white ${profiles.length ? "order-1" : "order-2"}`}>
+            <div className="border-b border-border p-4 sm:p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="font-black text-foreground">Review ứng viên</h2>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Ưu tiên shortlist, xác minh location và cập nhật bước tiếp theo ngay tại đây.</p>
+                </div>
+                <Users size={18} className="text-primary" />
               </div>
-              <Users size={18} className="text-primary" />
+              <div className="mt-3 flex flex-wrap gap-2">
+                {([
+                  ["SHORTLIST", "Shortlist"],
+                  ["VERIFY", "Cần xác minh"],
+                  ["EXCLUDED", "Ngoài phạm vi"],
+                  ["ALL", "Tất cả"],
+                ] as Array<[ProfileView, string]>).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setProfileView(value)}
+                    className={`rounded-full px-3 py-1.5 text-[11px] font-black transition-colors ${profileView === value ? "bg-primary text-white" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+                    aria-pressed={profileView === value}
+                  >
+                    {label} · {profileCounts[value]}
+                  </button>
+                ))}
+              </div>
             </div>
             {profiles.length === 0 ? (
               <div className="p-8 text-center text-sm font-semibold text-muted-foreground">Chưa có ứng viên. Hãy mở nguồn tìm kiếm và thêm URL hồ sơ phù hợp.</div>
+            ) : visibleProfiles.length === 0 ? (
+              <div className="p-8 text-center text-sm font-semibold text-muted-foreground">Không có hồ sơ trong nhóm này.</div>
             ) : (
               <div className="divide-y divide-border">
-                {profiles.map((profile) => (
+                {visibleProfiles.map((profile) => (
                   <div key={profile.id} className="p-4 sm:p-5">
                     <div className="sm:flex sm:items-center sm:gap-3">
                     <div className="mb-3 flex min-w-0 flex-1 items-center gap-3 sm:mb-0">
@@ -466,6 +506,7 @@ export default function SourcingCampaignDetail() {
                           <span className="rounded-full px-2 py-0.5 text-[10px] font-black text-white" style={{ backgroundColor: sourceMeta(profile.source).color }}>{sourceMeta(profile.source).label}</span>
                           <a href={profile.profileUrl} target="_blank" rel="noreferrer" className="flex min-w-0 items-center gap-1 truncate text-xs text-[#0a66c2] hover:underline"><LinkIcon size={11} /> {profile.profileUrl}</a>
                         </div>
+                        <LocationEligibilityBadge profile={profile} />
                       </div>
                     </div>
                     <div className="grid w-full gap-2 sm:w-44">
@@ -498,7 +539,7 @@ export default function SourcingCampaignDetail() {
         </div>
 
         {/* Import And Brief Sidebar */}
-        <aside className="space-y-5">
+        <aside className="space-y-5 xl:sticky xl:top-20">
           {/* Manual Profile Import */}
           <form onSubmit={handleImport} className="rounded-2xl border border-border bg-white p-4 sm:p-5">
             <div className="mb-3 flex items-center gap-3">
@@ -545,23 +586,43 @@ export default function SourcingCampaignDetail() {
   );
 }
 
+function LocationEligibilityBadge({ profile }: { profile: ApiSourcedProfile }) {
+  if (profile.locationEligibility === "NOT_APPLICABLE") return null;
+  const meta = profile.locationEligibility === "ELIGIBLE"
+    ? { label: "Đủ bằng chứng Việt Nam", className: "bg-emerald-50 text-emerald-800 ring-emerald-200" }
+    : profile.locationEligibility === "INELIGIBLE"
+      ? { label: "Ngoài phạm vi Việt Nam", className: "bg-red-50 text-red-800 ring-red-200" }
+      : { label: "Cần xác minh địa điểm", className: "bg-amber-50 text-amber-900 ring-amber-200" };
+
+  return (
+    <span className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-black ring-1 ${meta.className}`}>
+      {meta.label}{profile.locationEvidence ? ` · ${profile.locationEvidence}` : ""}
+    </span>
+  );
+}
+
 function DiscoveryEvidence({ profile }: { profile: ApiSourcedProfile }) {
   const evidence = parseDiscoveryNotes(profile.notes);
-  if (!evidence) return null;
+  const potentialScore = profile.potentialScore ?? evidence?.potentialScore;
+  if (potentialScore === null || potentialScore === undefined) return null;
+  const confidence = profile.confidence ?? evidence?.confidence ?? "LOW";
+  const metaLabel = profile.sourceQueryId
+    ? `Query #${profile.sourceRank ?? 0}`
+    : evidence?.metaLabel ?? "Hệ thống";
 
   return (
     <div className="mt-3 rounded-xl border border-border bg-background/70 p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-800">Potential {evidence.potentialScore}/100</span>
-        <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-muted-foreground">{evidence.confidence}</span>
-        <span className="text-[10px] font-semibold text-muted-foreground">{evidence.metaLabel}</span>
+        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-800">Potential {potentialScore}/100</span>
+        <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-muted-foreground">{confidence}</span>
+        <span className="text-[10px] font-semibold text-muted-foreground">{metaLabel}</span>
       </div>
-      {evidence.matchedSignals.length > 0 && (
+      {(evidence?.matchedSignals.length ?? 0) > 0 && (
         <div className="mb-2 flex flex-wrap gap-1.5">
-          {evidence.matchedSignals.slice(0, 5).map((signal) => <span key={signal} className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-foreground ring-1 ring-border">{signal}</span>)}
+          {evidence?.matchedSignals.slice(0, 5).map((signal) => <span key={signal} className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-foreground ring-1 ring-border">{signal}</span>)}
         </div>
       )}
-      <p className="line-clamp-3 text-xs leading-5 text-muted-foreground">{evidence.evidence || evidence.reason}</p>
+      {(evidence?.reason || evidence?.evidence) && <p className="line-clamp-3 text-xs leading-5 text-muted-foreground">{evidence.evidence || evidence.reason}</p>}
     </div>
   );
 }

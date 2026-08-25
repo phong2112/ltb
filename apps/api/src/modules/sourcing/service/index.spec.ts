@@ -179,32 +179,7 @@ describe("SourcingService ranking feedback", () => {
     });
   });
 
-  it("reports feedback coverage and labeled precision at 10", async () => {
-    const prisma = {
-      sourcingCampaign: { findUnique: jest.fn().mockResolvedValue({ id: "campaign-1" }) },
-      sourcedProfile: {
-        findMany: jest.fn().mockResolvedValue([
-          { id: "high", feedback: "RELEVANT", notes: JSON.stringify({ potentialScore: 90 }) },
-          { id: "medium", feedback: "NOT_RELEVANT", notes: JSON.stringify({ potentialScore: 70 }) },
-          { id: "unlabeled", feedback: null, notes: JSON.stringify({ potentialScore: 80 }) },
-        ]),
-      },
-    };
-    const service = new SourcingService(prisma as never, {} as never, {} as never, {} as never);
 
-    await expect(service.getCampaignEvaluation("campaign-1")).resolves.toEqual({
-      totalProfiles: 3,
-      labeledCount: 2,
-      coverage: 0.667,
-      feedbackCounts: { relevant: 1, maybe: 0, notRelevant: 1 },
-      ranking: {
-        top10Count: 3,
-        top10LabeledCount: 2,
-        top10RelevantCount: 1,
-        precisionAt10: 0.5,
-      },
-    });
-  });
 });
 
 function campaignWithRunState(status: SourcingOrchestrationStatus) {

@@ -34,12 +34,6 @@ export class SourcingController {
     return this.sourcingService.getCampaign(id);
   }
 
-  @ApiOkResponse({ description: "TA feedback coverage and ranking precision for the campaign." })
-  @Get(":id/evaluation")
-  getCampaignEvaluation(@Param("id") id: string) {
-    return this.sourcingService.getCampaignEvaluation(id);
-  }
-
   @ApiOkResponse({ description: "Updated sourcing campaign lifecycle status." })
   @Patch(":id/status")
   updateCampaignStatus(@Param("id") id: string, @Body() dto: UpdateSourcingCampaignStatusDto) {

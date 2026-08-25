@@ -35,13 +35,30 @@ describe("BraveLinkedinDiscoveryAdapter", () => {
     })]);
 
     expect(fetchMock).toHaveBeenCalledWith(expect.any(URL), expect.objectContaining({
-      headers: expect.objectContaining({ "X-Subscription-Token": "token" }),
+      headers: expect.objectContaining({
+        "X-Loc-Country": "VN",
+        "X-Subscription-Token": "token",
+      }),
       signal: expect.any(AbortSignal),
     }));
     const requestUrl = fetchMock.mock.calls[0][0] as URL;
     expect(requestUrl.searchParams.get("country")).toBe("ALL");
+    expect(requestUrl.searchParams.get("ui_lang")).toBe("en-US");
     expect(requestUrl.searchParams.get("result_filter")).toBe("web");
     expect(requestUrl.searchParams.get("text_decorations")).toBe("false");
+  });
+
+  it("uses global provider targeting only for global campaigns", async () => {
+    const fetchMock = jest.fn().mockResolvedValue(jsonResponse({ web: { results: [] } }));
+    const adapter = createAdapter(fetchMock);
+
+    await adapter.discover(query(), 10, "GLOBAL");
+
+    const requestUrl = fetchMock.mock.calls[0][0] as URL;
+    expect(requestUrl.searchParams.get("country")).toBe("ALL");
+    expect(requestUrl.searchParams.get("ui_lang")).toBe("en-US");
+    const request = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(request.headers).not.toHaveProperty("X-Loc-Country");
   });
 
   it("retries a rate-limited request using the provider reset header", async () => {

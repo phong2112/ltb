@@ -10,10 +10,9 @@ export default function FollowUp() {
   const { language, t } = useLanguage();
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const needFollowUp = candidates.filter(c => c.status !== "rejected" && c.status !== "offer" && c.status !== "offer_closed");
+  const needFollowUp = candidates.filter(c => Boolean(c.followUpDate) && c.status !== "rejected" && c.status !== "offer" && c.status !== "offer_closed");
   const overdue = needFollowUp.filter(c => c.followUpDate && c.followUpDate < new Date().toISOString().split("T")[0]);
   const upcoming = needFollowUp.filter(c => c.followUpDate && c.followUpDate >= new Date().toISOString().split("T")[0]);
-  const noDate = needFollowUp.filter(c => !c.followUpDate);
 
   function copyEmail(c: typeof candidates[0]) {
     const msg = `Chào ${c.name},\n\nCảm ơn bạn đã ứng tuyển vị trí ${c.jobTitle}. Tôi muốn cập nhật tình trạng hồ sơ của bạn...\n\nTrân trọng,\nLường Bích`;
@@ -22,9 +21,9 @@ export default function FollowUp() {
     setTimeout(() => setCopiedId(null), 2000);
   }
 
-  const Section = ({ title, items, accent }: { title: string; items: typeof candidates; accent?: string }) => (
+  const Section = ({ id, title, items, accent }: { id: string; title: string; items: typeof candidates; accent?: string }) => (
     items.length > 0 ? (
-      <div className="mb-6">
+      <div id={id} className="mb-6 scroll-mt-6">
         <h2 className={`text-sm font-black mb-3 ${accent || "text-foreground"}`} style={{ fontFamily: "'Playfair Display', serif" }}>{title} <span className="font-normal text-muted-foreground text-xs ml-1">({items.length})</span></h2>
         <div className="bg-white rounded-2xl border border-border divide-y divide-border overflow-hidden">
           {items.map(c => (
@@ -82,9 +81,8 @@ export default function FollowUp() {
           </div>
         )}
 
-        <Section title={`⚠️ ${t("admin.overdueFollowUps")}`} items={overdue} accent="text-red-600" />
-        <Section title={`📅 ${t("admin.upcomingFollowUps")}`} items={upcoming} accent="text-amber-700" />
-        <Section title={`⏳ ${t("admin.noFollowUpDate")}`} items={noDate} />
+        <Section id="overdue" title={`⚠️ ${t("admin.overdueFollowUps")}`} items={overdue} accent="text-red-600" />
+        <Section id="upcoming" title={`📅 ${t("admin.upcomingFollowUps")}`} items={upcoming} accent="text-amber-700" />
       </div>
     </AdminLayout>
   );

@@ -62,7 +62,7 @@ export class SourcingService {
       where: { id },
       include: {
         job: true,
-        profiles: { orderBy: { createdAt: "desc" } },
+        profiles: { orderBy: [{ potentialScore: "desc" }, { createdAt: "desc" }] },
         _count: { select: { profiles: true } },
       },
     });
@@ -163,7 +163,7 @@ export class SourcingService {
       invalidUrls,
       profiles: await this.prisma.sourcedProfile.findMany({
         where: { campaignId },
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ potentialScore: "desc" }, { createdAt: "desc" }],
       }),
     };
   }
@@ -191,15 +191,6 @@ export class SourcingService {
     if (!updated.count) throw new NotFoundException("Không tìm thấy hồ sơ trong chiến dịch.");
 
     return this.prisma.sourcedProfile.findUniqueOrThrow({ where: { id: profileId } });
-  }
-
-  async getCampaignEvaluation(campaignId: string) {
-    await this.assertCampaignExists(campaignId);
-    const profiles = await this.prisma.sourcedProfile.findMany({
-      where: { campaignId },
-      select: { id: true, feedback: true, notes: true },
-    });
-    return buildCampaignEvaluation(profiles);
   }
 
   async discoverLinkedinProfiles(campaignId: string) {
@@ -300,48 +291,6 @@ export class SourcingService {
     if (status !== SourcingCampaignStatus.ACTIVE) {
       throw new BadRequestException("Chỉ có thể chạy discovery khi chiến dịch đang hoạt động.");
     }
-  }
-}
-
-type EvaluationProfile = {
-  id: string;
-  feedback: SourcingProfileFeedback | null;
-  notes: string | null;
-};
-
-function buildCampaignEvaluation(profiles: EvaluationProfile[]) {
-  const ranked = [...profiles].sort((left, right) => readPotentialScore(right.notes) - readPotentialScore(left.notes));
-  const top10 = ranked.slice(0, 10);
-  const top10Labeled = top10.filter(profile => profile.feedback !== null);
-  const relevantAt10 = top10Labeled.filter(profile => profile.feedback === SourcingProfileFeedback.RELEVANT).length;
-  const feedbackCounts = {
-    relevant: profiles.filter(profile => profile.feedback === SourcingProfileFeedback.RELEVANT).length,
-    maybe: profiles.filter(profile => profile.feedback === SourcingProfileFeedback.MAYBE).length,
-    notRelevant: profiles.filter(profile => profile.feedback === SourcingProfileFeedback.NOT_RELEVANT).length,
-  };
-  const labeledCount = feedbackCounts.relevant + feedbackCounts.maybe + feedbackCounts.notRelevant;
-
-  return {
-    totalProfiles: profiles.length,
-    labeledCount,
-    coverage: profiles.length ? Number((labeledCount / profiles.length).toFixed(3)) : 0,
-    feedbackCounts,
-    ranking: {
-      top10Count: top10.length,
-      top10LabeledCount: top10Labeled.length,
-      top10RelevantCount: relevantAt10,
-      precisionAt10: top10Labeled.length ? Number((relevantAt10 / top10Labeled.length).toFixed(3)) : null,
-    },
-  };
-}
-
-function readPotentialScore(notes: string | null) {
-  if (!notes) return -1;
-  try {
-    const parsed = JSON.parse(notes) as { potentialScore?: unknown };
-    return typeof parsed.potentialScore === "number" ? parsed.potentialScore : -1;
-  } catch {
-    return -1;
   }
 }
 

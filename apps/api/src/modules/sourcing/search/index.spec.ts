@@ -28,7 +28,7 @@ describe("LinkedIn-first sourcing search", () => {
     const queries = buildLinkedinDiscoveryQueries(job);
 
     expect(queries.length).toBeGreaterThan(0);
-    expect(queries.every((query) => !query.query.includes("loc:vn"))).toBe(true);
+    expect(queries.every((query) => query.query.includes("loc:vn"))).toBe(true);
     expect(queries[0].query).toContain('"TP Hồ Chí Minh"');
     expect(queries[0].query).toContain('"Vietnam"');
   });
@@ -39,6 +39,7 @@ describe("LinkedIn-first sourcing search", () => {
     expect(queries.length).toBeGreaterThan(0);
     expect(queries[0].query).not.toContain('"TP Hồ Chí Minh"');
     expect(queries[0].query).not.toContain('"Vietnam"');
+    expect(queries[0].query).not.toContain("loc:vn");
   });
 
   it("adds bounded AI query enhancements without replacing deterministic JD signals", () => {

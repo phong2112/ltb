@@ -106,6 +106,19 @@ enum SourcingDiscoveryLocationScope {
   GLOBAL
 }
 
+enum SourcingLocationEligibility {
+  ELIGIBLE
+  NEEDS_VERIFICATION
+  INELIGIBLE
+  NOT_APPLICABLE
+}
+
+enum SourcingMatchConfidence {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 model User {
   id                String            @id @default(cuid())
   email             String            @unique
@@ -144,23 +157,23 @@ model Job {
 }
 
 model SourcingCampaign {
-  id                     String                         @id @default(cuid())
-  jobId                  String
-  name                   String
-  status                 SourcingCampaignStatus         @default(ACTIVE)
-  discoveryLocationScope SourcingDiscoveryLocationScope @default(VIETNAM)
-  brief                  Json
-  searchQueries          Json
-  orchestrationStatus    SourcingOrchestrationStatus    @default(IDLE)
-  orchestrationRunId     String?
-  orchestrationResult    Json?
-  orchestrationError     String?
-  orchestrationStartedAt DateTime?
+  id                      String                         @id @default(cuid())
+  jobId                   String
+  name                    String
+  status                  SourcingCampaignStatus         @default(ACTIVE)
+  discoveryLocationScope  SourcingDiscoveryLocationScope @default(VIETNAM)
+  brief                   Json
+  searchQueries           Json
+  orchestrationStatus     SourcingOrchestrationStatus    @default(IDLE)
+  orchestrationRunId      String?
+  orchestrationResult     Json?
+  orchestrationError      String?
+  orchestrationStartedAt  DateTime?
   orchestrationFinishedAt DateTime?
-  job                    Job                            @relation(fields: [jobId], references: [id], onDelete: Restrict)
-  profiles               SourcedProfile[]
-  createdAt              DateTime                       @default(now())
-  updatedAt              DateTime                       @updatedAt
+  job                     Job                            @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  profiles                SourcedProfile[]
+  createdAt               DateTime                       @default(now())
+  updatedAt               DateTime                       @updatedAt
 
   @@index([jobId])
   @@index([status])
@@ -170,29 +183,38 @@ model SourcingCampaign {
 }
 
 model SourcedProfile {
-  id                   String                @id @default(cuid())
+  id                   String                      @id @default(cuid())
   campaignId           String
-  source               SourcingSource        @default(LINKEDIN)
+  source               SourcingSource              @default(LINKEDIN)
   profileUrl           String
   normalizedProfileUrl String
   displayName          String?
   headline             String?
   location             String?
+  locationEligibility  SourcingLocationEligibility @default(NOT_APPLICABLE)
+  locationEvidence     String?
+  potentialScore       Int?
+  confidence           SourcingMatchConfidence?
+  scoringVersion       String?
+  jdFingerprint        String?
+  sourceQueryId        String?
+  sourceRank           Int?
   notes                String?
-  status               SourcingProfileStatus @default(SOURCED)
+  status               SourcingProfileStatus       @default(SOURCED)
   feedback             SourcingProfileFeedback?
   feedbackAt           DateTime?
-  extractionMethod     String                @default("ta_provided_url")
+  extractionMethod     String                      @default("ta_provided_url")
   fetchedAt            DateTime?
-  campaign             SourcingCampaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
+  campaign             SourcingCampaign            @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
 
   @@unique([campaignId, normalizedProfileUrl])
   @@index([source, normalizedProfileUrl])
   @@index([campaignId, status])
   @@index([campaignId, feedback])
   @@index([createdAt])
+  @@index([campaignId, locationEligibility, potentialScore])
 }
 
 model JobQuestion {

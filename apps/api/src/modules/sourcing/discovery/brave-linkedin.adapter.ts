@@ -1,4 +1,4 @@
-import type { SourcingSearchQuery } from "@/modules/sourcing/search";
+import type { SourcingDiscoveryLocationScope, SourcingSearchQuery } from "@/modules/sourcing/search";
 import { normalizeLinkedinProfileUrl } from "@/modules/sourcing/search";
 import type { LinkedinDiscoveryAdapter, LinkedinDiscoveryResult } from "./types";
 
@@ -67,8 +67,12 @@ export class BraveLinkedinDiscoveryAdapter implements LinkedinDiscoveryAdapter {
     this.now = options.now ?? Date.now;
   }
 
-  discover(query: SourcingSearchQuery, limit: number): Promise<LinkedinDiscoveryResult[]> {
-    return this.enqueue(() => this.executeDiscovery(query, limit));
+  discover(
+    query: SourcingSearchQuery,
+    limit: number,
+    locationScope: SourcingDiscoveryLocationScope = "VIETNAM",
+  ): Promise<LinkedinDiscoveryResult[]> {
+    return this.enqueue(() => this.executeDiscovery(query, limit, locationScope));
   }
 
   private enqueue<T>(operation: () => Promise<T>) {
@@ -77,7 +81,11 @@ export class BraveLinkedinDiscoveryAdapter implements LinkedinDiscoveryAdapter {
     return scheduled;
   }
 
-  private async executeDiscovery(query: SourcingSearchQuery, limit: number) {
+  private async executeDiscovery(
+    query: SourcingSearchQuery,
+    limit: number,
+    locationScope: SourcingDiscoveryLocationScope,
+  ) {
     const requestUrl = buildRequestUrl(query.query, limit);
     let lastError: BraveSearchError | undefined;
 
@@ -87,10 +95,7 @@ export class BraveLinkedinDiscoveryAdapter implements LinkedinDiscoveryAdapter {
       let response: Response;
       try {
         response = await this.fetch(requestUrl, {
-          headers: {
-            Accept: "application/json",
-            "X-Subscription-Token": this.apiKey,
-          },
+          headers: buildRequestHeaders(this.apiKey, locationScope),
           signal: AbortSignal.timeout(this.timeoutMs),
         });
       } catch (error) {
@@ -165,6 +170,14 @@ function buildRequestUrl(rawQuery: string, limit: number) {
   requestUrl.searchParams.set("text_decorations", "false");
   requestUrl.searchParams.set("safesearch", "moderate");
   return requestUrl;
+}
+
+function buildRequestHeaders(apiKey: string, locationScope: SourcingDiscoveryLocationScope) {
+  return {
+    Accept: "application/json",
+    "X-Subscription-Token": apiKey,
+    ...(locationScope === "VIETNAM" ? { "X-Loc-Country": "VN" } : {}),
+  };
 }
 
 export function compactBraveQuery(value: string) {

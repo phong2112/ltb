@@ -3,9 +3,11 @@ import {
   Navigate,
   Outlet,
   ScrollRestoration,
+  useLocation,
 } from "react-router";
 import { lazy, Suspense, type ReactNode } from "react";
 import { useData } from "@/app/data";
+import CherryBlossomFall from "@/app/components/CherryBlossomFall";
 
 const Home = lazy(() => import("@/app/pages/client/Home"));
 const Jobs = lazy(() => import("@/app/pages/client/Jobs"));
@@ -43,11 +45,16 @@ function RequireAdmin({ children }: { children?: ReactNode }) {
 }
 
 function RouteLayout() {
+  const location = useLocation();
+
   return (
-    <Suspense fallback={<RouteLoadingFallback />}>
-      <ScrollRestoration />
-      <Outlet />
-    </Suspense>
+    <>
+      <CherryBlossomFall context={location.pathname.startsWith("/admin") ? "admin" : "public"} />
+      <Suspense fallback={<RouteLoadingFallback />}>
+        <ScrollRestoration />
+        <Outlet />
+      </Suspense>
+    </>
   );
 }
 

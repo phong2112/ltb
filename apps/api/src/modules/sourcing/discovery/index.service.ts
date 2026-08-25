@@ -10,6 +10,7 @@ import {
   type SourcingSearchQuery,
 } from "@/modules/sourcing/search";
 import { BraveLinkedinDiscoveryAdapter, BraveSearchError } from "./brave-linkedin.adapter";
+import { assessLinkedinLocation } from "./location";
 import { scoreLinkedinDiscoveryResult } from "./scoring";
 import {
   sourcingJobFingerprint,
@@ -64,6 +65,7 @@ export class LinkedinDiscoveryService {
     const maxQueries = this.positiveInteger("SOURCING_DISCOVERY_MAX_QUERIES_PER_CAMPAIGN", DEFAULT_MAX_QUERIES);
     const resultsPerQuery = this.positiveInteger("SOURCING_DISCOVERY_RESULTS_PER_QUERY", DEFAULT_RESULTS_PER_QUERY);
     const queries = buildLinkedinDiscoveryQueries(job, options).slice(0, maxQueries);
+    const locationScope = options.locationScope ?? "VIETNAM";
 
     if (!queries.length) {
       throw new BadRequestException("Không tạo được LinkedIn discovery query từ JD này.");
@@ -82,6 +84,9 @@ export class LinkedinDiscoveryService {
         queryCount: queries.length,
         successfulQueryCount: 0,
         resultCount: 0,
+        eligibleCount: 0,
+        needsVerificationCount: 0,
+        ineligibleCount: 0,
         skippedQueries: queries.map((query) => query.id),
         failures: [failure],
         profiles: await this.listProfiles(prisma, campaignId),
@@ -96,7 +101,7 @@ export class LinkedinDiscoveryService {
     for (let queryIndex = 0; queryIndex < queries.length; queryIndex += 1) {
       const query = queries[queryIndex];
       try {
-        discovered.push(...await adapter.discover(query, resultsPerQuery));
+        discovered.push(...await adapter.discover(query, resultsPerQuery, locationScope));
         successfulQueryCount += 1;
       } catch (error) {
         skippedQueries.push(query.id);
@@ -116,6 +121,11 @@ export class LinkedinDiscoveryService {
 
     const byUrl = selectBestDiscoveryResults(discovered, queries);
     const normalizedUrls = [...byUrl.keys()];
+    const locationAssessments = new Map([...byUrl.values()].map(result => [
+      result.normalizedProfileUrl,
+      assessLinkedinLocation(result, locationScope),
+    ]));
+    const locationCounts = countLocationAssessments(locationAssessments);
 
     if (!normalizedUrls.length) {
       return {
@@ -128,6 +138,7 @@ export class LinkedinDiscoveryService {
         queryCount: queries.length,
         successfulQueryCount,
         resultCount: 0,
+        ...locationCounts,
         skippedQueries,
         failures,
         profiles: await this.listProfiles(prisma, campaignId),
@@ -144,14 +155,14 @@ export class LinkedinDiscoveryService {
 
     await Promise.all(toRefresh.map((result) => prisma.sourcedProfile.updateMany({
       where: { campaignId, normalizedProfileUrl: result.normalizedProfileUrl },
-      data: discoveryProfileRefreshData(result, job),
+      data: discoveryProfileRefreshData(result, job, locationScope),
     })));
 
     const created = await prisma.sourcedProfile.createMany({
       data: toCreate.map((result) => ({
         campaignId,
         normalizedProfileUrl: result.normalizedProfileUrl,
-        ...discoveryProfileRefreshData(result, job),
+        ...discoveryProfileRefreshData(result, job, locationScope),
       } satisfies Prisma.SourcedProfileCreateManyInput)),
       skipDuplicates: true,
     });
@@ -164,6 +175,7 @@ export class LinkedinDiscoveryService {
       queryCount: queries.length,
       successfulQueryCount,
       resultCount: normalizedUrls.length,
+      ...locationCounts,
       skippedQueries,
       failures,
       profiles: await this.listProfiles(prisma, campaignId),
@@ -173,7 +185,7 @@ export class LinkedinDiscoveryService {
   private listProfiles(prisma: PrismaService, campaignId: string) {
     return prisma.sourcedProfile.findMany({
       where: { campaignId },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ potentialScore: "desc" }, { createdAt: "desc" }],
     });
   }
 
@@ -272,15 +284,37 @@ function buildDiscoveryNotes(
   });
 }
 
-function discoveryProfileRefreshData(result: LinkedinDiscoveryResult, job: SourcingJobInput) {
+function discoveryProfileRefreshData(
+  result: LinkedinDiscoveryResult,
+  job: SourcingJobInput,
+  locationScope: SourcingDiscoveryLocationScope,
+) {
   const potential = scoreLinkedinDiscoveryResult(result, job);
+  const location = assessLinkedinLocation(result, locationScope);
   return {
     source: "LINKEDIN" as const,
     profileUrl: result.profileUrl,
     displayName: result.displayName,
     headline: result.headline,
+    locationEligibility: location.eligibility,
+    locationEvidence: location.evidence,
+    potentialScore: potential.score,
+    confidence: potential.confidence,
+    scoringVersion: SOURCING_SCORING_VERSION,
+    jdFingerprint: sourcingJobFingerprint(job),
+    sourceQueryId: result.queryId,
+    sourceRank: result.searchRank,
     notes: buildDiscoveryNotes(result, potential, job),
     extractionMethod: "search_api_snippet",
     fetchedAt: result.fetchedAt,
+  };
+}
+
+function countLocationAssessments(assessments: Map<string, ReturnType<typeof assessLinkedinLocation>>) {
+  const values = [...assessments.values()];
+  return {
+    eligibleCount: values.filter(item => item.eligibility === "ELIGIBLE" || item.eligibility === "NOT_APPLICABLE").length,
+    needsVerificationCount: values.filter(item => item.eligibility === "NEEDS_VERIFICATION").length,
+    ineligibleCount: values.filter(item => item.eligibility === "INELIGIBLE").length,
   };
 }

@@ -1,154 +1,328 @@
 import { Link } from "react-router";
-import { AlertCircle, ArrowRight, Bell, Briefcase, CheckCircle, Clock, Plus, Sparkles, TrendingUp, Users, Archive } from "lucide-react";
+import {
+  ArrowRight,
+  Bell,
+  Briefcase,
+  CalendarClock,
+  CheckCircle2,
+  Clock,
+  Plus,
+  Radar,
+  Sparkles,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import { useData } from "@/app/data";
 import { translateCandidateStatus, useLanguage } from "@/app/services/i18n-service";
 import AdminLayout from "@/app/layouts/AdminLayout";
 import { CANDIDATE_STATUS_CONFIG } from "@/app/utils/configs/status-config";
 
+const TERMINAL_STATUSES = new Set(["rejected", "offer", "offer_closed"]);
+
 export default function AdminDashboard() {
   const { jobs, candidates, candidateProfiles } = useData();
   const { language, t } = useLanguage();
+  const today = new Date().toISOString().split("T")[0];
 
-  const publishedJobs = jobs.filter(j => j.status === "published").length;
-  const draftJobs = jobs.filter(j => j.status === "draft").length;
-  const newCandidates = candidateProfiles.filter(candidate => candidate.applications.some(application => application.status === "new")).length;
-  const followUps = candidates.filter(c => c.followUpDate && c.status !== "rejected" && c.status !== "offer" && c.status !== "offer_closed").length;
+  const publishedJobs = jobs.filter(job => job.status === "published").length;
+  const urgentOpenJobs = jobs.filter(job => job.status === "published" && job.urgent).length;
+  const draftJobs = jobs.filter(job => job.status === "draft").length;
+  const newCandidates = candidateProfiles.filter(profile =>
+    profile.applications.some(application => application.status === "new"),
+  ).length;
+  const activeCandidates = candidates.filter(candidate => !TERMINAL_STATUSES.has(candidate.status));
+  const overdueFollowUps = activeCandidates.filter(candidate =>
+    candidate.followUpDate && candidate.followUpDate < today,
+  ).length;
+  const followUpCandidates = activeCandidates.filter(candidate => Boolean(candidate.followUpDate)).length;
   const completedMatches = candidates.filter(candidate => candidate.aiStatus === "completed");
-  const topMatch = [...completedMatches].sort((a, b) => b.aiScore - a.aiScore).slice(0, 3);
-  const recentCandidates = [...candidates].sort((a, b) => b.appliedAtIso.localeCompare(a.appliedAtIso)).slice(0, 5);
-  const averageScore = completedMatches.length ? Math.round(completedMatches.reduce((sum, candidate) => sum + candidate.aiScore, 0) / completedMatches.length) : 0;
-  const activePipeline = candidates.filter(candidate => candidate.status !== "rejected" && candidate.status !== "offer" && candidate.status !== "offer_closed").length;
-  const talentPoolCandidates = candidateProfiles.filter(candidate => candidate.applications.some(application => application.status === "talent_pool")).length;
+  const talentPoolCandidates = candidateProfiles.filter(profile =>
+    profile.applications.some(application => application.status === "talent_pool"),
+  ).length;
+  const recentCandidates = [...candidates]
+    .sort((a, b) => b.appliedAtIso.localeCompare(a.appliedAtIso))
+    .slice(0, 5);
+  const topMatches = [...completedMatches]
+    .sort((a, b) => b.aiScore - a.aiScore)
+    .slice(0, 4);
+
+  const priorities = [
+    {
+      title: t("admin.overdueFollowUps"),
+      description: t("admin.overdueTaskHint"),
+      priority: t("admin.priorityUrgent"),
+      count: overdueFollowUps,
+      link: "/admin/follow-up#overdue",
+      icon: CalendarClock,
+      activeClass: "border-red-200 bg-red-50/70 text-red-700",
+      iconClass: "bg-red-100 text-red-700",
+    },
+    {
+      title: t("admin.newProfilesTask"),
+      description: t("admin.newProfilesTaskHint"),
+      priority: t("admin.priorityReview"),
+      count: newCandidates,
+      link: "/admin/candidates?status=new",
+      icon: Users,
+      activeClass: "border-amber-200 bg-amber-50/70 text-amber-800",
+      iconClass: "bg-amber-100 text-amber-700",
+    },
+    {
+      title: t("admin.draftJobsTask"),
+      description: t("admin.draftJobsTaskHint"),
+      priority: t("admin.priorityPlan"),
+      count: draftJobs,
+      link: "/admin/jobs?status=draft",
+      icon: Briefcase,
+      activeClass: "border-primary/20 bg-rose-50/60 text-foreground",
+      iconClass: "bg-rose-100 text-primary",
+    },
+  ];
+  const itemsNeedAttention = priorities.reduce((sum, item) => sum + item.count, 0);
 
   const stats = [
-    { label: t("admin.openJobs"), val: publishedJobs, meta: `${draftJobs} ${t("admin.draftCount")}`, icon: <Briefcase size={19} />, color: "text-primary bg-pink-50", link: "/admin/jobs" },
-    { label: t("admin.newCandidates"), val: newCandidates, meta: `${activePipeline} ${t("admin.activePipeline")}`, icon: <Users size={19} />, color: "text-blue-600 bg-blue-50", link: "/admin/candidates" },
-    { label: t("admin.talentPool"), val: talentPoolCandidates, meta: t("admin.talentPoolMeta"), icon: <Archive size={19} />, color: "text-slate-600 bg-slate-100", link: "/admin/candidates?status=talent_pool" },
-    { label: t("admin.needFollowUp"), val: followUps, meta: t("common.followUp"), icon: <Bell size={19} />, color: "text-amber-600 bg-amber-50", link: "/admin/follow-up" },
-    { label: t("admin.totalCandidates"), val: candidateProfiles.length, meta: `${averageScore}% ${t("common.aiMatch")}`, icon: <TrendingUp size={19} />, color: "text-emerald-600 bg-emerald-50", link: "/admin/candidates" },
+    {
+      label: t("admin.openJobs"),
+      value: publishedJobs,
+      meta: `${urgentOpenJobs} ${t("admin.urgentJobs")}`,
+      link: "/admin/jobs?status=published",
+      icon: Briefcase,
+      tone: "bg-rose-50 text-primary",
+    },
+    {
+      label: t("admin.newCandidates"),
+      value: newCandidates,
+      meta: t("admin.newCandidatesMeta"),
+      link: "/admin/candidates?status=new",
+      icon: Users,
+      tone: "bg-blue-50 text-blue-600",
+    },
+    {
+      label: t("admin.talentPool"),
+      value: talentPoolCandidates,
+      meta: t("admin.talentPoolMeta"),
+      link: "/admin/candidates?status=talent_pool",
+      icon: TrendingUp,
+      tone: "bg-violet-50 text-violet-600",
+    },
+    {
+      label: t("admin.needFollowUp"),
+      value: followUpCandidates,
+      meta: `${overdueFollowUps} ${t("admin.overdueFollowUps")}`,
+      link: "/admin/follow-up",
+      icon: Bell,
+      tone: "bg-amber-50 text-amber-600",
+    },
+  ];
+
+  const quickLinks = [
+    { label: t("admin.createJob"), hint: t("admin.createJobShortcut"), link: "/admin/jobs/new", icon: Plus },
+    { label: t("admin.reviewCandidateInbox"), hint: t("admin.reviewCandidateInboxHint"), link: "/admin/candidates?status=new", icon: Users },
+    { label: t("admin.goToSourcing"), hint: t("admin.goToSourcingHint"), link: "/admin/sourcing", icon: Radar },
+    { label: t("admin.manageFollowUps"), hint: t("admin.manageFollowUpsHint"), link: "/admin/follow-up", icon: Bell },
   ];
 
   return (
     <AdminLayout>
-      {/* Page Header */}
-      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-pink-100 bg-white px-3 py-1 text-xs font-bold text-primary">
-            <Sparkles size={13} /> {t("admin.workspaceBadge")}
-          </div>
-          <h1 className="text-2xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{t("common.dashboard")}</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">{t("admin.dashboardGreeting")}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link to="/admin/jobs/new" className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary/90">
-            <Plus size={15} /> {t("admin.createJob")}
-          </Link>
-          <Link to="/admin/candidates" className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-pink-200 bg-white px-4 text-sm font-bold text-primary transition-colors hover:border-primary">
-            {t("admin.candidateInbox")} <ArrowRight size={14} />
-          </Link>
-        </div>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="mb-6 grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-4 lg:gap-4">
-        {stats.map(s => (
-          <Link key={s.label} to={s.link} className="group rounded-xl border border-border bg-white p-3.5 transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md sm:p-4">
-            <div className="mb-3 flex items-start justify-between gap-3 sm:mb-4">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${s.color}`}>{s.icon}</div>
-              <ArrowRight size={14} className="mt-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+      <div className="mx-auto w-full max-w-[1480px]">
+        <header className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="mb-1.5 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-primary">
+              <Sparkles size={13} aria-hidden="true" />
+              {t("admin.workspaceBadge")}
             </div>
-            <div className="flex items-end justify-between gap-2">
-              <div>
-                <div className="text-2xl font-black leading-none text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{s.val}</div>
-                <div className="mt-1 text-xs font-semibold text-muted-foreground">{s.label}</div>
-              </div>
-              <span className="max-w-[55%] rounded-full bg-secondary px-2 py-1 text-right text-[10px] font-bold leading-tight text-muted-foreground">{s.meta}</span>
-            </div>
-          </Link>
-        ))}
-      </div>
-
-      {/* Dashboard Panels */}
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-        {/* Top AI Matches */}
-        <div className="rounded-xl border border-border bg-white p-4 sm:p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-black text-foreground flex items-center gap-2" style={{ fontFamily: "'Playfair Display', serif" }}>
-              <Sparkles size={16} className="text-amber-500" /> {t("admin.topAiMatches")}
-            </h2>
-            <Link to="/admin/candidates" className="text-xs text-primary font-semibold hover:underline flex items-center gap-1">{t("home.ctaJobs")} <ArrowRight size={11} /></Link>
+            <h1 className="text-2xl font-extrabold leading-tight text-foreground sm:text-[28px]">
+              {t("admin.commandCenter")}
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{t("admin.dashboardGreeting")}</p>
           </div>
-          <div className="space-y-3">
-            {topMatch.length ? topMatch.map(c => (
-              <Link key={c.id} to={`/admin/candidates/${c.candidateId}?application=${c.applicationId}`} className="group flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-pink-50">
-                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
-                  {c.name.charAt(0)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-foreground truncate group-hover:text-primary transition-colors">{c.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{c.jobTitle}</p>
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary">
-                    <div className={`h-full rounded-full ${c.aiScore >= 90 ? "bg-emerald-500" : c.aiScore >= 75 ? "bg-amber-500" : "bg-muted-foreground"}`} style={{ width: `${Math.min(c.aiScore, 100)}%` }} />
+          <Link
+            to="/admin/jobs/new"
+            className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-sm transition hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <Plus size={16} aria-hidden="true" />
+            {t("admin.createJob")}
+          </Link>
+        </header>
+
+        <div className="mb-5 grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.75fr)]">
+          <div className="min-w-0 space-y-5">
+            <section className="self-start overflow-hidden rounded-2xl border border-border bg-white" aria-labelledby="attention-title">
+              <div className="flex flex-col gap-2 border-b border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className={`h-2.5 w-2.5 rounded-full ${itemsNeedAttention ? "bg-red-500" : "bg-emerald-500"}`} />
+                    <h2 id="attention-title" className="text-base font-extrabold text-foreground sm:text-lg">
+                      {t("admin.attentionTitle")}
+                    </h2>
                   </div>
                 </div>
-                <div className="flex-shrink-0 text-right">
-                  <div className={`text-sm font-black ${c.aiScore >= 90 ? "text-emerald-600" : c.aiScore >= 75 ? "text-amber-600" : "text-muted-foreground"}`}>{c.aiScore}%</div>
-                  <div className="text-[10px] text-muted-foreground">{t("common.aiMatch")}</div>
-                </div>
-              </Link>
-            )) : (
-              <div className="rounded-xl border border-dashed border-border bg-background p-4 text-sm font-semibold text-muted-foreground">
-                {t("admin.noCandidates")}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Recent Candidates */}
-        <div className="rounded-xl border border-border bg-white p-4 sm:p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>{t("admin.recentCandidates")}</h2>
-            <Link to="/admin/candidates" className="text-xs text-primary font-semibold hover:underline flex items-center gap-1">{t("home.ctaJobs")} <ArrowRight size={11} /></Link>
-          </div>
-          <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
-            {recentCandidates.length ? recentCandidates.map(c => (
-              <Link key={c.id} to={`/admin/candidates/${c.candidateId}?application=${c.applicationId}`} className="group grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 bg-white p-3 transition-colors hover:bg-pink-50 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
-                <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-muted-foreground font-bold text-sm flex-shrink-0">{c.name.charAt(0)}</div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-foreground truncate group-hover:text-primary transition-colors">{c.name}</p>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                    <span className="truncate">{c.jobTitle}</span>
-                    <span className="inline-flex items-center gap-1"><Clock size={11} /> {c.appliedAt}</span>
-                  </div>
-                </div>
-                <span className={`col-start-2 w-fit flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold sm:col-start-auto ${CANDIDATE_STATUS_CONFIG[c.status].badgeClass}`}>
-                  {translateCandidateStatus(c.status, language)}
+                <span className={`w-fit rounded-full px-3 py-1.5 text-xs font-bold ${itemsNeedAttention ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>
+                  {itemsNeedAttention ? `${itemsNeedAttention} ${t("admin.itemsNeedAttention")}` : t("admin.allCaughtUp")}
                 </span>
-              </Link>
-            )) : (
-              <div className="bg-background p-4 text-sm font-semibold text-muted-foreground">{t("admin.noCandidates")}</div>
-            )}
+              </div>
+
+              <div className="grid grid-cols-1 gap-2 p-2 sm:grid-cols-3">
+                {priorities.map(item => {
+                  const Icon = item.icon;
+                  const isActive = item.count > 0;
+                  return (
+                    <Link
+                      key={item.title}
+                      to={item.link}
+                      className={`group relative flex min-h-[88px] min-w-0 items-center gap-3 rounded-xl border p-3 transition hover:bg-rose-50/40 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-primary ${isActive ? item.activeClass : "border-border bg-white text-muted-foreground"}`}
+                    >
+                      <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-xl ${isActive ? item.iconClass : "bg-secondary text-emerald-600"}`}>
+                        {isActive ? <Icon size={19} aria-hidden="true" /> : <CheckCircle2 size={19} aria-hidden="true" />}
+                      </span>
+                      <span className="min-w-0 flex-1 pr-10">
+                        <span className="flex flex-wrap items-center gap-1.5 pr-1">
+                          <span className="text-sm font-extrabold leading-tight">{item.title}</span>
+                          {isActive && (
+                            <span className="rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide opacity-75">
+                              {item.priority}
+                            </span>
+                          )}
+                        </span>
+                      </span>
+                      <span className={`absolute right-4 top-1/2 flex h-8 min-w-8 -translate-y-1/2 items-center justify-center rounded-full px-2 text-xs font-extrabold ${isActive ? "bg-white shadow-sm" : "bg-secondary"}`}>
+                        {item.count}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+
+
+            <section className="mb-5" aria-labelledby="snapshot-title">
+              <h2 id="snapshot-title" className="mb-2 text-sm font-extrabold text-foreground">{t("admin.performanceSnapshot")}</h2>
+              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+                {stats.map(stat => {
+                  const Icon = stat.icon;
+                  return (
+                    <Link
+                      key={stat.label}
+                      to={stat.link}
+                      className="group flex min-h-[88px] min-w-0 items-center gap-2.5 rounded-xl border border-border bg-white p-3 transition hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    >
+                      <span className={`flex h-8 w-8 flex-none items-center justify-center rounded-xl ${stat.tone}`}>
+                        <Icon size={16} aria-hidden="true" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-lg font-extrabold leading-none text-foreground">{stat.value}</span>
+                        <span className="mt-1 block truncate text-[10px] font-extrabold uppercase tracking-[0.08em] text-foreground">{stat.label}</span>
+                        <span className="mt-0.5 block truncate text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground" title={stat.meta}>{stat.meta}</span>
+                      </span>
+                      <ArrowRight size={14} className="text-muted-foreground/40 transition group-hover:translate-x-0.5 group-hover:text-primary" />
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
           </div>
+
+          <section className="self-start rounded-2xl border border-border bg-white p-4" aria-labelledby="quick-access-title">
+            <h2 id="quick-access-title" className="mb-3 text-base font-extrabold text-foreground">{t("admin.quickAccess")}</h2>
+            <div className="grid grid-cols-1 gap-2 min-[480px]:grid-cols-2 xl:grid-cols-1">
+              {quickLinks.map(item => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.label}
+                    to={item.link}
+                    className="group flex min-h-12 items-center gap-2.5 rounded-xl border border-border px-3 py-2 transition hover:border-primary/30 hover:bg-rose-50/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    <span className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-secondary text-primary">
+                      <Icon size={17} aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-bold text-foreground">{item.label}</span>
+                    </span>
+                    <ArrowRight size={14} className="flex-none text-muted-foreground/50 transition group-hover:translate-x-0.5 group-hover:text-primary" />
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
         </div>
 
-        {/* Priority Tasks */}
-        <div className="rounded-xl border border-border bg-white p-4 sm:p-5 xl:col-span-2">
-          <h2 className="font-black text-foreground mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>{t("admin.todayTasks")}</h2>
-          <div className="grid sm:grid-cols-2 gap-3">
-            {[
-              { icon: <AlertCircle size={15} className="text-amber-500" />, text: `${newCandidates} ${t("admin.newProfilesTask")}`, urgent: newCandidates > 0, link: "/admin/candidates" },
-              { icon: <Bell size={15} className="text-blue-500" />, text: `${followUps} ${t("admin.followUpTask")}`, urgent: followUps > 0, link: "/admin/follow-up" },
-              { icon: <Briefcase size={15} className="text-primary" />, text: `${draftJobs} ${t("admin.draftJobsTask")}`, urgent: false, link: "/admin/jobs" },
-              { icon: <CheckCircle size={15} className="text-emerald-500" />, text: t("admin.reviewTopCandidates"), urgent: false, link: "/admin/candidates" },
-            ].map((t, i) => (
-              <Link key={i} to={t.link} className={`flex items-center gap-3 rounded-xl border p-3.5 transition-all hover:shadow-sm ${t.urgent ? "border-amber-200 bg-amber-50 hover:border-amber-300" : "border-border bg-background hover:border-primary/30"}`}>
-                <span className="flex-shrink-0">{t.icon}</span>
-                <span className={`text-sm font-semibold ${t.urgent ? "text-amber-800" : "text-foreground"}`}>{t.text}</span>
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.75fr)]">
+          <section className="min-w-0 overflow-hidden rounded-2xl border border-border bg-white" aria-labelledby="recent-title">
+            <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4 sm:px-5">
+              <div>
+                <h2 id="recent-title" className="text-base font-extrabold text-foreground sm:text-lg">{t("admin.recentCandidates")}</h2>
+                <p className="mt-0.5 text-xs text-muted-foreground">{t("admin.recentCandidatesHint")}</p>
+              </div>
+              <Link to="/admin/candidates" className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline">
+                {t("admin.viewAll")} <ArrowRight size={13} />
               </Link>
-            ))}
-          </div>
+            </div>
+            <div className="divide-y divide-border">
+              {recentCandidates.length ? recentCandidates.map(candidate => (
+                <Link
+                  key={candidate.id}
+                  to={`/admin/candidates/${candidate.candidateId}?application=${candidate.applicationId}`}
+                  className="group grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 px-4 py-3 transition hover:bg-rose-50/40 focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-primary sm:grid-cols-[auto_minmax(0,1fr)_auto_auto] sm:px-5"
+                >
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary text-sm font-extrabold text-primary">{candidate.name.charAt(0)}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-extrabold text-foreground group-hover:text-primary">{candidate.name}</span>
+                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">{candidate.jobTitle}</span>
+                  </span>
+                  <span className="col-start-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground sm:col-start-auto">
+                    <Clock size={11} /> {candidate.appliedAt}
+                  </span>
+                  <span className={`col-start-2 w-fit rounded-full border px-2.5 py-1 text-[10px] font-bold sm:col-start-auto ${CANDIDATE_STATUS_CONFIG[candidate.status].badgeClass}`}>
+                    {translateCandidateStatus(candidate.status, language)}
+                  </span>
+                </Link>
+              )) : <EmptyState text={t("admin.noCandidates")} />}
+            </div>
+          </section>
+
+          <section className="overflow-hidden rounded-2xl border border-border bg-white" aria-labelledby="matches-title">
+            <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4 sm:px-5">
+              <div>
+                <h2 id="matches-title" className="text-base font-extrabold text-foreground sm:text-lg">{t("admin.topAiMatches")}</h2>
+                <p className="mt-0.5 text-xs text-muted-foreground">{t("admin.topAiMatchesHint")}</p>
+              </div>
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600"><Sparkles size={18} /></span>
+            </div>
+            {topMatches.length ? (
+              <div className="divide-y divide-border">
+                {topMatches.map(candidate => (
+                  <Link
+                    key={candidate.id}
+                    to={`/admin/candidates/${candidate.candidateId}?application=${candidate.applicationId}`}
+                    className="group block px-4 py-3 transition hover:bg-rose-50/40 focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-primary sm:px-5"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary text-sm font-extrabold text-primary">{candidate.name.charAt(0)}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-extrabold text-foreground group-hover:text-primary">{candidate.name}</span>
+                        <span className="mt-0.5 block truncate text-xs text-muted-foreground">{candidate.jobTitle}</span>
+                      </span>
+                      <span className={`text-base font-extrabold ${candidate.aiScore >= 80 ? "text-emerald-600" : "text-amber-600"}`}>{candidate.aiScore}%</span>
+                      <ArrowRight size={14} className="text-muted-foreground/40 transition group-hover:translate-x-0.5 group-hover:text-primary" />
+                    </div>
+                    <div className="ml-12 mt-2 h-1.5 overflow-hidden rounded-full bg-secondary">
+                      <div
+                        className={`h-full rounded-full ${candidate.aiScore >= 80 ? "bg-emerald-500" : "bg-amber-500"}`}
+                        style={{ width: `${Math.min(candidate.aiScore, 100)}%` }}
+                      />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : <EmptyState text={t("admin.noCandidates")} />}
+          </section>
         </div>
       </div>
     </AdminLayout>
   );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return <div className="px-5 py-10 text-center text-sm font-semibold text-muted-foreground">{text}</div>;
 }

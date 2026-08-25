@@ -244,7 +244,7 @@ export function buildLinkedinDiscoveryQueries(
   pushLinkedinDiscoveryQuery(queries, "linkedin-discovery-strict", "LinkedIn · Auto strict", `${titleClause}${seniorityClause}${skillGroups[0] ? ` ${orClause(skillGroups[0])}` : ""}${locationClause} ${baseNegative}`);
   pushLinkedinDiscoveryQuery(queries, "linkedin-discovery-skill-first", "LinkedIn · Auto skill-first", `${skillGroups[0] ? orClause(skillGroups[0]) : titleClause} ${adjacentTitleClause}${locationClause} ${baseNegative}`);
   pushLinkedinDiscoveryQuery(queries, "linkedin-discovery-adjacent-title", "LinkedIn · Auto title mở rộng", `${adjacentTitleClause}${skillGroups[1] ? ` ${orClause(skillGroups[1])}` : ""}${locationClause} ${baseNegative}`);
-  pushLinkedinDiscoveryQuery(queries, "linkedin-discovery-location-broad", "LinkedIn · Auto rộng địa điểm", `${titleClause}${skillGroups[0] ? ` ${orClause(skillGroups[0])}` : ""} ${baseNegative}`);
+  pushLinkedinDiscoveryQuery(queries, "linkedin-discovery-location-broad", "LinkedIn · Auto rộng thành phố", `${titleClause}${skillGroups[0] ? ` ${orClause(skillGroups[0])}` : ""}${locationClause} ${baseNegative}`);
   pushLinkedinDiscoveryQuery(queries, "linkedin-discovery-hidden-gem", "LinkedIn · Auto hidden gems", `${skillGroups.flat().slice(0, 5).map(quote).join(" ")}${locationClause} ${baseNegative}`);
 
   skillGroups.slice(0, 4).forEach((group, index) => {
@@ -356,7 +356,7 @@ function groupDiscoveryTerms<T>(values: T[], size: number) {
 
 function discoveryLocationClause(locations: string[], scope: SourcingDiscoveryLocationScope) {
   if (scope === "GLOBAL") return "";
-  return ` ${locations.length ? orClause([...expandLocationTerms(locations), "Vietnam", "Viet Nam"]) : orClause(["Vietnam", "Viet Nam"])}`;
+  return ` loc:vn ${locations.length ? orClause([...expandLocationTerms(locations), "Vietnam", "Viet Nam"]) : orClause(["Vietnam", "Viet Nam"])}`;
 }
 
 function expandLocationTerms(locations: string[]) {

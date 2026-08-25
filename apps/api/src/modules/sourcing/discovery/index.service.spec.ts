@@ -57,6 +57,9 @@ describe("LinkedinDiscoveryService", () => {
       duplicateCount: 0,
       queryCount: 1,
       resultCount: 1,
+      eligibleCount: 1,
+      needsVerificationCount: 0,
+      ineligibleCount: 0,
       profiles: [{ id: "profile-1" }],
     });
 
@@ -66,6 +69,13 @@ describe("LinkedinDiscoveryService", () => {
         source: "LINKEDIN",
         normalizedProfileUrl: "https://www.linkedin.com/in/a",
         extractionMethod: "search_api_snippet",
+        locationEligibility: "ELIGIBLE",
+        locationEvidence: "Vietnam",
+        potentialScore: expect.any(Number),
+        confidence: expect.stringMatching(/LOW|MEDIUM/u),
+        scoringVersion: "sourcing-v2",
+        sourceQueryId: "q1",
+        sourceRank: 1,
         notes: expect.stringContaining("potentialScore"),
       })],
     }));

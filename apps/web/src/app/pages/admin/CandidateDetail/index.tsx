@@ -310,12 +310,12 @@ export default function CandidateDetail() {
                   </span>
                 </div>
               </div>
-              <dl className="mt-5 grid gap-3 md:grid-cols-2">
+              <dl className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-2">
                 <InfoItem
                   icon={<Mail size={14} />}
                   label={t("common.email")}
                   value={primaryEmail}
-                  className="md:col-span-2"
+                  className="lg:col-span-2"
                   copied={copiedContactKey === "email"}
                   copyLabel={copiedContactKey === "email" ? t("common.copied") : t("admin.copyCandidateEmail")}
                   copyValue={emailCopyValue}
@@ -342,12 +342,12 @@ export default function CandidateDetail() {
                 <InfoItem icon={<MapPin size={14} />} label={t("admin.applicationArea")} value={application.applicationArea || "—"} />
                 <InfoItem icon={<Briefcase size={14} />} label={t("admin.appliedRole")} value={application.jobTitle} />
               </dl>
-              <div className="mt-5 grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
-                <div className="min-w-0 rounded-xl border border-border/80 bg-background/60 p-4">
+              <div className="mt-5 grid grid-cols-1 items-stretch gap-3 lg:grid-cols-2">
+                <div className="min-w-0 overflow-hidden rounded-xl border border-border/80 bg-background/60 p-4">
                   <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
                     <NotebookPen size={13} className="text-primary" /> {t("admin.coverNote")}
                   </p>
-                  <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-foreground">{application.coverNote || "—"}</p>
+                  <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-foreground [overflow-wrap:anywhere]">{application.coverNote || "—"}</p>
                 </div>
                 <ScreeningAnswers answers={application.screeningAnswers} title={t("admin.screeningQuestions")} />
               </div>
@@ -637,7 +637,7 @@ function ScreeningAnswers({ answers, title }: {
   title: string;
 }) {
   return (
-    <div className="min-w-0 rounded-xl border border-border/80 bg-background/60 p-4">
+    <div className="min-w-0 overflow-hidden rounded-xl border border-border/80 bg-background/60 p-4">
       <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
         <ClipboardList size={13} className="text-primary" /> {title}
       </p>
@@ -653,7 +653,7 @@ function ScreeningAnswers({ answers, title }: {
                   </span>
                 )}
               </p>
-              <p className="mt-1.5 text-sm leading-6 text-foreground">{answer.a || "Chưa trả lời"}</p>
+              <p className="mt-1.5 break-words text-sm leading-6 text-foreground [overflow-wrap:anywhere]">{answer.a || "Chưa trả lời"}</p>
             </div>
           ))}
         </div>

@@ -194,7 +194,7 @@ export class InternalCandidateSuggestionService {
   private listProfiles(prisma: PrismaService, campaignId: string) {
     return prisma.sourcedProfile.findMany({
       where: { campaignId },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ potentialScore: "desc" }, { createdAt: "desc" }],
     });
   }
 }
@@ -274,6 +274,11 @@ function sourcedProfileRefreshData(suggestion: InternalSuggestion, job: Sourcing
     displayName: suggestion.displayName,
     headline: suggestion.headline,
     location: suggestion.location,
+    locationEligibility: "NOT_APPLICABLE" as const,
+    potentialScore: suggestion.potential.score,
+    confidence: suggestion.potential.confidence,
+    scoringVersion: SOURCING_SCORING_VERSION,
+    jdFingerprint: sourcingJobFingerprint(job),
     notes: buildInternalSuggestionNotes(suggestion, job),
     extractionMethod: suggestion.sourceKind,
     fetchedAt: new Date(),

@@ -25,7 +25,7 @@ export function InfoItem({ icon, label, value, className = "", copied = false, c
         <dt className="line-clamp-1 text-[10px] font-black uppercase tracking-[0.1em] text-muted-foreground">
           {label}
         </dt>
-        <dd className="mt-0.5 line-clamp-2 break-words text-sm font-black leading-5 text-foreground" title={value}>
+        <dd className="mt-0.5 line-clamp-2 break-words text-sm font-black leading-5 text-foreground [overflow-wrap:anywhere]" title={value}>
           {value}
         </dd>
       </div>

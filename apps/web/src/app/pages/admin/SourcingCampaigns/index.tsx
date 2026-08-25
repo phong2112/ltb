@@ -1,10 +1,19 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowRight, BriefcaseBusiness, Linkedin, Plus, Radar, Users } from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, CalendarDays, Globe2, Linkedin, MapPin, Plus, Radar, Search, Sparkles, Users } from "lucide-react";
 import { Link, useNavigate } from "react-router";
-import type { ApiSourcingCampaign, ApiSourcingDiscoveryLocationScope } from "@/app/apis/models";
+import type { ApiSourcingCampaign, ApiSourcingCampaignStatus, ApiSourcingDiscoveryLocationScope } from "@/app/apis/models";
 import { createSourcingCampaign, listSourcingCampaigns } from "@/app/apis/requests";
 import { useData } from "@/app/data";
 import AdminLayout from "@/app/layouts/AdminLayout";
+
+type CampaignFilter = "ALL" | ApiSourcingCampaignStatus;
+
+const FILTER_OPTIONS: Array<{ value: CampaignFilter; label: string }> = [
+  { value: "ALL", label: "Tất cả" },
+  { value: "ACTIVE", label: "Đang chạy" },
+  { value: "PAUSED", label: "Tạm dừng" },
+  { value: "CLOSED", label: "Đã đóng" },
+];
 
 export default function SourcingCampaigns() {
   const { jobs } = useData();
@@ -13,6 +22,8 @@ export default function SourcingCampaigns() {
   const [jobId, setJobId] = useState("");
   const [name, setName] = useState("");
   const [discoveryLocationScope, setDiscoveryLocationScope] = useState<ApiSourcingDiscoveryLocationScope>("VIETNAM");
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<CampaignFilter>("ALL");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -36,49 +47,64 @@ export default function SourcingCampaigns() {
       setSubmitting(false);
     }
   }
+  const normalizedSearch = search.trim().toLocaleLowerCase("vi");
+  const visibleCampaigns = campaigns.filter((campaign) => {
+    const matchesFilter = filter === "ALL" || campaign.status === filter;
+    const matchesSearch = !normalizedSearch || [campaign.name, campaign.job.title, campaign.job.company ?? ""]
+      .some((value) => value.toLocaleLowerCase("vi").includes(normalizedSearch));
+    return matchesFilter && matchesSearch;
+  });
+  const activeCampaigns = campaigns.filter((campaign) => campaign.status === "ACTIVE").length;
+  const totalProfiles = campaigns.reduce((sum, campaign) => sum + campaign._count.profiles, 0);
+  const runningCampaigns = campaigns.filter((campaign) => ["QUEUED", "RUNNING"].includes(campaign.orchestration.status)).length;
+
 
   return (
     <AdminLayout>
-      {/* Page Header */}
-      <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#0a66c2]/15 bg-[#eef6ff] px-3 py-1 text-xs font-black text-[#0a66c2]">
-            <Linkedin size={13} /> Nguồn ưu tiên số 1
-          </div>
-          <h1 className="text-2xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>Sourcing Campaign</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Tạo bộ tìm kiếm đa nền tảng từ JD và quản lý ứng viên đã tìm thấy.</p>
+      <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="max-w-2xl">
+          <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-primary"><Radar size={14} /> Talent sourcing</div>
+          <h1 className="text-2xl font-black text-foreground sm:text-3xl" style={{ fontFamily: "'Playfair Display', serif" }}>Tìm đúng người cho từng vị trí</h1>
+          <p className="mt-1.5 text-sm leading-6 text-muted-foreground">Tạo chiến dịch từ JD, tìm ứng viên đa nguồn và đưa hồ sơ phù hợp vào một shortlist dễ review.</p>
         </div>
-      </div>
+        <a href="#create-campaign" className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-black text-white shadow-sm transition-colors hover:bg-primary/90 xl:hidden"><Plus size={16} /> Tạo chiến dịch</a>
+      </header>
+
+      <section className="mb-5 grid grid-cols-1 overflow-hidden rounded-2xl border border-border bg-white min-[440px]:grid-cols-3">
+        <OverviewStat icon={<Radar size={17} />} value={activeCampaigns} label="Chiến dịch đang chạy" />
+        <OverviewStat icon={<Users size={17} />} value={totalProfiles} label="Hồ sơ đã tìm thấy" />
+        <OverviewStat icon={<Sparkles size={17} />} value={runningCampaigns} label="Workflow đang xử lý" />
+      </section>
 
       {/* Campaign Creation And List */}
-      <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         {/* Create Campaign Form */}
-        <form onSubmit={handleCreate} className="h-fit rounded-2xl border border-border bg-white p-4 sm:p-5">
+        <form id="create-campaign" onSubmit={handleCreate} className="order-2 scroll-mt-20 rounded-2xl border border-border bg-white p-4 sm:p-5 xl:sticky xl:top-20">
           <div className="mb-4 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Plus size={18} /></div>
             <div>
               <h2 className="font-black text-foreground">Tạo chiến dịch mới</h2>
-              <p className="text-xs text-muted-foreground">LinkedIn ưu tiên, mở rộng thêm nhiều nguồn</p>
+              <p className="text-xs text-muted-foreground">Tạo brief và query trực tiếp từ JD</p>
             </div>
           </div>
 
-          <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-muted-foreground" htmlFor="sourcing-job">Vị trí cần tuyển</label>
+          <label className="mb-1.5 block text-xs font-black text-foreground" htmlFor="sourcing-job">Vị trí cần tuyển <span className="text-primary">*</span></label>
           <select
             id="sourcing-job"
             value={jobId}
             onChange={(event) => setJobId(event.target.value)}
             required
-            className="mb-4 h-11 w-full rounded-xl border border-border bg-white px-3 text-sm font-semibold text-foreground outline-none focus:border-primary"
+            className="mb-4 h-11 w-full rounded-xl border border-border bg-white px-3 text-sm font-semibold text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
           >
             <option value="">Chọn một vị trí</option>
             {jobs.filter((job) => job.status !== "archived").map((job) => <option key={job.id} value={job.id}>{job.title}</option>)}
           </select>
 
-          <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-muted-foreground">Phạm vi LinkedIn discovery</label>
+          <label className="mb-1.5 block text-xs font-black text-foreground">Phạm vi tìm kiếm</label>
           <div className="mb-4 grid grid-cols-2 gap-2">
             {[
-              { value: "VIETNAM" as const, label: "Việt Nam", hint: "Ưu tiên location trong JD + Vietnam" },
-              { value: "GLOBAL" as const, label: "All location", hint: "Không giới hạn địa điểm" },
+              { value: "VIETNAM" as const, label: "Việt Nam", hint: "Ưu tiên đúng thị trường" },
+              { value: "GLOBAL" as const, label: "Toàn cầu", hint: "Không giới hạn địa điểm" },
             ].map((option) => (
               <button
                 key={option.value}
@@ -93,33 +119,50 @@ export default function SourcingCampaigns() {
             ))}
           </div>
 
-          <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-muted-foreground" htmlFor="sourcing-name">Tên chiến dịch (không bắt buộc)</label>
+          <label className="mb-1.5 block text-xs font-black text-foreground" htmlFor="sourcing-name">Tên chiến dịch <span className="font-semibold text-muted-foreground">(tuỳ chọn)</span></label>
           <input
             id="sourcing-name"
             value={name}
             onChange={(event) => setName(event.target.value)}
             maxLength={120}
-            placeholder="VD: AI Engineer · Multi-source HCM"
+            placeholder="VD: Senior Backend · HCM"
             className="mb-4 h-11 w-full rounded-xl border border-border px-3 text-sm outline-none placeholder:text-muted-foreground/70 focus:border-primary"
           />
 
-          <div className="mb-4 rounded-xl border border-[#0a66c2]/15 bg-[#f7fbff] p-3 text-xs leading-5 text-muted-foreground">
-            Hệ thống sẽ tạo query cho LinkedIn, GitHub, portfolio public, ITviec, VietnamWorks, Facebook, GitLab và Stack Overflow.
+          <div className="mb-4 rounded-xl bg-background p-3 text-xs leading-5 text-muted-foreground">
+            <p className="font-black text-foreground">Sau khi tạo, bạn có thể:</p>
+            <p className="mt-1">Chạy workflow tự động, mở query đa nguồn hoặc thêm URL hồ sơ thủ công.</p>
           </div>
 
           <button disabled={!jobId || submitting} className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-black text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50">
-            <Radar size={16} /> {submitting ? "Đang tạo..." : "Tạo bộ tìm kiếm"}
+            <Radar size={16} /> {submitting ? "Đang chuẩn bị..." : "Tạo và mở chiến dịch"}
           </button>
         </form>
 
         {/* Existing Campaigns */}
-        <section className="overflow-hidden rounded-2xl border border-border bg-white">
-          <div className="flex items-center justify-between border-b border-border p-4 sm:p-5">
-            <div>
+        <section className="order-1 min-w-0 overflow-hidden rounded-2xl border border-border bg-white">
+          <div className="border-b border-border p-3 sm:p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
               <h2 className="font-black text-foreground">Các chiến dịch</h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">{campaigns.length} chiến dịch đã tạo</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{visibleCampaigns.length}/{campaigns.length} chiến dịch</p>
+              </div>
+              <span className="hidden rounded-full bg-[#eef6ff] px-3 py-1 text-[11px] font-black text-[#0a66c2] sm:inline-flex"><Linkedin size={12} className="mr-1.5" /> LinkedIn ưu tiên</span>
             </div>
-            <Radar size={19} className="text-primary" />
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-background px-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10">
+                <Search size={15} className="flex-none text-muted-foreground" />
+                <span className="sr-only">Tìm chiến dịch</span>
+                <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm chiến dịch, vị trí hoặc công ty" className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground" />
+              </label>
+              <div className="scrollbar-horizontal flex gap-1.5 overflow-x-auto" aria-label="Lọc trạng thái chiến dịch">
+                {FILTER_OPTIONS.map((option) => (
+                  <button key={option.value} type="button" onClick={() => setFilter(option.value)} aria-pressed={filter === option.value} className={`h-10 flex-none rounded-xl border px-3 text-xs font-black transition-colors ${filter === option.value ? "border-primary bg-primary text-white" : "border-border bg-white text-muted-foreground hover:border-primary/50 hover:text-foreground"}`}>
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {loading && <div className="p-8 text-center text-sm font-semibold text-muted-foreground">Đang tải chiến dịch...</div>}
@@ -132,25 +175,32 @@ export default function SourcingCampaigns() {
             </div>
           )}
           <div className="divide-y divide-border">
-            {campaigns.map((campaign) => (
-              <Link key={campaign.id} to={`/admin/sourcing/${campaign.id}`} className="group block p-4 transition-colors hover:bg-pink-50/50 sm:p-5">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-[#0a66c2] text-white"><Linkedin size={18} /></div>
+          {!loading && !error && campaigns.length > 0 && visibleCampaigns.length === 0 && (
+            <div className="p-10 text-center">
+              <Search size={22} className="mx-auto mb-2 text-muted-foreground" />
+              <p className="font-bold text-foreground">Không tìm thấy chiến dịch phù hợp</p>
+              <button type="button" onClick={() => { setSearch(""); setFilter("ALL"); }} className="mt-2 text-sm font-bold text-primary hover:underline">Xóa bộ lọc</button>
+            </div>
+          )}
+            {visibleCampaigns.map((campaign) => (
+              <Link key={campaign.id} to={`/admin/sourcing/${campaign.id}`} className="group block p-4 outline-none transition-colors hover:bg-pink-50/50 focus-visible:bg-pink-50 sm:p-5">
+                <div className="flex items-start gap-3 sm:items-center sm:gap-4">
+                  <div className="flex h-11 w-11 flex-none items-center justify-center rounded-xl border border-[#0a66c2]/15 bg-[#eef6ff] text-[#0a66c2]"><Radar size={19} /></div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="truncate font-black text-foreground group-hover:text-primary">{campaign.name}</p>
-                        <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-muted-foreground"><BriefcaseBusiness size={12} /> {campaign.job.title}</p>
+                        <p className="truncate font-black text-foreground transition-colors group-hover:text-primary">{campaign.name}</p>
+                        <p className="mt-1 flex items-center gap-1.5 truncate text-xs font-semibold text-muted-foreground"><BriefcaseBusiness size={12} /> {campaign.job.title}{campaign.job.company ? ` · ${campaign.job.company}` : ""}</p>
                       </div>
-                      <ArrowRight size={16} className="mt-1 flex-none text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+                      <ArrowRight size={17} className="mt-1 flex-none text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
                     </div>
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-bold">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-muted-foreground"><Users size={11} /> {campaign._count.profiles} ứng viên</span>
+                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] font-bold text-muted-foreground">
+                      <span className="inline-flex items-center gap-1"><Users size={12} /> {campaign._count.profiles} hồ sơ</span>
                       <span className={`rounded-full px-2.5 py-1 ${campaignStatusMeta(campaign.status).className}`}>
                         {campaignStatusMeta(campaign.status).label}
                       </span>
-                      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-amber-700">{campaign.discoveryLocationScope === "GLOBAL" ? "All location" : "Việt Nam"}</span>
-                      <span className="rounded-full bg-[#eef6ff] px-2.5 py-1 text-[#0a66c2]">Multi-source</span>
+                      <span className="inline-flex items-center gap-1">{campaign.discoveryLocationScope === "GLOBAL" ? <Globe2 size={12} /> : <MapPin size={12} />} {campaign.discoveryLocationScope === "GLOBAL" ? "Toàn cầu" : "Việt Nam"}</span>
+                      <span className="inline-flex items-center gap-1"><CalendarDays size={12} /> {formatCampaignDate(campaign.updatedAt)}</span>
                     </div>
                   </div>
                 </div>
@@ -161,6 +211,22 @@ export default function SourcingCampaigns() {
       </div>
     </AdminLayout>
   );
+}
+
+function OverviewStat({ icon, value, label }: { icon: React.ReactNode; value: number; label: string }) {
+  return (
+    <div className="flex items-center gap-3 border-b border-border px-4 py-3 last:border-b-0 min-[440px]:border-b-0 min-[440px]:border-r min-[440px]:last:border-r-0 sm:px-5 sm:py-4">
+      <span className="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-primary/8 text-primary">{icon}</span>
+      <div>
+        <p className="text-xl font-black leading-none text-foreground">{value}</p>
+        <p className="mt-1 text-[11px] font-bold text-muted-foreground">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+function formatCampaignDate(value: string) {
+  return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(value));
 }
 
 function campaignStatusMeta(status: ApiSourcingCampaign["status"]) {

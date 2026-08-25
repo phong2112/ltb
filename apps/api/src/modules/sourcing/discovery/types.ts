@@ -1,4 +1,4 @@
-import type { SourcingSearchQuery } from "@/modules/sourcing/search";
+import type { SourcingDiscoveryLocationScope, SourcingSearchQuery } from "@/modules/sourcing/search";
 import type { BraveSearchFailureCode } from "./brave-linkedin.adapter";
 
 export type LinkedinDiscoveryResult = {
@@ -15,7 +15,7 @@ export type LinkedinDiscoveryResult = {
 };
 
 export type LinkedinDiscoveryAdapter = {
-  discover(query: SourcingSearchQuery, limit: number): Promise<LinkedinDiscoveryResult[]>;
+  discover(query: SourcingSearchQuery, limit: number, locationScope?: SourcingDiscoveryLocationScope): Promise<LinkedinDiscoveryResult[]>;
 };
 
 export type LinkedinPotentialScore = {
@@ -34,6 +34,9 @@ export type LinkedinDiscoverySummary = {
   queryCount: number;
   successfulQueryCount: number;
   resultCount: number;
+  eligibleCount: number;
+  needsVerificationCount: number;
+  ineligibleCount: number;
   skippedQueries: string[];
   failures: LinkedinDiscoveryFailure[];
 };
