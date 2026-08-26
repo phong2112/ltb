@@ -2,6 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "corepack enable && pnpm install --frozen-lockfile",
   "buildCommand": "pnpm --filter @hr-copilot/shared build && pnpm --filter @hr-copilot/web build",
+  "build": {
+    "env": {
+      "VITE_REALTIME_URL": "https://ltb-7mi0.onrender.com"
+    }
+  },
   "outputDirectory": "apps/web/dist",
   "framework": "vite",
   "rewrites": [

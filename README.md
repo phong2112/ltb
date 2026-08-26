@@ -250,9 +250,10 @@ The production frontend remains on Vercel. Deploy only the NestJS API to Render
 using `render.yaml`, while keeping Neon, managed Redis, Groq, R2, and Vercel
 Blob external.
 
-Set Vercel build variable `VITE_REALTIME_URL` to the direct HTTPS Render API origin
-(for example `https://your-api.onrender.com`). REST continues through `/api`; the
-Socket.IO client connects to `/chat/realtime` directly using WebSocket transport.
+The Vercel build config sets `VITE_REALTIME_URL` to the direct HTTPS Render API
+origin. REST continues through `/api`; the Socket.IO client connects to
+`/chat/realtime` directly using WebSocket transport. Update both `build.env` and
+the REST rewrite in `vercel.json` when the Render service origin changes.
 
 See [docs/deployment.md](docs/deployment.md) for environment setup, deploy,
 smoke test, and rollback notes.
