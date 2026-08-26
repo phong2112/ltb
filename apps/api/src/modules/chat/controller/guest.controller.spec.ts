@@ -66,7 +66,7 @@ describe("GuestChatController", () => {
     expect(chatService.getGuestSnapshot).toHaveBeenCalledWith("session-secret");
   });
 
-  it("issues a device-scoped realtime ticket with a tighter reconnect limit", async () => {
+  it("issues a device-scoped realtime ticket without throttling reconnects", async () => {
     const { controller, chatService, realtimeTickets } = setup();
     const request = { headers: { cookie: "guest_chat_session=session-secret" } } as Request;
 
@@ -76,7 +76,7 @@ describe("GuestChatController", () => {
     });
     expect(chatService.getGuestRealtimeIdentity).toHaveBeenCalledWith("session-secret");
     expect(realtimeTickets.issue).toHaveBeenCalledWith("GUEST", "device-1");
-    expect(Reflect.getMetadata("THROTTLER:LIMITchat", GuestChatController.prototype.createRealtimeTicket)).toBe(10);
+    expect(Reflect.getMetadata("THROTTLER:SKIPchat", GuestChatController.prototype.createRealtimeTicket)).toBe(true);
   });
 
   it("uses the isolated chat rate-limit bucket for message sends", () => {
@@ -86,12 +86,15 @@ describe("GuestChatController", () => {
     expect(Reflect.getMetadata("THROTTLER:LIMITdefault", handler)).toBeUndefined();
   });
 
-  it("allows four times the default chat rate for conversation snapshots", () => {
-    const handler = GuestChatController.prototype.getConversation;
-
-    expect(Reflect.getMetadata("THROTTLER:LIMITchat", handler)).toBe(1_200);
-    expect(Reflect.getMetadata("THROTTLER:TTLchat", handler)).toBe(60_000);
-    expect(Reflect.getMetadata("THROTTLER:LIMITdefault", handler)).toBeUndefined();
+  it("does not throttle background chat synchronization endpoints", () => {
+    for (const handler of [
+      GuestChatController.prototype.getConversation,
+      GuestChatController.prototype.getMessages,
+      GuestChatController.prototype.markRead,
+    ]) {
+      expect(Reflect.getMetadata("THROTTLER:SKIPchat", handler)).toBe(true);
+      expect(Reflect.getMetadata("THROTTLER:LIMITdefault", handler)).toBeUndefined();
+    }
   });
 
   it("rejects a browser origin outside the configured allowlist before creating a session", async () => {

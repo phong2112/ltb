@@ -1,6 +1,6 @@
 import { Body, Controller, ForbiddenException, Get, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { Throttle, ThrottlerGuard } from "@nestjs/throttler";
+import { SkipThrottle, Throttle, ThrottlerGuard } from "@nestjs/throttler";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { Request, Response } from "express";
 import { readCookie } from "@/modules/auth/guards/index.guard";
@@ -48,7 +48,7 @@ export class GuestChatController {
   }
 
   @Post("realtime-ticket")
-  @Throttle({ chat: { limit: 10, ttl: 60_000 } })
+  @SkipThrottle({ chat: true })
   async createRealtimeTicket(@Req() request: Request) {
     this.assertAllowedOrigin(request);
     const deviceId = await this.chatService.getGuestRealtimeIdentity(this.sessionToken(request));
@@ -56,12 +56,13 @@ export class GuestChatController {
   }
 
   @Get("conversation")
-  @Throttle({ chat: { limit: 1_200, ttl: 60_000 } })
+  @SkipThrottle({ chat: true })
   getConversation(@Req() request: Request) {
     return this.chatService.getGuestSnapshot(this.sessionToken(request));
   }
 
   @Get("messages")
+  @SkipThrottle({ chat: true })
   getMessages(@Req() request: Request, @Query() query: ChatMessagesQueryDto) {
     return this.chatService.getGuestMessages(this.sessionToken(request), query.cursor);
   }
@@ -74,6 +75,7 @@ export class GuestChatController {
   }
 
   @Post("read")
+  @SkipThrottle({ chat: true })
   markRead(@Req() request: Request) {
     this.assertAllowedOrigin(request);
     return this.chatService.markGuestRead(this.sessionToken(request));
