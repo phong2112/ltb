@@ -1,6 +1,7 @@
 import type { ChatRealtimeTicketResponse } from "@hr-copilot/shared";
 import type {
   ApiAdminChatConversation,
+  ApiAdminChatUnreadSummary,
   ApiAdminConversationDetail,
   ApiChatConversation,
   ApiGuestChatSnapshot,
@@ -84,6 +85,10 @@ export function listAdminChatConversations(input: { q?: string; cursor?: string 
   return apiRequest<ApiChatPage<ApiAdminChatConversation>>(`${API_ENDPOINTS.adminChat.conversations}${query}`);
 }
 
+export function getAdminChatUnreadSummary() {
+  return apiRequest<ApiAdminChatUnreadSummary>(API_ENDPOINTS.adminChat.unreadSummary);
+}
+
 export function getAdminChatConversation(id: string, cursor?: string) {
   const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
   return apiRequest<ApiAdminConversationDetail>(`${API_ENDPOINTS.adminChat.conversation(id)}${query}`);
@@ -106,4 +111,3 @@ export function updateAdminChatStatus(id: string, status: ChatConversationStatus
     body: JSON.stringify({ status }),
   });
 }
-

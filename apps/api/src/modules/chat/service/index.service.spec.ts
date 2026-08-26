@@ -46,6 +46,21 @@ describe("ChatService", () => {
     expect(prisma.chatConversation.upsert).not.toHaveBeenCalled();
   });
 
+  it("counts unread guest messages for the admin inbox", async () => {
+    const count = jest.fn().mockResolvedValue(4);
+    const prisma = { chatMessage: { count } };
+    const service = new ChatService(prisma as unknown as PrismaService, tokenService, config);
+
+    await expect(service.getAdminUnreadSummary()).resolves.toEqual({ unreadMessages: 4 });
+    expect(count).toHaveBeenCalledWith({
+      where: {
+        senderType: ChatSenderType.GUEST,
+        readAt: null,
+        conversation: { taUserId: "hr-admin" },
+      },
+    });
+  });
+
   it("returns the original message for a repeated client id", async () => {
     const existingMessage = {
       id: "message-1",

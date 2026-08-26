@@ -8,6 +8,7 @@ export {
   createAdminChatRealtimeTicket,
   createGuestChatRealtimeTicket,
   createGuestChatSession,
+  getAdminChatUnreadSummary,
   getAdminChatConversation,
   getGuestChatMessages,
   getGuestChatSnapshot,

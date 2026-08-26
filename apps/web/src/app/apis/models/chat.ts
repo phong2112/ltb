@@ -63,3 +63,6 @@ export type ApiAdminConversationDetail = ApiChatPage<ApiChatMessage> & {
   conversation: ApiChatConversation;
 };
 
+export type ApiAdminChatUnreadSummary = {
+  unreadMessages: number;
+};

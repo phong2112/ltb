@@ -39,6 +39,7 @@ export const API_ENDPOINTS = {
   },
   adminChat: {
     realtimeTicket: ADMIN_CHAT_ENDPOINT + "/realtime-ticket",
+    unreadSummary: ADMIN_CHAT_ENDPOINT + "/unread-summary",
     conversations: ADMIN_CHAT_ENDPOINT + "/conversations",
     conversation: (id: string) => `${ADMIN_CHAT_ENDPOINT}/conversations/${encodeURIComponent(id)}`,
     messages: (id: string) => `${API_ENDPOINTS.adminChat.conversation(id)}/messages`,

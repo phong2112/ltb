@@ -239,6 +239,18 @@ export class ChatService {
     return { items: visible, nextCursor: hasMore ? visible.at(-1)?.id ?? null : null };
   }
 
+  async getAdminUnreadSummary() {
+    const unreadMessages = await this.prisma.chatMessage.count({
+      where: {
+        senderType: ChatSenderType.GUEST,
+        readAt: null,
+        conversation: { taUserId: TA_USER_ID },
+      },
+    });
+
+    return { unreadMessages };
+  }
+
   async getAdminConversation(id: string, cursor?: string) {
     const conversation = await this.prisma.chatConversation.findFirst({
       where: { id, taUserId: TA_USER_ID },

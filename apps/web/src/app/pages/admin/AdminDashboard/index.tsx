@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import {
   ArrowRight,
@@ -6,12 +7,14 @@ import {
   CalendarClock,
   CheckCircle2,
   Clock,
+  MessageCircle,
   Plus,
   Radar,
   Sparkles,
   TrendingUp,
   Users,
 } from "lucide-react";
+import { getAdminChatUnreadSummary } from "@/app/apis/requests";
 import { useData } from "@/app/data";
 import { translateCandidateStatus, useLanguage } from "@/app/services/i18n-service";
 import AdminLayout from "@/app/layouts/AdminLayout";
@@ -22,7 +25,20 @@ const TERMINAL_STATUSES = new Set(["rejected", "offer", "offer_closed"]);
 export default function AdminDashboard() {
   const { jobs, candidates, candidateProfiles } = useData();
   const { language, t } = useLanguage();
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const today = new Date().toISOString().split("T")[0];
+
+  useEffect(() => {
+    let active = true;
+    void getAdminChatUnreadSummary()
+      .then(summary => {
+        if (active) setUnreadMessages(summary.unreadMessages);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const publishedJobs = jobs.filter(job => job.status === "published").length;
   const urgentOpenJobs = jobs.filter(job => job.status === "published" && job.urgent).length;
@@ -76,6 +92,16 @@ export default function AdminDashboard() {
       icon: Briefcase,
       activeClass: "border-primary/20 bg-rose-50/60 text-foreground",
       iconClass: "bg-rose-100 text-primary",
+    },
+    {
+      title: t("admin.unreadMessagesTask"),
+      description: t("admin.unreadMessagesTaskHint"),
+      priority: t("admin.priorityReply"),
+      count: unreadMessages,
+      link: "/admin/chats",
+      icon: MessageCircle,
+      activeClass: "border-blue-200 bg-blue-50/70 text-blue-800",
+      iconClass: "bg-blue-100 text-blue-700",
     },
   ];
   const itemsNeedAttention = priorities.reduce((sum, item) => sum + item.count, 0);
@@ -162,7 +188,7 @@ export default function AdminDashboard() {
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 gap-2 p-2 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-2 p-2 sm:grid-cols-2 xl:grid-cols-4">
                 {priorities.map(item => {
                   const Icon = item.icon;
                   const isActive = item.count > 0;

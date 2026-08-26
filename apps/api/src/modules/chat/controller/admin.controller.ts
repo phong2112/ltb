@@ -27,6 +27,11 @@ export class AdminChatController {
     return this.chatService.listAdminConversations(query.q, query.cursor);
   }
 
+  @Get("unread-summary")
+  unreadSummary() {
+    return this.chatService.getAdminUnreadSummary();
+  }
+
   @Get("conversations/:id")
   get(@Param("id") id: string, @Query() query: ChatMessagesQueryDto) {
     return this.chatService.getAdminConversation(id, query.cursor);
@@ -47,4 +52,3 @@ export class AdminChatController {
     return this.chatService.updateStatus(id, dto.status);
   }
 }
-
