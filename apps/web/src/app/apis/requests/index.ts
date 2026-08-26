@@ -5,6 +5,22 @@ export {
   logoutRequest,
 } from "./auth";
 export {
+  createAdminChatRealtimeTicket,
+  createGuestChatRealtimeTicket,
+  createGuestChatSession,
+  getAdminChatConversation,
+  getGuestChatMessages,
+  getGuestChatSnapshot,
+  listAdminChatConversations,
+  markAdminChatRead,
+  markGuestChatRead,
+  resetGuestChatSession,
+  restoreGuestChatSession,
+  sendAdminChatMessage,
+  sendGuestChatMessage,
+  updateAdminChatStatus,
+} from "./chat";
+export {
   createJobRequest,
   getAdminJobs,
   getPublicJobs,
@@ -47,3 +63,5 @@ export {
   updateSourcingProfileFeedback,
   updateSourcingCampaignStatus,
 } from "./sourcing";
+export { getAnalyticsEvents, getAnalyticsFeatures, getAnalyticsIssues, getAnalyticsOverview, getApplicationFunnel } from "./analytics";
+export type { AnalyticsFilters } from "./analytics";

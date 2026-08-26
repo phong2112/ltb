@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { MulterModule } from "@nestjs/platform-express";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { AiModule } from "@/modules/ai";
+import { ChatModule } from "@/modules/chat";
 import { FilesModule } from "@/modules/files";
 import { JobsModule } from "@/modules/jobs";
 import { NotificationsModule } from "@/modules/notifications";
@@ -15,6 +16,7 @@ import { createCvUploadOptions } from "./upload-options";
 @Module({
   imports: [
     AiModule,
+    ChatModule,
     FilesModule,
     JobsModule,
     NotificationsModule,

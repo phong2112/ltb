@@ -8,6 +8,7 @@ const requiredConfig = {
   ADMIN_PASSWORD: "secret",
   JWT_ACCESS_TOKEN_SECRET: "access-secret",
   JWT_REFRESH_TOKEN_SECRET: "refresh-secret",
+  CHAT_REALTIME_TICKET_SECRET: "realtime-secret-at-least-32-characters",
   CV_STORAGE_DRIVER: "local",
 };
 
@@ -41,6 +42,11 @@ describe("validateEnv", () => {
       SOURCING_ORCHESTRATION_STALE_MINUTES: 30,
       GROQ_SOURCING_TIMEOUT_MS: 15000,
     });
+  });
+
+  it("requires a separate realtime ticket secret with sufficient entropy", () => {
+    expect(() => validateEnv({ ...requiredConfig, CHAT_REALTIME_TICKET_SECRET: "short" }))
+      .toThrow("CHAT_REALTIME_TICKET_SECRET must be at least 32 characters");
   });
 
   it("rejects negative proxy hop counts", () => {

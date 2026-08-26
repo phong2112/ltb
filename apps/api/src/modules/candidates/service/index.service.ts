@@ -410,6 +410,8 @@ export class CandidatesService {
         ...talentPoolEntries.flatMap(entry => entry.file ? [entry.file.path] : []),
       ];
 
+      await tx.chatConversation.deleteMany({ where: { candidateId: id } });
+
       if (applicationIds.length > 0) {
         await tx.candidateMessage.deleteMany({ where: { applicationId: { in: applicationIds } } });
         await tx.followUpTask.deleteMany({ where: { applicationId: { in: applicationIds } } });

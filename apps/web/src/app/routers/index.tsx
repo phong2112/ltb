@@ -5,7 +5,8 @@ import {
   ScrollRestoration,
   useLocation,
 } from "react-router";
-import { lazy, Suspense, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
+import { routeTemplateFor, track } from "@/app/services/analytics";
 import { useData } from "@/app/data";
 import CherryBlossomFall from "@/app/components/CherryBlossomFall";
 
@@ -28,6 +29,7 @@ const CandidateChats = lazy(() => import("@/app/pages/admin/CandidateChats"));
 const FollowUp = lazy(() => import("@/app/pages/admin/FollowUp"));
 const MessageTemplates = lazy(() => import("@/app/pages/admin/MessageTemplates"));
 const AdminSettings = lazy(() => import("@/app/pages/admin/AdminSettings"));
+const AdminAnalytics = lazy(() => import("@/app/pages/admin/AdminAnalytics"));
 const SourcingCampaigns = lazy(() => import("@/app/pages/admin/SourcingCampaigns"));
 const SourcingCampaignDetail = lazy(() => import("@/app/pages/admin/SourcingCampaignDetail"));
 const Terms = lazy(() => import("@/app/pages/client/Terms"));
@@ -46,6 +48,14 @@ function RequireAdmin({ children }: { children?: ReactNode }) {
 
 function RouteLayout() {
   const location = useLocation();
+  useEffect(() => {
+    const routeTemplate = routeTemplateFor(location.pathname);
+    const audience = location.pathname.startsWith("/admin") ? "admin" : "public";
+    const referrerType = !document.referrer ? "none" : new URL(document.referrer).origin === window.location.origin ? "internal" : "external";
+    track("page_viewed", { routeTemplate, properties: { audience, referrerType } });
+    if (routeTemplate.endsWith("/jobs/:id")) track("application_funnel_step", { feature: "application", routeTemplate, properties: { step: "job_viewed" } });
+    if (routeTemplate.endsWith("/jobs/:id/apply")) track("application_funnel_step", { feature: "application", routeTemplate, properties: { step: "apply_started" } });
+  }, [location.pathname]);
 
   return (
     <>
@@ -140,6 +150,7 @@ export const router = createBrowserRouter([
               { path: "chats", Component: CandidateChats },
               { path: "follow-up", Component: FollowUp },
               { path: "templates", Component: MessageTemplates },
+              { path: "analytics", Component: AdminAnalytics },
               { path: "settings", Component: AdminSettings },
               { path: "sourcing", Component: SourcingCampaigns },
               { path: "sourcing/:id", Component: SourcingCampaignDetail },

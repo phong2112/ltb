@@ -34,7 +34,7 @@ export const PRIVACY_CONTENT: Record<Language, PrivacyPageContent> = {
     badge: "Pháp lý",
     title: "Chính sách quyền riêng tư",
     updatedLabel: "Ngày cập nhật:",
-    updatedDate: "10 tháng 7, 2026",
+    updatedDate: "26 tháng 8, 2026",
     updatedNote: "Chúng tôi tôn trọng quyền riêng tư của bạn.",
     contentsLabel: "Mục lục",
     contactTitle: "Có câu hỏi về quyền riêng tư?",
@@ -61,9 +61,11 @@ export const PRIVACY_CONTENT: Record<Language, PrivacyPageContent> = {
 - Ghi chú hoặc tin nhắn bạn gửi cho chúng tôi
 
 **1.2 Thông tin được thu thập tự động:**
-- Địa chỉ IP và thông tin trình duyệt, chỉ dùng cho mục đích bảo mật
-- Các trang đã truy cập và thời gian truy cập, ở dạng tổng hợp và đã ẩn danh
-- Loại thiết bị, chẳng hạn máy tính hoặc điện thoại
+- Địa chỉ IP và thông tin trình duyệt, chỉ dùng cho mục đích bảo mật và giới hạn tần suất
+- Route mẫu đã truy cập, thao tác tính năng, kết quả, thời lượng và mã lỗi kỹ thuật đã chuẩn hóa
+- Một ID phiên ngẫu nhiên trong sessionStorage; máy chủ chỉ lưu giá trị HMAC và không dùng fingerprint
+
+Dữ liệu hành vi không chứa giá trị form, họ tên, email, số điện thoại, nội dung CV, tin nhắn, ghi chú hoặc URL/query thô.
 
 **1.3 Thông tin chúng tôi KHÔNG thu thập:**
 - Thông tin tài chính hoặc thẻ thanh toán
@@ -101,7 +103,7 @@ Chỉ trong trường hợp có yêu cầu bắt buộc theo quyết định c�
         body: `- **Hồ sơ bị từ chối**: Xóa sau **12 tháng** kể từ ngày ra quyết định, trừ khi bạn đồng ý tham gia nguồn ứng viên tiềm năng.
 - **Hồ sơ trong nguồn ứng viên tiềm năng**: Lưu tối đa **24 tháng** kể từ lần tương tác gần nhất. Bạn có thể yêu cầu xóa sớm hơn bất kỳ lúc nào.
 - **Hồ sơ ứng viên đã được tuyển dụng**: Lưu giữ theo yêu cầu của pháp luật về hồ sơ lao động, tối đa 5 năm.
-- **Nhật ký kỹ thuật**: Tự động xóa sau 90 ngày.
+- **Sự kiện analytics thô và nhật ký kỹ thuật**: Tự động xóa sau **90 ngày**. Aggregate theo ngày không chứa user ID hoặc session hash được giữ tối đa **12 tháng**.
 
 Sau các mốc thời gian này, dữ liệu sẽ được xóa vĩnh viễn hoặc ẩn danh hoàn toàn.`,
       },
@@ -139,7 +141,7 @@ Tuy vậy, không có hệ thống nào an toàn tuyệt đối. Nếu xảy ra 
       },
       {
         title: "7. Cookie và công nghệ theo dõi",
-        body: "Nền tảng sử dụng các cookie cần thiết để hoạt động đúng cách, chẳng hạn như duy trì phiên đăng nhập. Chúng tôi **không** sử dụng cookie theo dõi quảng cáo và không chia sẻ hành vi duyệt web của bạn cho bên thứ ba.\n\nBạn có thể tắt cookie trong cài đặt trình duyệt, nhưng một số tính năng có thể không hoạt động chính xác.",
+        body: "Nền tảng sử dụng cookie cần thiết để duy trì phiên đăng nhập và phiên chat khách. Analytics first-party dùng một ID phiên ngẫu nhiên trong sessionStorage, tự mất khi đóng tab và không dùng cookie analytics bền vững. Với chat, một token phiên được lưu trong cookie HttpOnly và một token khôi phục độc lập được lưu trên trình duyệt; máy chủ chỉ lưu giá trị băm. Nội dung chat được lưu trong cơ sở dữ liệu. Chúng tôi **không** sử dụng cookie theo dõi quảng cáo và không chia sẻ hành vi duyệt web của bạn cho bên thứ ba.\n\nNếu chỉ cookie bị xóa nhưng token khôi phục còn tồn tại, phiên chat có thể được cấp lại. Nếu bạn xóa toàn bộ dữ liệu trang, dùng trình duyệt hoặc hồ sơ ẩn danh mới, hệ thống sẽ coi đó là một khách mới và lịch sử cũ không thể được mở lại từ thiết bị đó.",
       },
       {
         title: "8. Trẻ em và người dùng dưới 18 tuổi",
@@ -149,7 +151,7 @@ Tuy vậy, không có hệ thống nào an toàn tuyệt đối. Nếu xảy ra 
         title: "9. Thay đổi đối với chính sách này",
         body: `Chúng tôi có thể cập nhật Chính sách quyền riêng tư này theo thời gian để phản ánh thay đổi trong hoạt động hoặc yêu cầu pháp lý. Nếu có thay đổi quan trọng, chúng tôi sẽ thông báo qua email nếu bạn đã cung cấp, hoặc hiển thị thông báo nổi bật trên nền tảng.
 
-Ngày cập nhật: **10 tháng 7, 2026**.`,
+Ngày cập nhật: **26 tháng 8, 2026**.`,
       },
       {
         title: "10. Liên hệ về quyền riêng tư",
@@ -167,7 +169,7 @@ Bạn cũng có thể gửi khiếu nại tới cơ quan có thẩm quyền về
     badge: "Legal",
     title: "Privacy Policy",
     updatedLabel: "Last updated:",
-    updatedDate: "July 10, 2026",
+    updatedDate: "August 26, 2026",
     updatedNote: "We value your privacy.",
     contentsLabel: "Contents",
     contactTitle: "Questions about privacy?",
@@ -194,9 +196,11 @@ Bạn cũng có thể gửi khiếu nại tới cơ quan có thẩm quyền về
 - Notes or messages you send to us
 
 **1.2 Information collected automatically:**
-- IP address and browser information, used only for security
-- Pages visited and time spent, in aggregated and anonymized form
-- Device type, such as desktop or mobile
+- IP address and browser information, used only for security and rate limiting
+- Visited route templates, semantic feature actions, outcomes, durations, and normalized technical error codes
+- A random session ID in sessionStorage; the server stores only its HMAC and does not use fingerprinting
+
+Behavior events do not contain form values, names, email addresses, phone numbers, CV content, messages, notes, or raw URLs/queries.
 
 **1.3 Information we do NOT collect:**
 - Financial or credit card information
@@ -234,7 +238,7 @@ Only when required by a court order or mandatory legal obligation.`,
         body: `- **Rejected applications**: Deleted after **12 months** from the decision date, unless you consent to join the talent pool.
 - **Talent pool profiles**: Kept for up to **24 months** after the last interaction. You may request earlier deletion at any time.
 - **Hired candidate records**: Retained as required by employment record laws, up to 5 years.
-- **Technical logs**: Automatically deleted after 90 days.
+- **Raw analytics events and technical logs**: Automatically deleted after **90 days**. Daily aggregates without user IDs or session hashes are retained for up to **12 months**.
 
 After these periods, data will be permanently deleted or fully anonymized.`,
       },
@@ -272,7 +276,7 @@ However, no system is completely secure. If a security incident affects your dat
       },
       {
         title: "7. Cookies and tracking technologies",
-        body: "The platform uses necessary cookies to function properly, such as maintaining login sessions. We **do not** use advertising tracking cookies or share browsing behavior with third parties.\n\nYou may disable cookies in your browser settings, but some features may not work correctly.",
+        body: "The platform uses necessary cookies for login and guest chat sessions. First-party analytics uses a random session ID in sessionStorage, which expires with the tab, and does not use a persistent analytics cookie. For chat, one session token is stored in an HttpOnly cookie and an independent recovery token is stored in the browser; the server stores hashes only. Chat content is stored in the database. We **do not** use advertising tracking cookies or share browsing behavior with third parties.\n\nIf only the cookie is removed while the recovery token remains, the chat session can be reissued. Clearing all site data or using a new browser or incognito profile creates a new guest identity, and that browser can no longer reopen the old history.",
       },
       {
         title: "8. Children and users under 18",
@@ -282,7 +286,7 @@ However, no system is completely secure. If a security incident affects your dat
         title: "9. Changes to this policy",
         body: `We may update this Privacy Policy from time to time to reflect changes in our practices or legal requirements. If there are material changes, we will notify you by email, if provided, or display a prominent notice on the platform.
 
-Last updated: **July 10, 2026**.`,
+Last updated: **August 26, 2026**.`,
       },
       {
         title: "10. Privacy contact",

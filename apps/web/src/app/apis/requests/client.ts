@@ -55,10 +55,7 @@ export async function apiRequest<T>(path: string, init: ApiRequestInit = {}) {
       );
     }
 
-    const result =
-      response.status === 204
-        ? (undefined as T)
-        : ((await response.json()) as T);
+    const result = await parseSuccessfulResponse<T>(response);
     if (notification)
       notificationService.success(notification.success, notificationId);
     return result;
@@ -97,9 +94,26 @@ function sendRequest(path: string, init: RequestInit) {
     headers: {
       ...(bodyIsFormData ? {} : { "Content-Type": "application/json" }),
       "X-Tenant-Slug": currentTenantSlug(),
+      "X-Request-Id": globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
       ...(init.headers ?? {}),
     },
   });
+}
+
+async function parseSuccessfulResponse<T>(response: Response) {
+  if (response.status === 204) return undefined as T;
+
+  const body = await response.text();
+  if (!body.trim()) return undefined as T;
+
+  try {
+    return JSON.parse(body) as T;
+  } catch {
+    throw new ApiRequestError(
+      "API trả về dữ liệu JSON không hợp lệ.",
+      response.status,
+    );
+  }
 }
 
 /** Extracts a readable API error message from Nest validation/error response bodies. */

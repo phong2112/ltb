@@ -2,6 +2,7 @@ import { useId, useRef, useState, type ChangeEvent, type FormEvent } from "react
 import { previewApplicationCv } from "@/app/apis/requests";
 import { useData } from "@/app/data";
 import { useLanguage } from "@/app/services/i18n-service";
+import { track } from "@/app/services/analytics";
 import { initialForm } from "@/app/components/ApplicationForm/constants";
 import type { ApplicationFormProps, CvPreviewState, FormErrors, FormState, ScreeningQuestion, TextFieldName } from "@/app/components/ApplicationForm/types";
 import { getScreeningAnswerError, validateCvFile } from ".";
@@ -116,6 +117,7 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
     const nextErrors = validate();
     if (Object.keys(nextErrors).length) {
       setErrors(nextErrors);
+      track("form_validation_failed", { feature: "application", action: "submit", properties: { formId: "application", fieldCodes: Object.keys(nextErrors).map((field) => field.startsWith("question-") ? "screening_answer" : field), errorCodes: ["required_or_invalid"] } });
       window.requestAnimationFrame(() => {
         const firstInvalidField = formElement.querySelector<HTMLElement>("[aria-invalid='true']");
         firstInvalidField?.focus({ preventScroll: true });
@@ -124,6 +126,7 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
       return;
     }
 
+    track("application_funnel_step", { feature: "application", action: "submit", properties: { step: "submit_attempted" } });
     setSubmitting(true);
     setErrors({});
 
@@ -170,6 +173,7 @@ export function useApplicationForm({ job, onSuccess }: Pick<ApplicationFormProps
       return;
     }
 
+    track("application_funnel_step", { feature: "application", action: "select_cv", properties: { step: "cv_selected" } });
     setCvFile(file);
     void previewCvFile(file, cvPreviewRequestId.current);
   }

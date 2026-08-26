@@ -4,12 +4,15 @@ import { router } from "@/app/routers";
 import { DataProvider } from "@/app/data";
 import { LanguageProvider } from "@/app/services/i18n-service";
 import { Toaster } from "@/app/components/Common/sonner";
+import AnalyticsErrorBoundary from "@/app/components/AnalyticsErrorBoundary";
+import { installAnalyticsLifecycle } from "@/app/services/analytics";
 import AppIntro from "@/app/components/AppIntro";
 
 const INTRO_DURATION_MS = 1350;
 const REDUCED_MOTION_INTRO_DURATION_MS = 500;
 
 export default function App() {
+  useEffect(() => installAnalyticsLifecycle(), []);
   const [showIntro, setShowIntro] = useState(true);
 
   useEffect(() => {
@@ -30,7 +33,7 @@ export default function App() {
     <LanguageProvider>
       {showIntro && <AppIntro />}
       <DataProvider>
-        <RouterProvider router={router} />
+        <AnalyticsErrorBoundary><RouterProvider router={router} /></AnalyticsErrorBoundary>
       </DataProvider>
       <Toaster
         position="top-right"

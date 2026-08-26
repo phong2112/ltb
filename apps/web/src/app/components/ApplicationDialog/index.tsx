@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/app/components/Common/dialog";
+import { track } from "@/app/services/analytics";
 import { useLanguage } from "@/app/services/i18n-service";
 
 type ApplicationDialogProps = {
@@ -27,7 +28,7 @@ export default function ApplicationDialog({
   const { t } = useLanguage();
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(nextOpen) => { setOpen(nextOpen); if (nextOpen) track("application_funnel_step", { feature: "application", action: "open_form", properties: { step: "apply_started" } }); }}>
       <DialogTrigger asChild>
         <button
           type="button"

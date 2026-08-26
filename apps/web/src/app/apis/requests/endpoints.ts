@@ -1,12 +1,15 @@
 const AUTH_ENDPOINT = "/auth";
 const PUBLIC_JOBS_ENDPOINT = "/jobs";
 const APPLICATIONS_ENDPOINT = "/applications";
+const CHAT_ENDPOINT = "/chat";
+const ADMIN_CHAT_ENDPOINT = "/admin/chat";
 const ADMIN_JOBS_ENDPOINT = "/admin/jobs";
 const ADMIN_CANDIDATES_ENDPOINT = "/admin/candidates";
 const ADMIN_CANDIDATE_APPLICATIONS_ENDPOINT = `${ADMIN_CANDIDATES_ENDPOINT}/applications`;
 const ADMIN_SOURCING_ENDPOINT = "/admin/sourcing";
 const ADMIN_TALENT_POOL_ENDPOINT = "/admin/talent-pool";
 const ADMIN_TEMPLATES_ENDPOINT = "/admin/templates";
+const ADMIN_ANALYTICS_ENDPOINT = "/admin/analytics";
 
 /** Central API endpoint map so request modules do not repeat route strings. */
 export const API_ENDPOINTS = {
@@ -24,6 +27,23 @@ export const API_ENDPOINTS = {
   applications: {
     cvPreview: `${APPLICATIONS_ENDPOINT}/cv-preview`,
     submit: APPLICATIONS_ENDPOINT,
+  },
+  chat: {
+    session: `${CHAT_ENDPOINT}/session`,
+    restore: `${CHAT_ENDPOINT}/session/restore`,
+    reset: CHAT_ENDPOINT + "/session/reset",
+    realtimeTicket: CHAT_ENDPOINT + "/realtime-ticket",
+    conversation: `${CHAT_ENDPOINT}/conversation`,
+    messages: `${CHAT_ENDPOINT}/messages`,
+    read: `${CHAT_ENDPOINT}/read`,
+  },
+  adminChat: {
+    realtimeTicket: ADMIN_CHAT_ENDPOINT + "/realtime-ticket",
+    conversations: ADMIN_CHAT_ENDPOINT + "/conversations",
+    conversation: (id: string) => `${ADMIN_CHAT_ENDPOINT}/conversations/${encodeURIComponent(id)}`,
+    messages: (id: string) => `${API_ENDPOINTS.adminChat.conversation(id)}/messages`,
+    read: (id: string) => `${API_ENDPOINTS.adminChat.conversation(id)}/read`,
+    status: (id: string) => `${API_ENDPOINTS.adminChat.conversation(id)}/status`,
   },
   candidates: {
     adminList: (query: string) => `${ADMIN_CANDIDATES_ENDPOINT}${query}`,
@@ -53,6 +73,13 @@ export const API_ENDPOINTS = {
     entry: (id: string) => `${ADMIN_TALENT_POOL_ENDPOINT}/${encodeURIComponent(id)}`,
     promote: (id: string) => `${API_ENDPOINTS.talentPool.entry(id)}/promote`,
     aiRetry: (id: string) => API_ENDPOINTS.talentPool.entry(id) + "/ai/retry",
+  },
+  analytics: {
+    overview: `${ADMIN_ANALYTICS_ENDPOINT}/overview`,
+    features: `${ADMIN_ANALYTICS_ENDPOINT}/features`,
+    issues: `${ADMIN_ANALYTICS_ENDPOINT}/issues`,
+    funnel: `${ADMIN_ANALYTICS_ENDPOINT}/funnels/application`,
+    events: `${ADMIN_ANALYTICS_ENDPOINT}/events`,
   },
   templates: {
     list: ADMIN_TEMPLATES_ENDPOINT,

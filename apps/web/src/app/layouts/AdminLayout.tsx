@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import {
   LayoutDashboard, Briefcase, Users, Bell, MessageSquare,
-  LogOut, ChevronRight, Settings, Languages, ArrowLeft, Menu, X, Radar
+  LogOut, ChevronRight, Settings, Languages, ArrowLeft, Menu, X, Radar, BarChart3
 } from "lucide-react";
 import { useData } from "@/app/data";
 import { ImageWithFallback } from "@/app/components/ImageFallBack";
@@ -20,6 +20,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { to: "/admin/dashboard", icon: <LayoutDashboard size={17} />, label: t("common.dashboard") },
+    { to: "/admin/analytics", icon: <BarChart3 size={17} />, label: language === "vi" ? "Phân tích sử dụng" : "Usage analytics" },
     { to: "/admin/jobs", icon: <Briefcase size={17} />, label: t("common.jobs") },
     { to: "/admin/sourcing", icon: <Radar size={17} />, label: "Sourcing" },
     { to: "/admin/candidates", icon: <Users size={17} />, label: t("admin.candidatesNav") },
@@ -32,6 +33,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const breadcrumbLabels: Record<string, string> = {
     admin: t("common.hrWorkspace"),
     dashboard: t("common.dashboard"),
+    analytics: language === "vi" ? "Phân tích sử dụng" : "Usage analytics",
     jobs: t("common.jobs"),
     sourcing: "Sourcing",
     candidates: t("admin.candidatesNav"),

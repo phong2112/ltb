@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { LogIn, Menu, X } from "lucide-react";
+import GuestChatWidget from "@/app/components/GuestChatWidget";
 import { ImageWithFallback } from "@/app/components/ImageFallBack";
 import { useLanguage, type Language } from "@/app/services/i18n-service";
 import { stripTenantPath, tenantPath } from "@/app/utils/tenant";
@@ -120,6 +121,8 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           </div>
         </div>
       </footer>
+
+      <GuestChatWidget />
     </div>
   );
 }

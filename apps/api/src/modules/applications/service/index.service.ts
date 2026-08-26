@@ -1,6 +1,8 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, Optional } from "@nestjs/common";
 import { ApplicationStatus, CvParseStatus, FileKind, JobStatus, Prisma } from "@prisma/client";
 import { AiQueueService } from "@/modules/ai/queue/index.service";
+import { AnalyticsService } from "@/modules/analytics";
+import { ChatService } from "@/modules/chat";
 import { CvStorageService } from "@/modules/files/storage/index.service";
 import { lockCandidateContacts, normalizeEmail, normalizeLinkedinUrl, normalizePhone } from "@/modules/candidates/contact";
 import { JobsService } from "@/modules/jobs/service/index.service";
@@ -18,9 +20,11 @@ export class ApplicationsService {
     private readonly cvStorageService: CvStorageService,
     private readonly jobsService: JobsService,
     private readonly emailService: EmailService,
+    private readonly chatService: ChatService,
+    @Optional() private readonly analyticsService?: AnalyticsService,
   ) {}
 
-  async createApplication(dto: CreateApplicationDto, cv?: Express.Multer.File) {
+  async createApplication(dto: CreateApplicationDto, cv?: Express.Multer.File, guestChatSessionToken?: string, requestId?: string) {
     const job = await this.jobsService.getAdminJob(dto.jobId);
 
     if (job.status !== JobStatus.PUBLISHED) {
@@ -204,7 +208,16 @@ export class ApplicationsService {
     }
 
     const { candidateFileId, ...response } = created;
+    await this.chatService
+      .linkApplication(guestChatSessionToken, created.candidateId, created.applicationId)
+      .catch((error: unknown) => {
+        this.logger.warn(
+          error instanceof Error ? `Failed to link guest chat: ${error.message}` : "Failed to link guest chat",
+        );
+      });
 
+    void this.analyticsService?.recordServerEvent({ eventName: "application_funnel_step", actorType: "public", feature: "application", action: "submit", requestId, properties: { step: "submitted" } });
+    void this.analyticsService?.recordServerEvent({ eventName: "feature_action_completed", actorType: "public", feature: "application", action: "submit", requestId });
     this.scheduleAcceptedApplicationSideEffects({
       applicationId: created.applicationId,
       candidateFileId,

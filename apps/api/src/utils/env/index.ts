@@ -6,6 +6,7 @@ const requiredVariables = [
   "ADMIN_PASSWORD",
   "JWT_ACCESS_TOKEN_SECRET",
   "JWT_REFRESH_TOKEN_SECRET",
+  "CHAT_REALTIME_TICKET_SECRET",
 ];
 
 const integerVariables = [
@@ -24,8 +25,16 @@ const integerVariables = [
   "OCR_MAX_PAGES",
   "OCR_MIN_CONFIDENCE",
   "OCR_TIMEOUT_MS",
+  "ANALYTICS_RATE_LIMIT_MAX",
+  "ANALYTICS_RATE_LIMIT_WINDOW_SECONDS",
+  "ANALYTICS_RAW_RETENTION_DAYS",
   "APPLICATION_RATE_LIMIT_MAX",
   "APPLICATION_RATE_LIMIT_WINDOW_SECONDS",
+  "GUEST_CHAT_SESSION_TTL_DAYS",
+  "GUEST_CHAT_RECOVERY_TTL_DAYS",
+  "GUEST_CHAT_RATE_LIMIT_MAX",
+  "GUEST_CHAT_RATE_LIMIT_WINDOW_SECONDS",
+  "CHAT_REALTIME_TICKET_TTL_SECONDS",
   "SOURCING_DISCOVERY_MAX_QUERIES_PER_CAMPAIGN",
   "SOURCING_DISCOVERY_RESULTS_PER_QUERY",
   "SOURCING_DISCOVERY_TIMEOUT_MS",
@@ -42,6 +51,10 @@ export function validateEnv(config: Record<string, unknown>) {
     if (!hasValue(config[key])) {
       throw new Error(`${key} is required`);
     }
+  }
+
+  if (String(config.CHAT_REALTIME_TICKET_SECRET).length < 32) {
+    throw new Error("CHAT_REALTIME_TICKET_SECRET must be at least 32 characters");
   }
 
   for (const key of integerVariables) {
@@ -90,6 +103,15 @@ export function validateEnv(config: Record<string, unknown>) {
     !["true", "false"].includes(String(swaggerEnabled))
   ) {
     throw new Error("SWAGGER_ENABLED must be true or false");
+  }
+
+  for (const key of ["ANALYTICS_ENABLED", "ANALYTICS_ADMIN_ENABLED"]) {
+    if (hasValue(config[key]) && !["true", "false"].includes(String(config[key]))) {
+      throw new Error(` must be true or false`);
+    }
+  }
+  if (String(config.ANALYTICS_ENABLED || "false") === "true" && !hasValue(config.ANALYTICS_HMAC_SECRET)) {
+    throw new Error("ANALYTICS_HMAC_SECRET is required when ANALYTICS_ENABLED=true");
   }
 
   const sourcingDiscoveryEnabled = config.SOURCING_DISCOVERY_ENABLED;

@@ -3,6 +3,7 @@ jest.mock("../../ai/queue/index.service", () => ({
 }));
 
 import type { AiQueueService } from "@/modules/ai/queue/index.service";
+import type { ChatService } from "@/modules/chat";
 import type { CvStorageService } from "@/modules/files/storage/index.service";
 import type { JobsService } from "@/modules/jobs/service/index.service";
 import type { EmailService } from "@/modules/notifications/email/index.service";
@@ -65,6 +66,7 @@ describe("ApplicationsService", () => {
       storage as unknown as CvStorageService,
       jobs as unknown as JobsService,
       email as unknown as EmailService,
+      { linkApplication: jest.fn().mockResolvedValue(false) } as unknown as ChatService,
     );
     const file = {
       originalname: "candidate.pdf",
@@ -112,6 +114,7 @@ describe("ApplicationsService", () => {
       storage as unknown as CvStorageService,
       jobs as unknown as JobsService,
       email as unknown as EmailService,
+      { linkApplication: jest.fn().mockResolvedValue(false) } as unknown as ChatService,
     );
 
     await expect(
@@ -182,6 +185,7 @@ describe("ApplicationsService", () => {
       storage as unknown as CvStorageService,
       jobs as unknown as JobsService,
       email as unknown as EmailService,
+      { linkApplication: jest.fn().mockResolvedValue(false) } as unknown as ChatService,
     );
 
     await expect(
@@ -275,6 +279,7 @@ describe("ApplicationsService", () => {
       storage as unknown as CvStorageService,
       jobs as unknown as JobsService,
       email as unknown as EmailService,
+      { linkApplication: jest.fn().mockResolvedValue(false) } as unknown as ChatService,
     );
     const file = {
       originalname: "candidate.pdf",
@@ -351,6 +356,7 @@ describe("ApplicationsService", () => {
       storage as unknown as CvStorageService,
       jobs as unknown as JobsService,
       email as unknown as EmailService,
+      { linkApplication: jest.fn().mockResolvedValue(false) } as unknown as ChatService,
     );
 
     await expect(
@@ -431,6 +437,7 @@ describe("ApplicationsService", () => {
       storage as unknown as CvStorageService,
       jobs as unknown as JobsService,
       email as unknown as EmailService,
+      { linkApplication: jest.fn().mockResolvedValue(false) } as unknown as ChatService,
     );
 
     await expect(

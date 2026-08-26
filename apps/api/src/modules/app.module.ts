@@ -1,9 +1,11 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { validateEnv } from "@/utils/env";
+import { AnalyticsModule } from "./analytics";
 import { ApplicationsModule } from "./applications";
 import { AuthModule } from "./auth";
 import { CandidatesModule } from "./candidates";
+import { ChatModule } from "./chat";
 import { HealthModule } from "./health";
 import { JobsModule } from "./jobs";
 import { PrismaModule } from "./prisma";
@@ -26,9 +28,11 @@ import { SourcingModule } from "./sourcing";
       validate: validateEnv,
     }),
     PrismaModule,
+    AnalyticsModule,
     AuthModule,
     HealthModule,
     JobsModule,
+    ChatModule,
     ApplicationsModule,
     CandidatesModule,
     TalentPoolModule,

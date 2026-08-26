@@ -1,4 +1,5 @@
 export type { ApiAuthSession } from "./auth";
+export type * from "./chat";
 export type { ApiApplicationCvPreview } from "./applications";
 export type { ApiJob, ApiJobQuestion } from "./jobs";
 export type {

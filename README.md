@@ -12,9 +12,15 @@ The candidate site and TA workspace run on the same domain:
 /admin                        protected TA workspace
 /admin/jobs                   protected job management
 /admin/candidates             protected candidate inbox
+/admin/chats                  protected first-party guest chat inbox
+/admin/analytics              protected product usage, issues, and application funnel dashboard
+/api/analytics/events/batch   public/optional-auth first-party event ingestion
+/api/admin/analytics/*        protected aggregate analytics reports
 /api/health                   public API health
 /docs                         Swagger API docs when enabled
 /api/applications             public application intake
+/api/chat/*                   public guest-session chat API
+/api/admin/chat/*             protected TA chat API
 /api/admin/*                  protected TA API
 ```
 
@@ -84,12 +90,32 @@ Implemented for local demo:
 
 ### Phase 6: Outreach Helper
 
-Not implemented yet:
+Partially implemented:
 
 - Message templates.
-- AI outreach drafts.
-- Copy-to-send actions.
-- Email sending.
+- Gmail application confirmations.
+
+Still planned:
+
+- AI outreach drafts and copy-to-send actions.
+
+### Phase 6A: First-party Guest Chat
+
+Implemented:
+
+- Guest chat widget on every public career page; no candidate login, OTP, or third-party account is required.
+- PostgreSQL-backed conversations and text messages.
+- Short-lived session identity in a secure `HttpOnly` cookie and an independent rotating recovery token in browser storage.
+- Cookie restoration when the recovery token remains available. Clearing all site data or using a new incognito profile creates a new guest identity; it does not delete database history.
+- Automatic conversation-to-candidate/application binding when the same browser submits an application.
+- Protected TA inbox with search, unread counts, realtime updates, cursor pagination, and open/closed/blocked states.
+- Public message throttling, origin checks, 2,000-character limit, and idempotent client message IDs.
+- WebSocket-only Socket.IO delivery authenticated with 60-second tickets; Redis Pub/Sub coordinates events across API instances.
+- REST remains the source of truth for message writes, history, and reconnect/foreground resynchronization. Chat screens do not use interval polling.
+
+The realtime version remains deliberately text-only and first-party. Attachments, typing indicators, presence, and external messaging accounts are deferred.
+
+Relevant settings: `GUEST_CHAT_SESSION_TTL_DAYS`, `GUEST_CHAT_RECOVERY_TTL_DAYS`, `GUEST_CHAT_RATE_LIMIT_MAX`, `GUEST_CHAT_RATE_LIMIT_WINDOW_SECONDS`, `CHAT_REALTIME_TICKET_SECRET`, `CHAT_REALTIME_TICKET_TTL_SECONDS`, and frontend `VITE_REALTIME_URL`.
 
 ### Phase 7: Sourcing Campaigns
 
@@ -222,6 +248,10 @@ The production frontend remains on Vercel. Deploy only the NestJS API to Render
 using `render.yaml`, while keeping Neon, managed Redis, Groq, R2, and Vercel
 Blob external.
 
+Set Vercel build variable `VITE_REALTIME_URL` to the direct HTTPS Render API origin
+(for example `https://your-api.onrender.com`). REST continues through `/api`; the
+Socket.IO client connects to `/chat/realtime` directly using WebSocket transport.
+
 See [docs/deployment.md](docs/deployment.md) for environment setup, deploy,
 smoke test, and rollback notes.
 
@@ -324,3 +354,20 @@ The API service is not exposed directly by Docker Compose. Public access should 
 6. Add private object storage for CV files instead of local container volume.
 7. Add an admin retry action for failed AI jobs.
 8. Add email notifications for new applications.
+
+## First-party Product Analytics
+
+Product analytics is stored separately from the sensitive recruitment `ActivityLog`. The browser sends only typed route templates, semantic feature/action codes, normalized outcomes, duration, and allowlisted properties. It never sends form values, CV text, names, email addresses, phone numbers, messages, notes, or raw URLs/query strings. Public identity is a random `sessionStorage` value that is HMAC-hashed by the API; authenticated admin identity is derived from the JWT server-side.
+
+Enable analytics only after applying the Prisma migration and completing the privacy review:
+
+```text
+ANALYTICS_ENABLED=true
+ANALYTICS_ADMIN_ENABLED=true
+ANALYTICS_HMAC_SECRET=<long-random-server-only-secret>
+ANALYTICS_RAW_RETENTION_DAYS=90
+VITE_ANALYTICS_ENABLED=true
+VITE_APP_RELEASE=<deployment-version>
+```
+
+The main endpoints are `POST /api/analytics/events/batch` and protected reports under `/api/admin/analytics/*`. `/admin/analytics` supports bookmarkable date, audience, and feature filters. Ingestion is fail-open and duplicate event IDs are idempotent. Run authenticated `POST /api/admin/analytics/maintenance` daily: it aggregates expired raw events before deletion and removes aggregate rows older than 12 months. Disable the three analytics flags to roll back collection/dashboard without reverting the additive database migration.

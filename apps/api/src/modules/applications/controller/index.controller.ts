@@ -1,8 +1,11 @@
-import { BadRequestException, Body, Controller, Post, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Post, Req, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ThrottlerGuard } from "@nestjs/throttler";
 import { ApiBadRequestResponse, ApiBody, ApiConflictResponse, ApiConsumes, ApiCreatedResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
+import type { Request } from "express";
+import { readCookie } from "@/modules/auth/guards/index.guard";
+import { GUEST_CHAT_COOKIE_NAME } from "@/modules/chat";
 import { hasAllowedFileSignature } from "@/modules/files/signature";
 import { ApplicationCvPreviewService } from "@/modules/applications/cv-preview/index.service";
 import { CreateApplicationDto } from "@/modules/applications/dto/create/index.dto";
@@ -92,7 +95,11 @@ export class ApplicationsController {
   })
   @Post()
   @UseInterceptors(FileInterceptor("cv"))
-  async createApplication(@Body() dto: CreateApplicationDto, @UploadedFile() cv?: Express.Multer.File) {
+  async createApplication(
+    @Body() dto: CreateApplicationDto,
+    @UploadedFile() cv?: Express.Multer.File,
+    @Req() request?: Request,
+  ) {
     const maxSizeMb = this.configService.get<number>("MAX_CV_FILE_SIZE_MB") ?? 10;
 
     if (!dto.consentAccepted) {
@@ -111,7 +118,11 @@ export class ApplicationsController {
       throw new BadRequestException("Nội dung tệp CV không đúng định dạng PDF, DOC, DOCX, JPG hoặc PNG.");
     }
 
-    return this.applicationsService.createApplication(dto, cv);
+    const guestChatSessionToken = request ? readCookie(request, GUEST_CHAT_COOKIE_NAME) : undefined;
+    const requestId = request?.header("X-Request-Id");
+    return guestChatSessionToken || requestId
+      ? this.applicationsService.createApplication(dto, cv, guestChatSessionToken, requestId)
+      : this.applicationsService.createApplication(dto, cv);
   }
 }
 
