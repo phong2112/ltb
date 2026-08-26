@@ -224,8 +224,10 @@ Open:
 http://localhost:4000/health
 ```
 
-Set `WEB_ORIGIN` to your Vercel frontend origin when running this API stack
-outside local checks.
+The Render blueprint pins `WEB_ORIGIN` to the canonical Vercel frontend origin,
+`https://ltb-careers.vercel.app`, so browser requests pass the API origin check.
+When deploying a fork or a different frontend domain, update that blueprint value.
+Use `WEB_ORIGINS` only for additional exact origins or trusted preview patterns.
 
 Default protected TA credential for local/demo Docker:
 

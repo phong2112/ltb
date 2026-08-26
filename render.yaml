@@ -13,7 +13,7 @@ services:
       - key: PORT
         value: "4000"
       - key: WEB_ORIGIN
-        sync: false
+        value: "https://ltb-careers.vercel.app"
       - key: WEB_ORIGINS
         sync: false
       - key: DATABASE_URL
