@@ -40,6 +40,18 @@ services:
         generateValue: true
       - key: CHAT_REALTIME_TICKET_TTL_SECONDS
         value: "60"
+      - key: GUEST_CHAT_SESSION_TTL_DAYS
+        value: "7"
+      - key: GUEST_CHAT_RECOVERY_TTL_DAYS
+        value: "90"
+      - key: GUEST_CHAT_RATE_LIMIT_MAX
+        value: "300"
+      - key: GUEST_CHAT_RATE_LIMIT_WINDOW_SECONDS
+        value: "60"
+      - key: AUTH_LOGIN_RATE_LIMIT_MAX
+        value: "5"
+      - key: AUTH_LOGIN_RATE_LIMIT_WINDOW_SECONDS
+        value: "60"
       - key: AUTH_COOKIE_SECURE
         value: "true"
       - key: AUTH_COOKIE_SAMESITE
@@ -122,6 +134,18 @@ services:
         value: "5"
       - key: APPLICATION_RATE_LIMIT_WINDOW_SECONDS
         value: "60"
+      - key: ANALYTICS_ENABLED
+        value: "false"
+      - key: ANALYTICS_ADMIN_ENABLED
+        value: "false"
+      - key: ANALYTICS_HMAC_SECRET
+        generateValue: true
+      - key: ANALYTICS_RATE_LIMIT_MAX
+        value: "120"
+      - key: ANALYTICS_RATE_LIMIT_WINDOW_SECONDS
+        value: "60"
+      - key: ANALYTICS_RAW_RETENTION_DAYS
+        value: "90"
       - key: TRUST_PROXY_HOPS
         value: "1"
       - key: SWAGGER_ENABLED

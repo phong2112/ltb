@@ -28,6 +28,8 @@ const integerVariables = [
   "ANALYTICS_RATE_LIMIT_MAX",
   "ANALYTICS_RATE_LIMIT_WINDOW_SECONDS",
   "ANALYTICS_RAW_RETENTION_DAYS",
+  "AUTH_LOGIN_RATE_LIMIT_MAX",
+  "AUTH_LOGIN_RATE_LIMIT_WINDOW_SECONDS",
   "APPLICATION_RATE_LIMIT_MAX",
   "APPLICATION_RATE_LIMIT_WINDOW_SECONDS",
   "GUEST_CHAT_SESSION_TTL_DAYS",
@@ -107,11 +109,17 @@ export function validateEnv(config: Record<string, unknown>) {
 
   for (const key of ["ANALYTICS_ENABLED", "ANALYTICS_ADMIN_ENABLED"]) {
     if (hasValue(config[key]) && !["true", "false"].includes(String(config[key]))) {
-      throw new Error(` must be true or false`);
+      throw new Error(`${key} must be true or false`);
     }
   }
   if (String(config.ANALYTICS_ENABLED || "false") === "true" && !hasValue(config.ANALYTICS_HMAC_SECRET)) {
     throw new Error("ANALYTICS_HMAC_SECRET is required when ANALYTICS_ENABLED=true");
+  }
+  if (
+    String(config.ANALYTICS_ENABLED || "false") === "true" &&
+    String(config.ANALYTICS_HMAC_SECRET).length < 32
+  ) {
+    throw new Error("ANALYTICS_HMAC_SECRET must be at least 32 characters when ANALYTICS_ENABLED=true");
   }
 
   const sourcingDiscoveryEnabled = config.SOURCING_DISCOVERY_ENABLED;

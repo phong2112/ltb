@@ -11,20 +11,18 @@ import {
   loginRequest,
   logoutRequest,
   retryApplicationAnalysis,
-  sendCandidateMessageRequest,
   submitApplication,
   updateCandidateApplication,
   updateJobRequest,
 } from "@/app/apis/requests";
 import { SAVED_JOBS_STORAGE_KEY, readSavedJobIds } from "@/app/services/saved-jobs.service";
+import { actionNotifications, runNotifiedAction } from "@/app/services/action-notifications";
 import {
   mapApplicationAnalysis,
-  mapCandidateMessage,
   mapCandidateProfile,
   toApiApplicationStatus,
   type AiAnalysisStatus,
   type Candidate,
-  type CandidateMessageChannel,
   type CandidateProfile,
   type CandidateStatus,
   type NewCandidate,
@@ -54,7 +52,6 @@ export type DataCtx = {
   addCandidate: (c: NewCandidate) => Promise<void>;
   updateCandidate: (id: string, patch: Partial<Candidate>) => Promise<void>;
   deleteCandidate: (id: string) => Promise<void>;
-  sendCandidateMessage: (applicationId: string, channel: CandidateMessageChannel, content: string) => Promise<void>;
   isJobSaved: (id: string) => boolean;
   toggleSavedJob: (id: string) => boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
@@ -65,7 +62,6 @@ const DataContext = createContext<DataCtx>(null!);
 
 export type {
   Candidate,
-  CandidateMessageChannel,
   CandidateProfile,
   CandidateStatus,
   CvSummary,
@@ -145,7 +141,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [patchCandidateAnalysis]);
 
   const retryCandidateAnalysis = useCallback(async (applicationId: string) => {
-    const analysis = await retryApplicationAnalysis(applicationId);
+    const analysis = await runNotifiedAction(actionNotifications.candidates.retryAnalysis, () => retryApplicationAnalysis(applicationId));
     const patch = mapApplicationAnalysis(analysis);
 
     patchCandidateAnalysis(applicationId, patch);
@@ -184,17 +180,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [savedJobIds]);
 
   const addJob = async (job: JobInput) => {
-    await createJobRequest(job);
+    await runNotifiedAction(actionNotifications.jobs.create, () => createJobRequest(job));
     await reloadAdminData();
   };
 
   const updateJob = async (id: string, patch: Partial<Job>) => {
-    await updateJobRequest(id, patch);
+    await runNotifiedAction(actionNotifications.jobs.update, () => updateJobRequest(id, patch));
     await reloadAdminData();
   };
 
   const addCandidate = async (candidate: NewCandidate) => {
-    await submitApplication(candidate);
+    await runNotifiedAction(actionNotifications.applications.submit, () => submitApplication(candidate));
     await reloadPublicJobs();
   };
 
@@ -222,43 +218,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
       patch.hrNote === undefined &&
       patch.followUpDate === undefined;
 
-    await updateCandidateApplication(current.applicationId, body, {
-      silent: silentViewedUpdate,
-    });
+    const request = () => updateCandidateApplication(current.applicationId, body);
+    if (silentViewedUpdate) await request();
+    else await runNotifiedAction(actionNotifications.candidates.update, request);
     await reloadAdminData();
   };
 
   const deleteCandidate = async (id: string) => {
-    await deleteCandidateRequest(id);
+    await runNotifiedAction(actionNotifications.candidates.delete, () => deleteCandidateRequest(id));
     await reloadAdminData();
-  };
-
-  const sendCandidateMessage = async (applicationId: string, channel: CandidateMessageChannel, content: string) => {
-    const message = await sendCandidateMessageRequest(applicationId, channel, content);
-
-    setCandidates(current =>
-      current.map(candidate =>
-        candidate.applicationId === applicationId
-          ? {
-              ...candidate,
-              messages: [...candidate.messages, mapCandidateMessage(message)],
-            }
-          : candidate,
-      ),
-    );
-    setCandidateProfiles(current =>
-      current.map(profile => ({
-        ...profile,
-        applications: profile.applications.map(application =>
-          application.applicationId === applicationId
-            ? {
-                ...application,
-                messages: [...application.messages, mapCandidateMessage(message)],
-              }
-            : application,
-        ),
-      })),
-    );
   };
 
   const isJobSaved = (id: string) => savedJobIds.includes(id);
@@ -271,7 +239,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<LoginResult> => {
     try {
-      await loginRequest(email, password);
+      await runNotifiedAction(actionNotifications.auth.login, () => loginRequest(email, password));
       setIsAdminLoggedIn(true);
       await reloadAdminData();
       return { ok: true };
@@ -287,7 +255,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    await logoutRequest().catch(() => undefined);
+    await runNotifiedAction(actionNotifications.auth.logout, logoutRequest).catch(() => undefined);
     setIsAdminLoggedIn(false);
     setCandidateProfiles([]);
     setCandidates([]);
@@ -314,7 +282,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
         addCandidate,
         updateCandidate,
         deleteCandidate,
-        sendCandidateMessage,
         isJobSaved,
         toggleSavedJob,
         login,

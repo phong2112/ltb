@@ -3,6 +3,7 @@ import { Archive, ArrowLeft, BriefcaseBusiness, Check, Copy, ExternalLink, Githu
 import { Link, useParams, useSearchParams } from "react-router";
 import type { ApiSourcedProfile, ApiSourcingCampaign, ApiSourcingCampaignStatus, ApiSourcingProfileFeedback, ApiSourcingProfileStatus, ApiSourcingSource } from "@/app/apis/models";
 import { discoverLinkedinProfiles, getSourcingCampaign, importSourcingProfiles, runSourcingOrchestration, suggestInternalCandidates, updateSourcingCampaignStatus, updateSourcingProfileFeedback, updateSourcingProfileStatus } from "@/app/apis/requests";
+import { actionNotifications, runNotifiedAction } from "@/app/services/action-notifications";
 import AdminLayout from "@/app/layouts/AdminLayout";
 
 const STATUS_OPTIONS: Array<{ value: ApiSourcingProfileStatus; label: string }> = [
@@ -171,7 +172,7 @@ export default function SourcingCampaignDetail() {
 
     setImporting(true);
     try {
-      const result = await importSourcingProfiles(campaign.id, activeSource, profileUrls);
+      const result = await runNotifiedAction(actionNotifications.sourcing.importProfiles, () => importSourcingProfiles(campaign.id, activeSource, profileUrls));
       setCampaign({ ...campaign, profiles: result.profiles, _count: { profiles: result.profiles.length } });
       setUrls("");
       const parts = [`Đã thêm ${result.createdCount} hồ sơ`];
@@ -190,7 +191,7 @@ export default function SourcingCampaignDetail() {
     setDiscovering(true);
     setDiscoverySummary("");
     try {
-      const result = await discoverLinkedinProfiles(campaign.id);
+      const result = await runNotifiedAction(actionNotifications.sourcing.discoverLinkedin, () => discoverLinkedinProfiles(campaign.id));
       setDiscoveryStatus(result.providerStatus);
       setCampaign({ ...campaign, profiles: result.profiles, _count: { profiles: result.profiles.length } });
       const parts = [
@@ -212,7 +213,7 @@ export default function SourcingCampaignDetail() {
   async function handleOrchestration() {
     if (!campaign || isOrchestrationActive(campaign)) return;
 
-    const result = await runSourcingOrchestration(campaign.id);
+    const result = await runNotifiedAction(actionNotifications.sourcing.runOrchestration, () => runSourcingOrchestration(campaign.id));
     setCampaign(result.campaign);
   }
 
@@ -222,7 +223,7 @@ export default function SourcingCampaignDetail() {
     setSuggestingInternal(true);
     setInternalSummary("");
     try {
-      const result = await suggestInternalCandidates(campaign.id);
+      const result = await runNotifiedAction(actionNotifications.sourcing.suggestInternal, () => suggestInternalCandidates(campaign.id));
       setCampaign({ ...campaign, profiles: result.profiles, _count: { profiles: result.profiles.length } });
       const parts = [`gợi ý ${result.resultCount} hồ sơ`, `thêm mới ${result.createdCount}`];
       if (result.duplicateCount) parts.push(`${result.duplicateCount} hồ sơ trùng`);
@@ -236,7 +237,7 @@ export default function SourcingCampaignDetail() {
     if (!campaign || updatingCampaignStatus || status === campaign.status) return;
     setUpdatingCampaignStatus(true);
     try {
-      setCampaign(await updateSourcingCampaignStatus(campaign.id, status));
+      setCampaign(await runNotifiedAction(actionNotifications.sourcing.updateCampaign, () => updateSourcingCampaignStatus(campaign.id, status)));
     } finally {
       setUpdatingCampaignStatus(false);
     }
@@ -250,7 +251,7 @@ export default function SourcingCampaignDetail() {
 
   async function updateStatus(profile: ApiSourcedProfile, status: ApiSourcingProfileStatus) {
     if (!campaign) return;
-    const updated = await updateSourcingProfileStatus(campaign.id, profile.id, status);
+    const updated = await runNotifiedAction(actionNotifications.sourcing.updateProfileStatus, () => updateSourcingProfileStatus(campaign.id, profile.id, status));
     setCampaign({
       ...campaign,
       profiles: (campaign.profiles ?? []).map((item) => item.id === updated.id ? updated : item),
@@ -261,7 +262,7 @@ export default function SourcingCampaignDetail() {
     if (!campaign || updatingFeedbackId) return;
     setUpdatingFeedbackId(profile.id);
     try {
-      const updated = await updateSourcingProfileFeedback(campaign.id, profile.id, feedback);
+      const updated = await runNotifiedAction(actionNotifications.sourcing.updateProfileFeedback, () => updateSourcingProfileFeedback(campaign.id, profile.id, feedback));
       setCampaign({
         ...campaign,
         profiles: (campaign.profiles ?? []).map((item) => item.id === updated.id ? updated : item),

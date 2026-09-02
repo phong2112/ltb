@@ -1,4 +1,4 @@
-import { BadRequestException, HttpException, HttpStatus, Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { BadRequestException, HttpException, HttpStatus, Injectable, Logger, NotFoundException, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import {
   Prisma, ProductEventActorType, ProductEventCategory, ProductEventName as DbEventName,
@@ -41,17 +41,54 @@ const SAFE_CODE = /^[a-z0-9][a-z0-9_.:-]{0,79}$/i;
 
 type ReportQuery = Record<string, string | undefined>;
 type ReportRange = { from: Date; to: Date; actorType?: ProductEventActorType; feature?: string };
+type RawReportEvent = {
+  eventName: DbEventName;
+  outcome: ProductEventOutcome;
+  feature: string | null;
+  action: string | null;
+  errorCode: string | null;
+  anonymousSessionHash: string | null;
+  actorUserId: string | null;
+  properties: Prisma.JsonValue;
+  occurredAt: Date;
+};
+type AggregateReportRow = {
+  date: Date;
+  eventName: DbEventName;
+  outcome: ProductEventOutcome;
+  feature: string;
+  action: string;
+  errorCode: string;
+  funnelStep: string;
+  eventCount: number;
+  sessionCount: number;
+};
+
+const DAY_MS = 86_400_000;
+const AGGREGATE_RETENTION_DAYS = 365;
 
 @Injectable()
-export class AnalyticsService {
+export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AnalyticsService.name);
   private readonly rateWindows = new Map<string, { startedAt: number; count: number }>();
+  private maintenanceTimer?: NodeJS.Timeout;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly auth: AuthService,
   ) {}
+
+  onModuleInit() {
+    if (!this.isEnabled()) return;
+    void this.runScheduledMaintenance();
+    this.maintenanceTimer = setInterval(() => void this.runScheduledMaintenance(), DAY_MS);
+    this.maintenanceTimer.unref();
+  }
+
+  onModuleDestroy() {
+    if (this.maintenanceTimer) clearInterval(this.maintenanceTimer);
+  }
 
   async ingest(events: ProductEventDto[], request: Request) {
     if (!this.isEnabled()) return;
@@ -126,15 +163,18 @@ export class AnalyticsService {
   async overview(query: ReportQuery): Promise<AnalyticsOverview> {
     this.assertAdminEnabled();
     const range = this.parseRange(query);
-    const events = await this.readReportEvents(range);
-    const completed = events.filter((event) => event.eventName === DbEventName.FEATURE_ACTION_COMPLETED).length;
-    const failed = events.filter((event) => event.outcome === ProductEventOutcome.FAILURE).length;
-    const outcomes = events.filter((event) => event.outcome !== ProductEventOutcome.NEUTRAL).length;
+    const [events, aggregates] = await this.readReportData(range);
+    const completed = countEvents(events, aggregates, (event) => event.eventName === DbEventName.FEATURE_ACTION_COMPLETED);
+    const failed = countEvents(events, aggregates, (event) => event.outcome === ProductEventOutcome.FAILURE);
+    const outcomes = countEvents(events, aggregates, (event) => event.outcome !== ProductEventOutcome.NEUTRAL);
+    const features = new Set<string>();
+    for (const event of events) if (event.feature) features.add(event.feature);
+    for (const aggregate of aggregates) if (aggregate.feature) features.add(aggregate.feature);
     return {
       from: range.from.toISOString(), to: range.to.toISOString(),
-      sessions: uniqueSessions(events), completedActions: completed, failedEvents: failed,
+      sessions: combinedSessionCount(events, aggregates), completedActions: completed, failedEvents: failed,
       errorRate: outcomes ? roundPercent(failed, outcomes) : 0,
-      activeFeatures: new Set(events.flatMap((event) => event.feature ? [event.feature] : [])).size,
+      activeFeatures: features.size,
     };
   }
 
@@ -143,42 +183,44 @@ export class AnalyticsService {
     const range = this.parseRange(query);
     const periodMs = range.to.getTime() - range.from.getTime();
     const previous = { ...range, from: new Date(range.from.getTime() - periodMs), to: new Date(range.from) };
-    const [currentEvents, previousEvents] = await Promise.all([this.readReportEvents(range), this.readReportEvents(previous)]);
-    const current = currentEvents.filter((event) => event.eventName === DbEventName.FEATURE_ACTION_COMPLETED && event.feature);
-    const prior = previousEvents.filter((event) => event.eventName === DbEventName.FEATURE_ACTION_COMPLETED && event.feature);
-    const features = new Set(current.map((event) => event.feature as string));
+    const [[currentEvents, currentAggregates], [previousEvents, previousAggregates]] = await Promise.all([
+      this.readReportData(range),
+      this.readReportData(previous),
+    ]);
+    const current = summarizeCompletedFeatures(currentEvents, currentAggregates);
+    const prior = summarizeCompletedFeatures(previousEvents, previousAggregates);
+    const features = new Set(current.keys());
     return [...features].map((feature) => {
-      const rows = current.filter((event) => event.feature === feature);
-      const previousCompletedActions = prior.filter((event) => event.feature === feature).length;
+      const row = current.get(feature) ?? { count: 0, sessions: 0 };
+      const previousCompletedActions = prior.get(feature)?.count ?? 0;
       return {
-        feature, completedActions: rows.length, sessions: uniqueSessions(rows), previousCompletedActions,
-        trendPercent: previousCompletedActions ? Math.round(((rows.length - previousCompletedActions) / previousCompletedActions) * 100) : null,
+        feature, completedActions: row.count, sessions: row.sessions, previousCompletedActions,
+        trendPercent: previousCompletedActions ? Math.round(((row.count - previousCompletedActions) / previousCompletedActions) * 100) : null,
       };
     }).sort((a, b) => b.completedActions - a.completedActions);
   }
 
   async issues(query: ReportQuery): Promise<AnalyticsIssueRow[]> {
     this.assertAdminEnabled();
-    const events = (await this.readReportEvents(this.parseRange(query))).filter((event) => event.outcome === ProductEventOutcome.FAILURE);
-    const groups = new Map<string, typeof events>();
-    for (const event of events) {
-      const key = `${event.errorCode ?? "unknown"}|${event.feature ?? "unknown"}|${event.action ?? "unknown"}`;
-      groups.set(key, [...(groups.get(key) ?? []), event]);
-    }
-    return [...groups.entries()].map(([key, rows]) => {
+    const [events, aggregates] = await this.readReportData(this.parseRange(query));
+    const groups = groupIssues(events, aggregates);
+    return [...groups.entries()].map(([key, group]) => {
       const [errorCode, feature, action] = key.split("|");
-      return { errorCode, feature, action, count: rows.length, sessions: uniqueSessions(rows), lastOccurredAt: rows.reduce((latest, row) => row.occurredAt > latest ? row.occurredAt : latest, rows[0].occurredAt).toISOString() };
+      return { errorCode, feature, action, count: group.count, sessions: group.sessions.size + group.aggregateSessions, lastOccurredAt: group.latest.toISOString() };
     }).sort((a, b) => b.count - a.count).slice(0, 50);
   }
 
   async applicationFunnel(query: ReportQuery): Promise<AnalyticsFunnelRow[]> {
     this.assertAdminEnabled();
-    const rows = (await this.readReportEvents(this.parseRange(query))).filter((event) => event.eventName === DbEventName.APPLICATION_FUNNEL_STEP);
+    const [events, aggregates] = await this.readReportData(this.parseRange(query));
+    const rows = events.filter((event) => event.eventName === DbEventName.APPLICATION_FUNNEL_STEP);
     let previous = 0;
     return APPLICATION_FUNNEL_STEPS.map((step) => {
       const stepRows = rows.filter((row) => isRecord(row.properties) && row.properties.step === step);
-      const count = stepRows.length;
-      const result = { step, count, sessions: uniqueSessions(stepRows), conversionFromPrevious: previous ? roundPercent(count, previous) : null };
+      const aggregateRows = aggregates.filter((row) => row.eventName === DbEventName.APPLICATION_FUNNEL_STEP && row.funnelStep === step);
+      const count = stepRows.length + sum(aggregateRows, (row) => row.eventCount);
+      const sessions = uniqueSessions(stepRows) + sum(aggregateRows, (row) => row.sessionCount);
+      const result = { step, count, sessions, conversionFromPrevious: previous ? roundPercent(count, previous) : null };
       previous = count;
       return result;
     });
@@ -197,20 +239,29 @@ export class AnalyticsService {
 
   async runMaintenance() {
     this.assertAdminEnabled();
+    return this.performMaintenance();
+  }
+
+  private async performMaintenance() {
     const retentionDays = this.config.get<number>("ANALYTICS_RAW_RETENTION_DAYS") ?? 90;
-    const cutoff = startOfDay(new Date(Date.now() - retentionDays * 86_400_000).toISOString());
+    const cutoff = startOfDay(new Date(Date.now() - retentionDays * DAY_MS).toISOString());
     const expired = await this.prisma.productEvent.findMany({
       where: { receivedAt: { lt: cutoff } },
-      select: { id: true, receivedAt: true, actorType: true, eventName: true, feature: true, action: true, outcome: true, errorCode: true, anonymousSessionHash: true, actorUserId: true },
+      select: { id: true, receivedAt: true, actorType: true, eventName: true, feature: true, action: true, outcome: true, errorCode: true, anonymousSessionHash: true, actorUserId: true, properties: true },
     });
-    const groups = new Map<string, { date: Date; actorType: ProductEventActorType; eventName: DbEventName; feature: string; action: string; outcome: ProductEventOutcome; errorCode: string; count: number; sessions: Set<string> }>();
+    const groups = new Map<string, { date: Date; actorType: ProductEventActorType; eventName: DbEventName; feature: string; action: string; outcome: ProductEventOutcome; errorCode: string; funnelStep: string; count: number; sessions: Set<string> }>();
     for (const event of expired) {
       const date = startOfDay(event.receivedAt.toISOString());
       const feature = event.feature ?? "";
-      const action = event.action ?? "";
+      const action = event.eventName === DbEventName.FEATURE_ACTION_COMPLETED || event.eventName === DbEventName.APPLICATION_FUNNEL_STEP
+        ? ""
+        : event.action ?? "";
       const errorCode = event.errorCode ?? "";
-      const key = [date.toISOString(), event.actorType, event.eventName, feature, action, event.outcome, errorCode].join("|");
-      const group = groups.get(key) ?? { date, actorType: event.actorType, eventName: event.eventName, feature, action, outcome: event.outcome, errorCode, count: 0, sessions: new Set<string>() };
+      const funnelStep = event.eventName === DbEventName.APPLICATION_FUNNEL_STEP && isRecord(event.properties) && typeof event.properties.step === "string"
+        ? event.properties.step
+        : "";
+      const key = [date.toISOString(), event.actorType, event.eventName, feature, action, event.outcome, errorCode, funnelStep].join("|");
+      const group = groups.get(key) ?? { date, actorType: event.actorType, eventName: event.eventName, feature, action, outcome: event.outcome, errorCode, funnelStep, count: 0, sessions: new Set<string>() };
       group.count += 1;
       if (event.anonymousSessionHash) group.sessions.add(`public:${event.anonymousSessionHash}`);
       if (event.actorUserId) group.sessions.add(`admin:${event.actorUserId}`);
@@ -218,22 +269,57 @@ export class AnalyticsService {
     }
     await this.prisma.$transaction(async (tx) => {
       for (const group of groups.values()) {
-        const key = { date: group.date, actorType: group.actorType, eventName: group.eventName, feature: group.feature, action: group.action, outcome: group.outcome, errorCode: group.errorCode };
+        const key = { date: group.date, actorType: group.actorType, eventName: group.eventName, feature: group.feature, action: group.action, outcome: group.outcome, errorCode: group.errorCode, funnelStep: group.funnelStep };
         await tx.productEventDailyAggregate.upsert({
-          where: { date_actorType_eventName_feature_action_outcome_errorCode: key },
+          where: { date_actorType_eventName_feature_action_outcome_errorCode_funnelStep: key },
           create: { ...key, eventCount: group.count, sessionCount: group.sessions.size },
           update: { eventCount: group.count, sessionCount: group.sessions.size },
         });
       }
       if (expired.length) await tx.productEvent.deleteMany({ where: { id: { in: expired.map((event) => event.id) } } });
-      await tx.productEventDailyAggregate.deleteMany({ where: { date: { lt: new Date(Date.now() - 365 * 86_400_000) } } });
+      await tx.productEventDailyAggregate.deleteMany({ where: { date: { lt: startOfDay(new Date(Date.now() - AGGREGATE_RETENTION_DAYS * DAY_MS).toISOString()) } } });
     });
     return { aggregatedGroups: groups.size, deletedRawEvents: expired.length, cutoff: cutoff.toISOString() };
   }
+
+  private async runScheduledMaintenance() {
+    try {
+      const result = await this.performMaintenance();
+      this.logger.log(`analytics_maintenance_completed:${result.deletedRawEvents}`);
+    } catch (error) {
+      this.logger.error(error instanceof Error ? `analytics_maintenance_failed:${error.message}` : "analytics_maintenance_failed");
+    }
+  }
+
+  private readReportData(range: ReportRange) {
+    return Promise.all([this.readReportEvents(range), this.readReportAggregates(range)]);
+  }
+
   private async readReportEvents(range: ReportRange) {
     return this.prisma.productEvent.findMany({
       where: this.whereFor(range),
       select: { eventName: true, outcome: true, feature: true, action: true, errorCode: true, anonymousSessionHash: true, actorUserId: true, properties: true, occurredAt: true },
+    });
+  }
+
+  private async readReportAggregates(range: ReportRange) {
+    return this.prisma.productEventDailyAggregate.findMany({
+      where: {
+        date: { gte: range.from, lt: range.to },
+        actorType: range.actorType,
+        feature: range.feature,
+      },
+      select: {
+        date: true,
+        eventName: true,
+        outcome: true,
+        feature: true,
+        action: true,
+        errorCode: true,
+        funnelStep: true,
+        eventCount: true,
+        sessionCount: true,
+      },
     });
   }
 
@@ -245,7 +331,7 @@ export class AnalyticsService {
     const to = query.to ? endExclusive(query.to) : new Date();
     const from = query.from ? startOfDay(query.from) : new Date(to.getTime() - 30 * 86_400_000);
     if (!Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime()) || from >= to) throw new BadRequestException("Khoảng thời gian analytics không hợp lệ.");
-    if (to.getTime() - from.getTime() > 90 * 86_400_000 + 1_000) throw new BadRequestException("Khoảng thời gian raw analytics tối đa là 90 ngày.");
+    if (to.getTime() - from.getTime() > AGGREGATE_RETENTION_DAYS * DAY_MS + 1_000) throw new BadRequestException("Khoảng thời gian analytics tối đa là 365 ngày.");
     let actorType: ProductEventActorType | undefined;
     if (query.actorType) {
       if (!['public', 'admin'].includes(query.actorType)) throw new BadRequestException("Nhóm người dùng không hợp lệ.");
@@ -323,6 +409,66 @@ export class AnalyticsService {
 
 function uniqueSessions(events: Array<{ anonymousSessionHash: string | null; actorUserId: string | null }>) {
   return new Set(events.flatMap((event) => event.anonymousSessionHash ? [`public:${event.anonymousSessionHash}`] : event.actorUserId ? [`admin:${event.actorUserId}`] : [])).size;
+}
+function combinedSessionCount(events: RawReportEvent[], aggregates: AggregateReportRow[]) {
+  const pageViews = events.filter((event) => event.eventName === DbEventName.PAGE_VIEWED);
+  const aggregatePageViews = aggregates.filter((event) => event.eventName === DbEventName.PAGE_VIEWED);
+  return uniqueSessions(pageViews) + sum(aggregatePageViews, (row) => row.sessionCount);
+}
+function countEvents(
+  events: RawReportEvent[],
+  aggregates: AggregateReportRow[],
+  predicate: (event: Pick<RawReportEvent, "eventName" | "outcome">) => boolean,
+) {
+  return events.filter(predicate).length + sum(aggregates.filter(predicate), (row) => row.eventCount);
+}
+function summarizeCompletedFeatures(events: RawReportEvent[], aggregates: AggregateReportRow[]) {
+  const result = new Map<string, { count: number; sessions: number }>();
+  const rawByFeature = new Map<string, RawReportEvent[]>();
+  for (const event of events) {
+    if (event.eventName !== DbEventName.FEATURE_ACTION_COMPLETED || !event.feature) continue;
+    rawByFeature.set(event.feature, [...(rawByFeature.get(event.feature) ?? []), event]);
+  }
+  for (const [feature, rows] of rawByFeature) {
+    result.set(feature, { count: rows.length, sessions: uniqueSessions(rows) });
+  }
+  for (const aggregate of aggregates) {
+    if (aggregate.eventName !== DbEventName.FEATURE_ACTION_COMPLETED || !aggregate.feature) continue;
+    const current = result.get(aggregate.feature) ?? { count: 0, sessions: 0 };
+    current.count += aggregate.eventCount;
+    current.sessions += aggregate.sessionCount;
+    result.set(aggregate.feature, current);
+  }
+  return result;
+}
+function groupIssues(events: RawReportEvent[], aggregates: AggregateReportRow[]) {
+  const groups = new Map<string, { count: number; sessions: Set<string>; aggregateSessions: number; latest: Date }>();
+  for (const event of events) {
+    if (event.outcome !== ProductEventOutcome.FAILURE) continue;
+    const key = issueKey(event.errorCode, event.feature, event.action);
+    const group = groups.get(key) ?? { count: 0, sessions: new Set<string>(), aggregateSessions: 0, latest: event.occurredAt };
+    group.count += 1;
+    if (event.anonymousSessionHash) group.sessions.add(`public:${event.anonymousSessionHash}`);
+    if (event.actorUserId) group.sessions.add(`admin:${event.actorUserId}`);
+    if (event.occurredAt > group.latest) group.latest = event.occurredAt;
+    groups.set(key, group);
+  }
+  for (const aggregate of aggregates) {
+    if (aggregate.outcome !== ProductEventOutcome.FAILURE) continue;
+    const key = issueKey(aggregate.errorCode, aggregate.feature, aggregate.action);
+    const group = groups.get(key) ?? { count: 0, sessions: new Set<string>(), aggregateSessions: 0, latest: aggregate.date };
+    group.count += aggregate.eventCount;
+    group.aggregateSessions += aggregate.sessionCount;
+    if (aggregate.date > group.latest) group.latest = aggregate.date;
+    groups.set(key, group);
+  }
+  return groups;
+}
+function issueKey(errorCode: string | null, feature: string | null, action: string | null) {
+  return `${errorCode || "unknown"}|${feature || "unknown"}|${action || "unknown"}`;
+}
+function sum<T>(rows: T[], value: (row: T) => number) {
+  return rows.reduce((total, row) => total + value(row), 0);
 }
 function roundPercent(value: number, total: number) { return Math.round((value / total) * 10_000) / 100; }
 function startOfDay(value: string) { return new Date(`${value.slice(0, 10)}T00:00:00.000Z`); }

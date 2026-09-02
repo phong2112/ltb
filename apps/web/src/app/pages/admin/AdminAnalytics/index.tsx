@@ -47,7 +47,7 @@ export default function AdminAnalytics() {
           <Filter label="Đến ngày"><input type="date" value={filters.to} onChange={(event) => update("to", event.target.value)} className="h-9 rounded-lg border border-border px-2 text-xs" /></Filter>
           <Filter label="Nhóm"><select value={filters.actorType ?? ""} onChange={(event) => update("actorType", event.target.value)} className="h-9 rounded-lg border border-border px-2 text-xs"><option value="">Tất cả</option><option value="public">Public</option><option value="admin">Admin</option></select></Filter>
           <Filter label="Tính năng"><select value={filters.feature ?? ""} onChange={(event) => update("feature", event.target.value)} className="h-9 max-w-40 rounded-lg border border-border px-2 text-xs"><option value="">Tất cả</option>{ANALYTICS_FEATURES.map((item) => <option key={item}>{item}</option>)}</select></Filter>
-          <div className="flex gap-1">{[7, 30, 90].map((days) => <button key={days} type="button" onClick={() => setPreset(days)} className="h-9 rounded-lg border border-border px-2 text-xs font-bold hover:border-primary hover:text-primary">{days} ngày</button>)}</div>
+          <div className="flex gap-1">{[7, 30, 90, 365].map((days) => <button key={days} type="button" onClick={() => setPreset(days)} className="h-9 rounded-lg border border-border px-2 text-xs font-bold hover:border-primary hover:text-primary">{days} ngày</button>)}</div>
           <button type="button" onClick={load} className="flex h-9 items-center gap-1 rounded-lg bg-primary px-3 text-xs font-bold text-white"><RefreshCw size={14} /> Làm mới</button>
         </div>
       </header>

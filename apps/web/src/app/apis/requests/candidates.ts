@@ -1,9 +1,8 @@
 import type {
   ApiApplicationAnalysis,
-  ApiCandidateMessage,
   ApiCandidateProfile,
 } from "@/app/apis/models";
-import { apiDownload, apiRequest } from "./client";
+import { apiJsonDownload, apiJsonRequest, apiRequest } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
 
 /** Loads admin candidate profiles, optionally with a prebuilt query string filter. */
@@ -24,9 +23,9 @@ export type CvExportInput = {
 
 /** Requests a private ZIP and immediately hands it to the browser download manager. */
 export async function exportCandidateCvs(input: CvExportInput) {
-  const { blob, filename } = await apiDownload(API_ENDPOINTS.candidates.cvExports, {
+  const { blob, filename } = await apiJsonDownload(API_ENDPOINTS.candidates.cvExports, {
     method: "POST",
-    body: JSON.stringify(input),
+    body: input,
   });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
@@ -49,11 +48,6 @@ export function retryApplicationAnalysis(applicationId: string) {
     API_ENDPOINTS.candidates.applicationRetry(applicationId),
     {
       method: "POST",
-      notification: {
-        loading: "Đang chạy lại phân tích AI...",
-        success: "Đã đưa hồ sơ vào hàng đợi AI",
-        error: "Không thể chạy lại phân tích AI",
-      },
     },
   );
 }
@@ -62,18 +56,10 @@ export function retryApplicationAnalysis(applicationId: string) {
 export function updateCandidateApplication(
   applicationId: string,
   body: { status?: string; followUpAt?: string | null; note?: string },
-  options: { silent?: boolean } = {},
 ) {
-  return apiRequest(API_ENDPOINTS.candidates.application(applicationId), {
+  return apiJsonRequest<void, { status?: string; followUpAt?: string | null; note?: string }>(API_ENDPOINTS.candidates.application(applicationId), {
     method: "PATCH",
-    body: JSON.stringify(body),
-    notification: options.silent
-      ? undefined
-      : {
-          loading: "Đang cập nhật ứng viên...",
-          success: "Đã cập nhật thông tin ứng viên",
-          error: "Không thể cập nhật ứng viên",
-        },
+    body,
   });
 }
 
@@ -81,27 +67,5 @@ export function updateCandidateApplication(
 export function deleteCandidateRequest(id: string) {
   return apiRequest(API_ENDPOINTS.candidates.candidate(id), {
     method: "DELETE",
-    notification: {
-      loading: "Đang xóa ứng viên...",
-      success: "Đã xóa ứng viên",
-      error: "Không thể xóa ứng viên",
-    },
-  });
-}
-
-/** Sends an outbound candidate message on the selected communication channel. */
-export function sendCandidateMessageRequest(
-  applicationId: string,
-  channel: string,
-  content: string,
-) {
-  return apiRequest<ApiCandidateMessage>(API_ENDPOINTS.candidates.applicationMessages(applicationId), {
-    method: "POST",
-    body: JSON.stringify({ channel, content }),
-    notification: {
-      loading: "Đang gửi tin nhắn...",
-      success: "Tin nhắn đã được gửi",
-      error: "Không thể gửi tin nhắn",
-    },
   });
 }

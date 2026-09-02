@@ -1,4 +1,4 @@
-export { API_BASE, ApiRequestError, apiDownload, apiRequest } from "./client";
+export { API_BASE, ApiRequestError, apiDownload, apiJsonDownload, apiJsonRequest, apiRequest } from "./client";
 export {
   getAuthSession,
   loginRequest,
@@ -10,7 +10,6 @@ export {
   createGuestChatSession,
   getAdminChatUnreadSummary,
   getAdminChatConversation,
-  getGuestChatMessages,
   getGuestChatSnapshot,
   listAdminChatConversations,
   markAdminChatRead,
@@ -33,7 +32,6 @@ export {
   getAdminCandidates,
   getApplicationAnalysis,
   retryApplicationAnalysis,
-  sendCandidateMessageRequest,
   updateCandidateApplication,
 } from "./candidates";
 export { previewApplicationCv, submitApplication } from "./applications";
@@ -64,5 +62,5 @@ export {
   updateSourcingProfileFeedback,
   updateSourcingCampaignStatus,
 } from "./sourcing";
-export { getAnalyticsEvents, getAnalyticsFeatures, getAnalyticsIssues, getAnalyticsOverview, getApplicationFunnel } from "./analytics";
+export { getAnalyticsEvents, getAnalyticsFeatures, getAnalyticsIssues, getAnalyticsOverview, getApplicationFunnel, sendAnalyticsEvents } from "./analytics";
 export type { AnalyticsFilters } from "./analytics";

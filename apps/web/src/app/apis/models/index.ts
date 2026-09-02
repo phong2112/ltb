@@ -5,7 +5,6 @@ export type { ApiJob, ApiJobQuestion } from "./jobs";
 export type {
   ApiApplication,
   ApiApplicationAnalysis,
-  ApiCandidateMessage,
   ApiCandidateProfile,
   ApiCvParseStatus,
   CvSummary,

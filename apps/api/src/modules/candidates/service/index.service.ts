@@ -3,13 +3,9 @@ import { ApplicationStatus, CvParseStatus, FileKind, type Prisma } from "@prisma
 import { AiQueueService } from "@/modules/ai/queue/index.service";
 import { CvStorageService } from "@/modules/files/storage/index.service";
 import { PrismaService } from "@/modules/prisma";
-import { CreateCandidateMessageDto } from "@/modules/candidates/dto/message/index.dto";
 import { UpdateApplicationStatusDto } from "@/modules/candidates/dto/status/index.dto";
 
 const candidateApplicationInclude = {
-  messages: {
-    orderBy: { createdAt: "asc" },
-  },
   followUpTask: true,
   files: {
     orderBy: { createdAt: "desc" },
@@ -266,51 +262,6 @@ export class CandidatesService {
     return { file, openedFile };
   }
 
-  async createMessageForApplication(applicationId: string, dto: CreateCandidateMessageDto) {
-    const content = dto.content.trim();
-
-    if (!content) {
-      throw new BadRequestException("Vui lòng nhập nội dung tin nhắn.");
-    }
-
-    const application = await this.prisma.application.findUnique({
-      where: { id: applicationId },
-      select: { id: true, candidateId: true, jobId: true },
-    });
-
-    if (!application) {
-      throw new NotFoundException("Không tìm thấy hồ sơ ứng tuyển.");
-    }
-
-    return this.prisma.$transaction(async tx => {
-      const message = await tx.candidateMessage.create({
-        data: {
-          applicationId: application.id,
-          channel: dto.channel,
-          direction: "outbound",
-          content,
-        },
-      });
-
-      await tx.activityLog.create({
-        data: {
-          candidateId: application.candidateId,
-          applicationId: application.id,
-          jobId: application.jobId,
-          actor: "hr",
-          action: "candidate_message_sent",
-          metadata: {
-            applicationId: application.id,
-            messageId: message.id,
-            channel: message.channel,
-          },
-        },
-      });
-
-      return message;
-    });
-  }
-
   async updateApplication(applicationId: string, dto: UpdateApplicationStatusDto) {
     const application = await this.prisma.application.findUnique({
       where: { id: applicationId },
@@ -413,7 +364,6 @@ export class CandidatesService {
       await tx.chatConversation.deleteMany({ where: { candidateId: id } });
 
       if (applicationIds.length > 0) {
-        await tx.candidateMessage.deleteMany({ where: { applicationId: { in: applicationIds } } });
         await tx.followUpTask.deleteMany({ where: { applicationId: { in: applicationIds } } });
         await tx.matchResult.deleteMany({ where: { applicationId: { in: applicationIds } } });
         await tx.cvParseResult.deleteMany({ where: { applicationId: { in: applicationIds } } });

@@ -1,18 +1,14 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
   AlertTriangle,
   Briefcase,
-  Building2,
   Calendar,
   Check,
   CheckCircle,
   ChevronLeft,
   ClipboardList,
-  FileText,
-  GraduationCap,
   History,
-  Languages,
   Linkedin,
   Mail,
   MapPin,
@@ -30,6 +26,7 @@ import {
 import {
   AnalysisGroup,
   CvPreviewPanel,
+  CvSummarySection as SharedCvSummarySection,
   getInitials,
   InfoItem,
   SectionHeading,
@@ -53,7 +50,7 @@ import {
   CANDIDATE_WORKFLOW_STATUSES,
   type CandidateStatus,
 } from "@/app/utils/configs/status-config";
-import { cleanCvSummaryDisplayText, formatWorkExperience, getWorkExperienceItems, removeRedactedPhoneMarker, type WorkExperienceDisplayItem } from "@/app/utils/cv-summary";
+import { removeRedactedPhoneMarker } from "@/app/utils/cv-summary";
 import { safeAdminReturnTo } from "@/app/utils/navigation";
 
 export default function CandidateDetail() {
@@ -494,101 +491,12 @@ export default function CandidateDetail() {
 }
 
 function CvSummarySection({ application }: { application: ReturnType<typeof useData>["candidates"][number] }) {
-  const summary = application.cvSummary;
-  const workExperiences = summary ? getWorkExperienceItems(summary) : [];
-
-  return (
-    <section className="rounded-2xl border border-border/80 bg-white p-5 shadow-[0_10px_30px_rgba(120,70,86,0.04)]">
-      <div>
-        <SectionHeading icon={<FileText size={16} />} title="Tóm tắt CV" />
-        <p className="mt-3 max-w-4xl text-sm leading-6 text-foreground">
-          {summary ? removeRedactedPhoneMarker(summary.overview) : (application.aiStatus === "failed" ? "AI chưa tóm tắt được CV này. TA có thể mở file CV để xem trực tiếp." : "Tóm tắt CV sẽ hiển thị sau khi AI đọc xong hồ sơ.")}
-        </p>
-      </div>
-
-      {summary && (
-        <div className="mt-5 space-y-4">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <CvSummaryList icon={<Sparkles size={14} />} title="Kỹ năng chính" items={summary.keySkills} inline />
-            <CvSummaryList icon={<NotebookPen size={14} />} title="Ghi chú nhanh cho TA" items={summary.notesForTa} />
-          </div>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="grid gap-4">
-              <CvSummaryList icon={<GraduationCap size={14} />} title="Học vấn" items={summary.education} />
-              <CvSummaryList icon={<Languages size={14} />} title="Ngôn ngữ" items={summary.languages} inline />
-              <CvWorkExperienceList icon={<Building2 size={14} />} title="Các công ty đã làm việc" items={workExperiences} />
-            </div>
-            <CvSummaryList icon={<Briefcase size={14} />} title="Kinh nghiệm nổi bật" items={summary.workHighlights} />
-          </div>
-        </div>
-      )}
-    </section>
-  );
-}
-
-function CvWorkExperienceList({ icon, title, items }: {
-  icon: ReactNode;
-  title: string;
-  items: WorkExperienceDisplayItem[];
-}) {
-  return (
-    <div className="min-w-0 rounded-xl border border-border/80 bg-background/60 p-4">
-      <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
-        <span className="text-primary">{icon}</span> {title}
-      </p>
-      {items.length > 0 ? (
-        <ul className="mt-3 space-y-2">
-          {items.map(item => (
-            <li key={`${item.company}:${item.title ?? ""}:${item.duration ?? ""}`} className="grid grid-cols-[8px_minmax(0,1fr)] gap-2 text-sm leading-6 text-foreground">
-              <span className="mt-2 size-1.5 rounded-full bg-primary" />
-              <span>{formatWorkExperience(item)}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-3 text-sm font-semibold text-muted-foreground">—</p>
-      )}
-    </div>
-  );
-}
-
-function CvSummaryList({ icon, title, items, inline = false }: {
-  icon: ReactNode;
-  title: string;
-  items: string[];
-  inline?: boolean;
-}) {
-  const visibleItems = items.map(cleanCvSummaryDisplayText).filter(Boolean);
-
-  return (
-    <div className="min-w-0 rounded-xl border border-border/80 bg-background/60 p-4">
-      <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
-        <span className="text-primary">{icon}</span> {title}
-      </p>
-      {visibleItems.length > 0 ? (
-        inline ? (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {visibleItems.map(item => (
-              <span key={item} className="max-w-full rounded-full border border-border bg-white px-2.5 py-1 text-xs font-bold text-foreground">
-                {item}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <ul className="mt-3 space-y-2">
-            {visibleItems.map(item => (
-              <li key={item} className="grid grid-cols-[8px_minmax(0,1fr)] gap-2 text-sm leading-6 text-foreground">
-                <span className="mt-2 size-1.5 rounded-full bg-primary" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        )
-      ) : (
-        <p className="mt-3 text-sm font-semibold text-muted-foreground">—</p>
-      )}
-    </div>
-  );
+  return <SharedCvSummarySection
+    summary={application.cvSummary}
+    title="Tóm tắt CV"
+    emptyOverview={application.aiStatus === "failed" ? "AI chưa tóm tắt được CV này. TA có thể mở file CV để xem trực tiếp." : "Tóm tắt CV sẽ hiển thị sau khi AI đọc xong hồ sơ."}
+    className="rounded-2xl border border-border/80 bg-white p-5 shadow-[0_10px_30px_rgba(120,70,86,0.04)]"
+  />;
 }
 
 function StatusBadge({ status, language }: { status: CandidateStatus; language: "vi" | "en" }) {

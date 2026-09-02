@@ -1,17 +1,18 @@
-import { Body, Controller, ForbiddenException, Get, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, ForbiddenException, Get, Post, Req, Res, UseGuards } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { SkipThrottle, Throttle, ThrottlerGuard } from "@nestjs/throttler";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import { API_ROUTES } from "@hr-copilot/shared";
 import type { Request, Response } from "express";
 import { readCookie } from "@/modules/auth/guards/index.guard";
 import { createCorsOriginOptions } from "@/utils/cors";
 import { GUEST_CHAT_COOKIE_NAME } from "../constants";
-import { ChatMessagesQueryDto, RestoreGuestSessionDto, SendChatMessageDto } from "../dto";
+import { RestoreGuestSessionDto, SendChatMessageDto } from "../dto";
 import { ChatRealtimeTicketService } from "../realtime/ticket.service";
 import { ChatService } from "../service/index.service";
 
 @ApiTags("Guest chat")
-@Controller("chat")
+@Controller(API_ROUTES.chat.base)
 @UseGuards(ThrottlerGuard)
 export class GuestChatController {
   constructor(
@@ -20,7 +21,7 @@ export class GuestChatController {
     private readonly realtimeTickets: ChatRealtimeTicketService,
   ) {}
 
-  @Post("session")
+  @Post(API_ROUTES.chat.session)
   @ApiOperation({ summary: "Create a guest chat session or rotate its credentials" })
   async createSession(@Req() request: Request, @Res({ passthrough: true }) response: Response) {
     this.assertAllowedOrigin(request);
@@ -29,7 +30,7 @@ export class GuestChatController {
     return { recoveryToken: result.recoveryToken };
   }
 
-  @Post("session/restore")
+  @Post(API_ROUTES.chat.restore)
   @ApiOperation({ summary: "Restore a guest session with a rotating recovery token" })
   async restoreSession(@Req() request: Request, @Body() dto: RestoreGuestSessionDto, @Res({ passthrough: true }) response: Response) {
     this.assertAllowedOrigin(request);
@@ -38,7 +39,7 @@ export class GuestChatController {
     return { recoveryToken: result.recoveryToken };
   }
 
-  @Post("session/reset")
+  @Post(API_ROUTES.chat.reset)
   @ApiOperation({ summary: "Start a new guest identity on this browser" })
   async resetSession(@Req() request: Request, @Res({ passthrough: true }) response: Response) {
     this.assertAllowedOrigin(request);
@@ -47,7 +48,7 @@ export class GuestChatController {
     return { recoveryToken: result.recoveryToken };
   }
 
-  @Post("realtime-ticket")
+  @Post(API_ROUTES.chat.realtimeTicket)
   @SkipThrottle({ chat: true })
   async createRealtimeTicket(@Req() request: Request) {
     this.assertAllowedOrigin(request);
@@ -55,26 +56,20 @@ export class GuestChatController {
     return this.realtimeTickets.issue("GUEST", deviceId);
   }
 
-  @Get("conversation")
+  @Get(API_ROUTES.chat.conversation)
   @SkipThrottle({ chat: true })
   getConversation(@Req() request: Request) {
     return this.chatService.getGuestSnapshot(this.sessionToken(request));
   }
 
-  @Get("messages")
-  @SkipThrottle({ chat: true })
-  getMessages(@Req() request: Request, @Query() query: ChatMessagesQueryDto) {
-    return this.chatService.getGuestMessages(this.sessionToken(request), query.cursor);
-  }
-
-  @Post("messages")
+  @Post(API_ROUTES.chat.messages)
   @Throttle({ chat: { limit: 60, ttl: 60_000 } })
   sendMessage(@Req() request: Request, @Body() dto: SendChatMessageDto) {
     this.assertAllowedOrigin(request);
     return this.chatService.sendGuestMessage(this.sessionToken(request), dto.content, dto.clientMessageId);
   }
 
-  @Post("read")
+  @Post(API_ROUTES.chat.read)
   @SkipThrottle({ chat: true })
   markRead(@Req() request: Request) {
     this.assertAllowedOrigin(request);
@@ -110,4 +105,3 @@ export class GuestChatController {
 }
 
 export { GUEST_CHAT_COOKIE_NAME } from "../constants";
-

@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
+import { API_ROUTES } from "@hr-copilot/shared";
 import {
   ApiCookieAuth,
   ApiCreatedResponse,
@@ -12,7 +13,9 @@ import {
 import { ACCESS_TOKEN_SECURITY_NAME } from "@/utils/swagger";
 import { JwtAuthGuard } from "@/modules/auth/guards/index.guard";
 import { CreateJobDto } from "@/modules/jobs/dto/create/index.dto";
+import { ListJobsDto } from "@/modules/jobs/dto/list/index.dto";
 import { UpdateJobDto } from "@/modules/jobs/dto/update/index.dto";
+import { JobsListGuard } from "@/modules/jobs/guards/jobs-list.guard";
 import { JobsService } from "@/modules/jobs/service/index.service";
 
 @ApiTags("Jobs")
@@ -20,28 +23,23 @@ import { JobsService } from "@/modules/jobs/service/index.service";
 export class JobsController {
   constructor(private readonly jobsService: JobsService) {}
 
-  @ApiOperation({ summary: "List published jobs for the public career site" })
-  @ApiOkResponse({ description: "Published jobs ordered by newest first." })
-  @Get("jobs/public")
-  listPublicJobs() {
-    return this.jobsService.listPublicJobs();
-  }
-
-  @ApiOperation({ summary: "List jobs for the TA workspace" })
+  @ApiOperation({ summary: "List published jobs, or all jobs with scope=admin" })
   @ApiCookieAuth(ACCESS_TOKEN_SECURITY_NAME)
-  @ApiOkResponse({ description: "All jobs ordered by newest first." })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token." })
-  @Get("admin/jobs")
-  @UseGuards(JwtAuthGuard)
-  listAdminJobs() {
-    return this.jobsService.listAdminJobs();
+  @ApiOkResponse({ description: "Published jobs by default; all jobs when scope=admin is authorized." })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token for scope=admin." })
+  @Get(API_ROUTES.jobs.base)
+  @UseGuards(JobsListGuard)
+  listJobs(@Query() query: ListJobsDto) {
+    return query.scope === API_ROUTES.jobs.adminScope
+      ? this.jobsService.listAdminJobs()
+      : this.jobsService.listPublicJobs();
   }
 
   @ApiOperation({ summary: "Create a job" })
   @ApiCookieAuth(ACCESS_TOKEN_SECURITY_NAME)
   @ApiCreatedResponse({ description: "Created job." })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token." })
-  @Post("admin/jobs")
+  @Post(API_ROUTES.jobs.base)
   @UseGuards(JwtAuthGuard)
   createJob(@Body() dto: CreateJobDto) {
     return this.jobsService.createJob(dto);
@@ -53,7 +51,7 @@ export class JobsController {
   @ApiOkResponse({ description: "Updated job." })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token." })
   @ApiNotFoundResponse({ description: "Job not found." })
-  @Patch("admin/jobs/:id")
+  @Patch(`${API_ROUTES.jobs.base}/${API_ROUTES.jobs.id}`)
   @UseGuards(JwtAuthGuard)
   updateJob(@Param("id") id: string, @Body() dto: UpdateJobDto) {
     return this.jobsService.updateJob(id, dto);

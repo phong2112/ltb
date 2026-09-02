@@ -13,6 +13,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
+import { API_ROUTES } from "@hr-copilot/shared";
 import { FilesInterceptor } from "@nestjs/platform-express";
 import { ApiBadRequestResponse, ApiConsumes, ApiCookieAuth, ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { AuthenticatedRequest } from "@/modules/auth";
@@ -28,7 +29,7 @@ const MAX_UPLOAD_FILES = 20;
 
 @ApiTags("Talent Pool")
 @ApiCookieAuth(ACCESS_TOKEN_SECURITY_NAME)
-@Controller("admin/talent-pool")
+@Controller(API_ROUTES.talentPool.base)
 @UseGuards(JwtAuthGuard)
 export class TalentPoolController {
   constructor(private readonly talentPoolService: TalentPoolService) {}
@@ -36,7 +37,7 @@ export class TalentPoolController {
   @ApiOperation({ summary: "Upload one or more candidate CVs into the talent pool" })
   @ApiConsumes("multipart/form-data")
   @ApiBadRequestResponse({ description: "No files, unsupported file type, or file too large." })
-  @Post("upload")
+  @Post(API_ROUTES.talentPool.upload)
   @UseInterceptors(FilesInterceptor("cvs", MAX_UPLOAD_FILES))
   async upload(
     @UploadedFiles() files: Express.Multer.File[] | undefined,
@@ -64,32 +65,32 @@ export class TalentPoolController {
   }
 
   @ApiOperation({ summary: "Get a talent pool entry" })
-  @Get(":id")
+  @Get(API_ROUTES.talentPool.id)
   getEntry(@Param("id") id: string) {
     return this.talentPoolService.getEntry(id);
   }
 
   @ApiOperation({ summary: "Re-run AI CV extraction and summary for a talent pool entry" })
   @ApiOkResponse({ description: "Talent pool entry after AI verification was requested." })
-  @Post(":id/ai/retry")
+  @Post(`${API_ROUTES.talentPool.id}/${API_ROUTES.talentPool.aiRetry}`)
   retryAiVerification(@Param("id") id: string) {
     return this.talentPoolService.retryAiVerification(id);
   }
 
   @ApiOperation({ summary: "Update a talent pool entry's parsed profile, tags, or notes" })
-  @Patch(":id")
+  @Patch(API_ROUTES.talentPool.id)
   updateEntry(@Param("id") id: string, @Body() dto: UpdateTalentPoolEntryDto) {
     return this.talentPoolService.updateEntry(id, dto);
   }
 
   @ApiOperation({ summary: "Promote a pool entry into an application for a job" })
-  @Post(":id/promote")
+  @Post(`${API_ROUTES.talentPool.id}/${API_ROUTES.talentPool.promote}`)
   promote(@Param("id") id: string, @Body() dto: PromoteTalentPoolEntryDto) {
     return this.talentPoolService.promote(id, dto.jobId);
   }
 
   @ApiOperation({ summary: "Remove a talent pool entry" })
-  @Delete(":id")
+  @Delete(API_ROUTES.talentPool.id)
   deleteEntry(@Param("id") id: string) {
     return this.talentPoolService.deleteEntry(id);
   }

@@ -1,8 +1,26 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from "@nestjs/common";
+import { API_ROUTES, apiPath } from "@hr-copilot/shared";
 import type { Request, Response } from "express";
 import { tap } from "rxjs";
 import type { AuthenticatedRequest } from "@/models/auth";
 import { AnalyticsService } from "../service";
+
+const API_PATHS = {
+  analytics: apiPath(API_ROUTES.analytics.base),
+  adminAnalytics: apiPath(API_ROUTES.analytics.admin),
+  applications: apiPath(API_ROUTES.applications.base),
+  candidates: apiPath(API_ROUTES.candidates.base),
+  sourcing: apiPath(API_ROUTES.sourcing.base),
+  chat: apiPath(API_ROUTES.chat.base),
+  adminChat: apiPath(API_ROUTES.adminChat.base),
+  templates: apiPath(API_ROUTES.templates.base),
+  jobs: apiPath(API_ROUTES.jobs.base),
+  auth: apiPath(API_ROUTES.auth.base),
+  cvExports: apiPath(API_ROUTES.candidates.cvExports),
+  analysis: apiPath(API_ROUTES.candidates.analysis),
+  aiRetry: apiPath(API_ROUTES.candidates.aiRetry),
+  messages: apiPath(API_ROUTES.chat.messages),
+};
 
 @Injectable()
 export class AnalyticsOutcomeInterceptor implements NestInterceptor {
@@ -39,24 +57,24 @@ export class AnalyticsOutcomeInterceptor implements NestInterceptor {
 
 function semanticRequest(request: Request) {
   const path = request.path;
-  if (path.startsWith("/analytics") || path.startsWith("/admin/analytics") || (request.method === "POST" && path === "/applications")) return null;
+  if (path.startsWith(API_PATHS.analytics) || path.startsWith(API_PATHS.adminAnalytics) || (request.method === "POST" && path === API_PATHS.applications)) return null;
   let feature: string | null = null;
-  if (path.includes("/cv-exports")) feature = "cv_export";
-  else if (path.includes("/analysis") || path.includes("/ai/retry")) feature = "ai_analysis";
-  else if (path.startsWith("/admin/candidates")) feature = "candidate_inbox";
-  else if (path.startsWith("/admin/sourcing")) feature = "sourcing";
-  else if (path.includes("/chat")) feature = "chat";
-  else if (path.startsWith("/admin/templates")) feature = "templates";
-  else if (path.includes("/jobs")) feature = "jobs";
-  else if (path.startsWith("/auth")) feature = "auth";
+  if (path.includes(API_PATHS.cvExports)) feature = "cv_export";
+  else if (path.includes(API_PATHS.analysis) || path.includes(API_PATHS.aiRetry)) feature = "ai_analysis";
+  else if (path.startsWith(API_PATHS.candidates)) feature = "candidate_inbox";
+  else if (path.startsWith(API_PATHS.sourcing)) feature = "sourcing";
+  else if (path.includes(API_PATHS.chat) || path.includes(API_PATHS.adminChat)) feature = "chat";
+  else if (path.startsWith(API_PATHS.templates)) feature = "templates";
+  else if (path.includes(API_PATHS.jobs)) feature = "jobs";
+  else if (path.startsWith(API_PATHS.auth)) feature = "auth";
   if (!feature) return null;
   return { feature, action: actionFor(request.method, path) };
 }
 function actionFor(method: string, path: string) {
-  if (path.includes("/ai/retry")) return "retry_ai";
-  if (path.includes("/cv-exports")) return "export_cv";
+  if (path.includes(API_PATHS.aiRetry)) return "retry_ai";
+  if (path.includes(API_PATHS.cvExports)) return "export_cv";
   if (method === "GET") return "view";
-  if (method === "POST") return path.endsWith("/messages") ? "send_message" : "create";
+  if (method === "POST") return path.endsWith(API_PATHS.messages) ? "send_message" : "create";
   if (method === "DELETE") return "delete";
   return "update";
 }

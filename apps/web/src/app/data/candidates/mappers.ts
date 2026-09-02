@@ -6,12 +6,9 @@ import type {
   AiReviewTone,
   ApiApplication,
   ApiApplicationAnalysis,
-  ApiCandidateMessage,
   ApiCandidateProfile,
   ApiCvParseStatus,
   Candidate,
-  CandidateMessage,
-  CandidateMessageChannel,
   CandidateProfile,
 } from "./types";
 
@@ -98,7 +95,6 @@ function mapCandidate(application: ApiApplication): Candidate | null {
     risks: toStringArray(application.matchResult?.risks),
     missingReqs: toStringArray(application.matchResult?.missingRequirements),
     screeningAnswers,
-    messages: (application.messages ?? []).map(mapCandidateMessage),
   };
 }
 
@@ -197,22 +193,6 @@ export function mapCandidateProfile(candidate: ApiCandidateProfile): CandidatePr
     linkedinUrl: candidate.linkedinUrl ?? applications[0]?.linkedinUrl ?? "",
     applications,
   };
-}
-
-export function mapCandidateMessage(message: ApiCandidateMessage): CandidateMessage {
-  return {
-    id: message.id,
-    applicationId: message.applicationId,
-    channel: mapMessageChannel(message.channel),
-    direction: message.direction === "inbound" ? "inbound" : "outbound",
-    content: message.content,
-    createdAt: message.createdAt,
-  };
-}
-
-function mapMessageChannel(channel: string): CandidateMessageChannel {
-  if (channel === "messenger" || channel === "zalo" || channel === "email" || channel === "linkedin") return channel;
-  return "system";
 }
 
 function formatDate(value?: string | null) {

@@ -5,6 +5,7 @@ import type { ApiSourcingCampaign, ApiSourcingCampaignStatus, ApiSourcingDiscove
 import { createSourcingCampaign, listSourcingCampaigns } from "@/app/apis/requests";
 import { useData } from "@/app/data";
 import AdminLayout from "@/app/layouts/AdminLayout";
+import { actionNotifications, runNotifiedAction } from "@/app/services/action-notifications";
 
 type CampaignFilter = "ALL" | ApiSourcingCampaignStatus;
 
@@ -41,7 +42,7 @@ export default function SourcingCampaigns() {
 
     setSubmitting(true);
     try {
-      const campaign = await createSourcingCampaign({ jobId, name: name.trim() || undefined, discoveryLocationScope });
+      const campaign = await runNotifiedAction(actionNotifications.sourcing.createCampaign, () => createSourcingCampaign({ jobId, name: name.trim() || undefined, discoveryLocationScope }));
       navigate(`/admin/sourcing/${campaign.id}`);
     } finally {
       setSubmitting(false);

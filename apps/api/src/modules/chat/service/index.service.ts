@@ -103,15 +103,6 @@ export class ChatService {
     };
   }
 
-  async getGuestMessages(sessionToken: string, cursor?: string) {
-    const device = await this.requireDevice(sessionToken);
-    const conversation = await this.prisma.chatConversation.findUnique({
-      where: { guestDeviceId_taUserId: { guestDeviceId: device.id, taUserId: TA_USER_ID } },
-    });
-    if (!conversation) return { items: [], nextCursor: null };
-    return this.getMessages(conversation.id, cursor);
-  }
-
   async getGuestRealtimeIdentity(sessionToken: string) {
     const device = await this.requireDevice(sessionToken);
     return device.id;

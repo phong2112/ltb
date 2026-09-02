@@ -1,4 +1,5 @@
 import { BadRequestException, Body, Controller, Post, Req, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
+import { API_ROUTES } from "@hr-copilot/shared";
 import { ConfigService } from "@nestjs/config";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ThrottlerGuard } from "@nestjs/throttler";
@@ -12,7 +13,7 @@ import { CreateApplicationDto } from "@/modules/applications/dto/create/index.dt
 import { ApplicationsService } from "@/modules/applications/service/index.service";
 
 @ApiTags("Applications")
-@Controller("applications")
+@Controller(API_ROUTES.applications.base)
 @UseGuards(ThrottlerGuard)
 export class ApplicationsController {
   constructor(
@@ -37,7 +38,7 @@ export class ApplicationsController {
     },
   })
   @ApiBadRequestResponse({ description: "Invalid file type, missing file, unreadable CV, or file too large." })
-  @Post("cv-preview")
+  @Post(API_ROUTES.applications.cvPreview)
   @UseInterceptors(FileInterceptor("cv"))
   previewCv(@UploadedFile() cv?: Express.Multer.File, @Body("jobLocations") jobLocations?: string) {
     return this.cvPreviewService.preview(cv, {

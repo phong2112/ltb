@@ -1,5 +1,5 @@
 import type { ApiTemplate, ApiTemplateInput } from "@/app/apis/models";
-import { apiRequest } from "./client";
+import { apiJsonRequest, apiRequest } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
 
 /** Builds the templates collection/detail endpoint from the shared endpoint map. */
@@ -14,17 +14,17 @@ export function fetchAdminTemplates() {
 
 /** Creates a reusable admin message template. */
 export function createAdminTemplate(form: ApiTemplateInput) {
-  return apiRequest<ApiTemplate>(templatePath(), {
+  return apiJsonRequest<ApiTemplate, ApiTemplateInput>(templatePath(), {
     method: "POST",
-    body: JSON.stringify(form),
+    body: form,
   });
 }
 
 /** Updates an existing admin message template. */
 export function updateAdminTemplate(id: string, form: ApiTemplateInput) {
-  return apiRequest<ApiTemplate>(templatePath(id), {
+  return apiJsonRequest<ApiTemplate, ApiTemplateInput>(templatePath(id), {
     method: "PATCH",
-    body: JSON.stringify(form),
+    body: form,
   });
 }
 

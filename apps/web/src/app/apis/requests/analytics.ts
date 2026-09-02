@@ -1,5 +1,5 @@
-import type { AnalyticsFeatureRow, AnalyticsFunnelRow, AnalyticsIssueRow, AnalyticsOverview, AnalyticsRecentEvent } from "@hr-copilot/shared";
-import { apiRequest } from "./client";
+import type { AnalyticsFeatureRow, AnalyticsFunnelRow, AnalyticsIssueRow, AnalyticsOverview, AnalyticsRecentEvent, ProductEventInput } from "@hr-copilot/shared";
+import { apiJsonRequest, apiRequest } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
 
 export type AnalyticsFilters = { from: string; to: string; actorType?: "public" | "admin"; feature?: string };
@@ -14,3 +14,12 @@ export const getAnalyticsFeatures = (filters: AnalyticsFilters) => apiRequest<An
 export const getAnalyticsIssues = (filters: AnalyticsFilters) => apiRequest<AnalyticsIssueRow[]>(`${API_ENDPOINTS.analytics.issues}?${query(filters)}`);
 export const getApplicationFunnel = (filters: AnalyticsFilters) => apiRequest<AnalyticsFunnelRow[]>(`${API_ENDPOINTS.analytics.funnel}?${query(filters)}`);
 export const getAnalyticsEvents = (filters: AnalyticsFilters) => apiRequest<AnalyticsRecentEvent[]>(`${API_ENDPOINTS.analytics.events}?${query(filters)}&limit=30`);
+
+/** Sends product events through the shared API client. */
+export function sendAnalyticsEvents(events: ProductEventInput[], options: { keepalive?: boolean } = {}) {
+  return apiJsonRequest<void, { events: ProductEventInput[] }>(API_ENDPOINTS.analytics.eventsBatch, {
+    method: "POST",
+    keepalive: options.keepalive,
+    body: { events },
+  });
+}

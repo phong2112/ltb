@@ -44,10 +44,5 @@ export function submitApplication(candidate: NewCandidate) {
   return apiRequest(API_ENDPOINTS.applications.submit, {
     method: "POST",
     body: form,
-    notification: {
-      loading: "Đang gửi hồ sơ ứng tuyển...",
-      success: "Hồ sơ đã được gửi thành công",
-      error: "Không thể gửi hồ sơ ứng tuyển",
-    },
   });
 }

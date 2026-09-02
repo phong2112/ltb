@@ -5,7 +5,7 @@ import type {
   ApiTalentPoolUpdateInput,
   ApiTalentPoolUploadResult,
 } from "@/app/apis/models/talent-pool";
-import { apiRequest } from "./client";
+import { apiJsonRequest, apiRequest } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
 
 /** Uploads one or more CV files into the talent pool, optionally targeting a job. */
@@ -49,17 +49,17 @@ export function retryTalentPoolAiVerification(id: string) {
 
 /** Updates editable talent pool profile fields and reviewer notes. */
 export function updateTalentPoolEntry(id: string, input: ApiTalentPoolUpdateInput) {
-  return apiRequest<ApiTalentPoolEntry>(API_ENDPOINTS.talentPool.entry(id), {
+  return apiJsonRequest<ApiTalentPoolEntry, ApiTalentPoolUpdateInput>(API_ENDPOINTS.talentPool.entry(id), {
     method: "PATCH",
-    body: JSON.stringify(input),
+    body: input,
   });
 }
 
 /** Promotes a talent pool entry into an application for a selected job. */
 export function promoteTalentPoolEntry(id: string, jobId: string) {
-  return apiRequest<{ applicationId: string; jobId: string }>(API_ENDPOINTS.talentPool.promote(id), {
+  return apiJsonRequest<{ applicationId: string; jobId: string }, { jobId: string }>(API_ENDPOINTS.talentPool.promote(id), {
     method: "POST",
-    body: JSON.stringify({ jobId }),
+    body: { jobId },
   });
 }
 

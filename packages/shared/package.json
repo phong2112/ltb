@@ -15,7 +15,7 @@
     "build": "tsc",
     "dev": "tsc --watch --preserveWatchOutput",
     "lint": "tsc --noEmit",
-    "test": "tsc --noEmit"
+    "test": "pnpm build && node --test test/cv.test.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.2"

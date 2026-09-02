@@ -1,6 +1,5 @@
 import type { ApiAuthSession } from "@/app/apis/models";
-import { currentTenantSlug } from "@/app/utils/tenant";
-import { apiRequest } from "./client";
+import { apiJsonRequest, apiRequest } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
 
 /** Auth endpoints that should not recursively trigger refresh attempts on 401 responses. */
@@ -17,14 +16,9 @@ export function getAuthSession() {
 
 /** Sends admin credentials and relies on the API to set auth cookies. */
 export function loginRequest(email: string, password: string) {
-  return apiRequest<ApiAuthSession>(API_ENDPOINTS.auth.login, {
+  return apiJsonRequest<ApiAuthSession, { email: string; password: string }>(API_ENDPOINTS.auth.login, {
     method: "POST",
-    body: JSON.stringify({ email, password }),
-    notification: {
-      loading: "Đang đăng nhập...",
-      success: "Đăng nhập thành công",
-      error: "Không thể đăng nhập",
-    },
+    body: { email, password },
   });
 }
 
@@ -32,26 +26,17 @@ export function loginRequest(email: string, password: string) {
 export function logoutRequest() {
   return apiRequest(API_ENDPOINTS.auth.logout, {
     method: "POST",
-    notification: {
-      loading: "Đang đăng xuất...",
-      success: "Đã đăng xuất",
-      error: "Không thể kết nối máy chủ khi đăng xuất",
-    },
   });
 }
 
 /** Attempts to refresh the access token using the existing auth cookie. */
-export async function refreshAccessToken(apiBase: string) {
+export async function refreshAccessToken() {
   try {
-    const response = await fetch(`${apiBase}${API_ENDPOINTS.auth.refresh}`, {
+    await apiRequest<void>(API_ENDPOINTS.auth.refresh, {
       method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Tenant-Slug": currentTenantSlug(),
-      },
+      skipAuthRefresh: true,
     });
-    return response.ok;
+    return true;
   } catch {
     return false;
   }

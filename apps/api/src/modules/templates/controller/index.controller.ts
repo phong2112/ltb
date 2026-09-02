@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import { API_ROUTES } from "@hr-copilot/shared";
 import {
   ApiCookieAuth,
   ApiCreatedResponse,
@@ -19,7 +20,7 @@ import { TemplatesService } from "@/modules/templates/service/index.service";
 @ApiTags("Message Templates")
 @ApiCookieAuth(ACCESS_TOKEN_SECURITY_NAME)
 @ApiUnauthorizedResponse({ description: "Missing or invalid access token." })
-@Controller("admin/templates")
+@Controller(API_ROUTES.templates.base)
 @UseGuards(JwtAuthGuard)
 export class TemplatesController {
   constructor(private readonly templatesService: TemplatesService) {}
@@ -42,7 +43,7 @@ export class TemplatesController {
   @ApiParam({ name: "id", example: "cmtemplate123" })
   @ApiOkResponse({ description: "Updated message template." })
   @ApiNotFoundResponse({ description: "Message template not found." })
-  @Patch(":id")
+  @Patch(API_ROUTES.templates.id)
   updateTemplate(@Param("id") id: string, @Body() dto: UpdateTemplateDto) {
     return this.templatesService.updateTemplate(id, dto);
   }
@@ -51,7 +52,7 @@ export class TemplatesController {
   @ApiParam({ name: "id", example: "cmtemplate123" })
   @ApiNoContentResponse({ description: "Message template deleted." })
   @ApiNotFoundResponse({ description: "Message template not found." })
-  @Delete(":id")
+  @Delete(API_ROUTES.templates.id)
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteTemplate(@Param("id") id: string) {
     await this.templatesService.deleteTemplate(id);

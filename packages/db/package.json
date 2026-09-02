@@ -5,7 +5,7 @@
   "scripts": {
     "build": "prisma generate",
     "lint": "prisma validate",
-    "test": "prisma validate",
+    "test": "prisma validate && pnpm --filter @hr-copilot/shared build && node scripts/verify-shared-contract.cjs",
     "prisma": "prisma",
     "seed": "tsx prisma/seed.ts"
   },

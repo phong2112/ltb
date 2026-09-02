@@ -2,7 +2,6 @@ import type { CvSummary } from "@hr-copilot/shared";
 import type {
   ApiApplication,
   ApiApplicationAnalysis,
-  ApiCandidateMessage,
   ApiCandidateProfile,
   ApiCvParseStatus,
 } from "@/app/apis/models";
@@ -12,25 +11,13 @@ export type { CandidateStatus } from "@/app/utils/configs/status-config";
 export type {
   ApiApplication,
   ApiApplicationAnalysis,
-  ApiCandidateMessage,
   ApiCandidateProfile,
   ApiCvParseStatus,
   CvSummary,
 };
 
-export type CandidateMessageChannel = "system" | "messenger" | "zalo" | "email" | "linkedin";
-type CandidateMessageDirection = "inbound" | "outbound";
 export type AiAnalysisStatus = "pending" | "completed" | "failed";
 export type AiReviewTone = "good" | "fair" | "check";
-
-export type CandidateMessage = {
-  id: string;
-  applicationId: string;
-  channel: CandidateMessageChannel;
-  direction: CandidateMessageDirection;
-  content: string;
-  createdAt: string;
-};
 
 export type Candidate = {
   id: string;
@@ -72,7 +59,6 @@ export type Candidate = {
   risks: string[];
   missingReqs: string[];
   screeningAnswers: { q: string; a: string; required?: boolean }[];
-  messages: CandidateMessage[];
 };
 
 export type CandidateProfile = {

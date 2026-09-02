@@ -7,17 +7,7 @@ import type { ApiJob } from "./jobs";
 
 export type { CvSummary, ApiCvParseStatus };
 
-/** API message record attached to one candidate application. */
-export type ApiCandidateMessage = {
-  id: string;
-  applicationId: string;
-  channel: string;
-  direction: string;
-  content: string;
-  createdAt: string;
-};
-
-/** API application record with submitted candidate data, CV parsing, matching, and messages. */
+/** API application record with submitted candidate data, CV parsing, and matching. */
 export type ApiApplication = {
   id: string;
   candidateId: string;
@@ -56,7 +46,6 @@ export type ApiApplication = {
     sizeBytes?: number | null;
     path: string;
   }[];
-  messages?: ApiCandidateMessage[];
   candidate?: {
     id: string;
     fullName: string;

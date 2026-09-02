@@ -89,7 +89,6 @@ describe("GuestChatController", () => {
   it("does not throttle background chat synchronization endpoints", () => {
     for (const handler of [
       GuestChatController.prototype.getConversation,
-      GuestChatController.prototype.getMessages,
       GuestChatController.prototype.markRead,
     ]) {
       expect(Reflect.getMetadata("THROTTLER:SKIPchat", handler)).toBe(true);

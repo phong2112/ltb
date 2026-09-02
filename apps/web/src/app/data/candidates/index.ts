@@ -1,10 +1,8 @@
 export type {
   AiAnalysisStatus,
   ApiApplicationAnalysis,
-  ApiCandidateMessage,
   ApiCandidateProfile,
   Candidate,
-  CandidateMessageChannel,
   CandidateProfile,
   CandidateStatus,
   CvSummary,
@@ -12,7 +10,6 @@ export type {
 } from "./types";
 export {
   mapApplicationAnalysis,
-  mapCandidateMessage,
   mapCandidateProfile,
   toApiApplicationStatus,
 } from "./mappers";

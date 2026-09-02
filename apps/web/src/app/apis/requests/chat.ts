@@ -9,7 +9,7 @@ import type {
   ApiChatPage,
   ChatConversationStatus,
 } from "../models/chat";
-import { apiRequest } from "./client";
+import { apiJsonRequest, apiRequest } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
 
 type RecoveryResponse = { recoveryToken: string };
@@ -23,10 +23,10 @@ export function createGuestChatSession() {
 }
 
 export function restoreGuestChatSession(recoveryToken: string) {
-  return apiRequest<RecoveryResponse>(API_ENDPOINTS.chat.restore, {
+  return apiJsonRequest<RecoveryResponse, { recoveryToken: string }>(API_ENDPOINTS.chat.restore, {
     method: "POST",
     skipAuthRefresh: true,
-    body: JSON.stringify({ recoveryToken }),
+    body: { recoveryToken },
   });
 }
 
@@ -51,18 +51,11 @@ export async function getGuestChatSnapshot() {
   return response ?? { conversation: null, messages: { items: [], nextCursor: null } };
 }
 
-export function getGuestChatMessages(cursor?: string) {
-  const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
-  return apiRequest<ApiChatPage<ApiChatMessage>>(`${API_ENDPOINTS.chat.messages}${query}`, {
-    skipAuthRefresh: true,
-  });
-}
-
 export function sendGuestChatMessage(input: SendMessageInput) {
-  return apiRequest<ApiChatMessage>(API_ENDPOINTS.chat.messages, {
+  return apiJsonRequest<ApiChatMessage, SendMessageInput>(API_ENDPOINTS.chat.messages, {
     method: "POST",
     skipAuthRefresh: true,
-    body: JSON.stringify(input),
+    body: input,
   });
 }
 
@@ -95,9 +88,9 @@ export function getAdminChatConversation(id: string, cursor?: string) {
 }
 
 export function sendAdminChatMessage(id: string, input: SendMessageInput) {
-  return apiRequest<ApiChatMessage>(API_ENDPOINTS.adminChat.messages(id), {
+  return apiJsonRequest<ApiChatMessage, SendMessageInput>(API_ENDPOINTS.adminChat.messages(id), {
     method: "POST",
-    body: JSON.stringify(input),
+    body: input,
   });
 }
 
@@ -106,8 +99,8 @@ export function markAdminChatRead(id: string) {
 }
 
 export function updateAdminChatStatus(id: string, status: ChatConversationStatus) {
-  return apiRequest<ApiChatConversation>(API_ENDPOINTS.adminChat.status(id), {
+  return apiJsonRequest<ApiChatConversation, { status: ChatConversationStatus }>(API_ENDPOINTS.adminChat.status(id), {
     method: "PATCH",
-    body: JSON.stringify({ status }),
+    body: { status },
   });
 }

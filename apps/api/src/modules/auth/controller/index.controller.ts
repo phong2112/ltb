@@ -1,5 +1,7 @@
 import { Body, Controller, Get, Post, Req, Res, UseGuards } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { ThrottlerGuard } from "@nestjs/throttler";
+import { API_ROUTES } from "@hr-copilot/shared";
 import {
   ApiCookieAuth,
   ApiOkResponse,
@@ -15,7 +17,7 @@ import { LoginDto } from "@/modules/auth/dto/login/index.dto";
 import { ACCESS_TOKEN_COOKIE_NAME, JwtAuthGuard, readCookie, REFRESH_TOKEN_COOKIE_NAME } from "@/modules/auth/guards/index.guard";
 
 @ApiTags("Auth")
-@Controller("auth")
+@Controller(API_ROUTES.auth.base)
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
@@ -25,7 +27,8 @@ export class AuthController {
   @ApiOperation({ summary: "Log in as the TA admin" })
   @ApiOkResponse({ description: "Returns the admin user and sets access/refresh httpOnly cookies." })
   @ApiUnauthorizedResponse({ description: "Invalid email or password." })
-  @Post("login")
+  @Post(API_ROUTES.auth.login)
+  @UseGuards(ThrottlerGuard)
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) response: Response) {
     const session = await this.authService.login(dto.email, dto.password);
 
@@ -54,7 +57,7 @@ export class AuthController {
   @ApiCookieAuth(REFRESH_TOKEN_SECURITY_NAME)
   @ApiOkResponse({ description: "Returns the admin user and sets a new access token cookie." })
   @ApiUnauthorizedResponse({ description: "Missing, invalid, or expired refresh token." })
-  @Post("refresh")
+  @Post(API_ROUTES.auth.refresh)
   async refresh(@Req() request: Request, @Res({ passthrough: true }) response: Response) {
     const refreshToken = readCookie(request, REFRESH_TOKEN_COOKIE_NAME);
     const session = await this.authService.refreshSession(refreshToken);
@@ -75,7 +78,7 @@ export class AuthController {
 
   @ApiOperation({ summary: "Log out and clear auth cookies" })
   @ApiOkResponse({ description: "Auth cookies cleared." })
-  @Post("logout")
+  @Post(API_ROUTES.auth.logout)
   logout(@Res({ passthrough: true }) response: Response) {
     response.clearCookie(ACCESS_TOKEN_COOKIE_NAME, {
       httpOnly: true,
@@ -97,7 +100,7 @@ export class AuthController {
   @ApiCookieAuth(ACCESS_TOKEN_SECURITY_NAME)
   @ApiOkResponse({ description: "Current admin user." })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token." })
-  @Get("me")
+  @Get(API_ROUTES.auth.me)
   @UseGuards(JwtAuthGuard)
   me(@Req() request: AuthenticatedRequest) {
     return { user: request.user };

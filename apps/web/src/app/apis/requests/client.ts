@@ -1,7 +1,3 @@
-import {
-  notificationService,
-  type ActionNotification,
-} from "@/app/services/notification.service";
 import { currentTenantSlug } from "@/app/utils/tenant";
 import {
   refreshAccessToken,
@@ -12,9 +8,12 @@ export const API_BASE = resolveApiBase(
   import.meta.env.VITE_API_BASE_PATH as string | undefined,
 );
 
-type ApiRequestInit = RequestInit & {
+export type ApiRequestInit = RequestInit & {
   skipAuthRefresh?: boolean;
-  notification?: ActionNotification;
+};
+
+type ApiJsonRequestInit<TBody> = Omit<ApiRequestInit, "body"> & {
+  body: TBody;
 };
 
 /** Error type thrown for non-2xx API responses with the HTTP status preserved. */
@@ -27,43 +26,38 @@ export class ApiRequestError extends Error {
   }
 }
 
-/** Shared request wrapper for API calls, auth refresh, JSON parsing, and action notifications. */
+/** Shared request wrapper for API calls, auth refresh, and response parsing. */
 export async function apiRequest<T>(path: string, init: ApiRequestInit = {}) {
-  const { skipAuthRefresh, notification, ...requestInit } = init;
-  const notificationId = notification
-    ? notificationService.loading(notification.loading)
-    : undefined;
+  const { skipAuthRefresh, ...requestInit } = init;
+  let response = await sendRequest(path, requestInit);
 
-  try {
-    let response = await sendRequest(path, requestInit);
-
-    if (
-      response.status === 401 &&
-      !skipAuthRefresh &&
-      shouldAttemptAuthRefresh(path)
-    ) {
-      const refreshed = await refreshAccessToken(API_BASE);
-      if (refreshed) response = await sendRequest(path, requestInit);
-    }
-
-    if (!response.ok) {
-      const body = await response.text().catch(() => "");
-      const message = parseApiErrorMessage(body);
-      throw new ApiRequestError(
-        message || `Request failed with status ${response.status}`,
-        response.status,
-      );
-    }
-
-    const result = await parseSuccessfulResponse<T>(response);
-    if (notification)
-      notificationService.success(notification.success, notificationId);
-    return result;
-  } catch (error) {
-    if (notification)
-      notificationService.error(error, notification.error, notificationId);
-    throw error;
+  if (response.status === 401 && !skipAuthRefresh && shouldAttemptAuthRefresh(path)) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) response = await sendRequest(path, requestInit);
   }
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    const message = parseApiErrorMessage(body);
+    throw new ApiRequestError(message || `Request failed with status ${response.status}`, response.status);
+  }
+
+  return parseSuccessfulResponse<T>(response);
+}
+
+/** Sends a typed JSON API request while preserving shared auth and error handling. */
+export function apiJsonRequest<TResponse, TBody>(path: string, init: ApiJsonRequestInit<TBody>) {
+  const { body, ...requestInit } = init;
+  return apiRequest<TResponse>(path, {
+    ...requestInit,
+    body: JSON.stringify(body),
+  });
+}
+
+/** Downloads a binary response from an endpoint that accepts a typed JSON body. */
+export function apiJsonDownload<TBody>(path: string, init: ApiJsonRequestInit<TBody>) {
+  const { body, ...requestInit } = init;
+  return apiDownload(path, { ...requestInit, body: JSON.stringify(body) });
 }
 
 /** Downloads an authenticated binary response while retaining the normal token-refresh behavior. */
@@ -71,7 +65,7 @@ export async function apiDownload(path: string, init: ApiRequestInit = {}) {
   const { skipAuthRefresh, ...requestInit } = init;
   let response = await sendRequest(path, requestInit);
   if (response.status === 401 && !skipAuthRefresh && shouldAttemptAuthRefresh(path)) {
-    const refreshed = await refreshAccessToken(API_BASE);
+    const refreshed = await refreshAccessToken();
     if (refreshed) response = await sendRequest(path, requestInit);
   }
   if (!response.ok) {

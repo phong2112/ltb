@@ -31,13 +31,13 @@ The candidate site and TA workspace run on the same domain:
 Implemented:
 
 - pnpm monorepo.
-- Next.js app in `apps/web`.
+- Vite/React app in `apps/web`.
 - NestJS API in `apps/api`.
 - Prisma schema in `packages/db`.
 - Shared types in `packages/shared`.
-- Docker Compose dev stack with Nginx, web, API, PostgreSQL, Redis, and optional Groq AI matching.
-- Nginx reverse proxy for same-domain routing.
-- Basic Auth protection for `/admin` and `/api/admin`.
+- Docker Compose services for the API, PostgreSQL, Redis, and optional Groq AI matching.
+- Vercel `/api` rewrite for same-origin browser API traffic.
+- JWT HttpOnly cookie protection for the TA workspace and admin APIs.
 - Swagger API documentation for local/API development.
 
 ### Phase 2: Jobs And Career Site
@@ -338,14 +338,10 @@ The OCR worker is reused and serialized across requests, hybrid PDFs are compare
 
 ## Architecture Notes
 
-Nginx owns same-domain routing in Docker:
-
-- `/api/admin/*` -> NestJS `/admin/*`, protected by Basic Auth.
-- `/api/*` -> NestJS public API.
-- `/admin*` -> Next.js TA workspace, protected by Basic Auth.
-- `/*` -> Next.js public site.
-
-The API service is not exposed directly by Docker Compose. Public access should go through Nginx.
+- `apps/web` is a Vite/React SPA. Vercel serves the SPA and rewrites `/api/*` to the NestJS API.
+- `apps/api` is a NestJS service. Public endpoints are rate-limited where appropriate; TA endpoints use JWT HttpOnly cookies.
+- Chat REST traffic uses the first-party `/api` rewrite. Socket.IO uses a short-lived realtime ticket and connects directly to the configured API origin.
+- PostgreSQL stores application, chat, and analytics records. Redis backs queues and Socket.IO fan-out. Candidate CV binaries stay in private object storage.
 
 ## Next Implementation Priorities
 
@@ -353,7 +349,7 @@ The API service is not exposed directly by Docker Compose. Public access should 
 2. Add `/admin/sourcing` for sourcing brief, import, ranking, and funnel tracking.
 3. Add manual and CSV import into Talent Pool.
 4. Add outreach templates and copy-to-send workflow.
-5. Add real auth/session instead of Nginx Basic Auth for production.
+5. Add error monitoring and hosted-development smoke tests to the deployment pipeline.
 6. Add private object storage for CV files instead of local container volume.
 7. Add an admin retry action for failed AI jobs.
 8. Add email notifications for new applications.
@@ -373,4 +369,4 @@ VITE_ANALYTICS_ENABLED=true
 VITE_APP_RELEASE=<deployment-version>
 ```
 
-The main endpoints are `POST /api/analytics/events/batch` and protected reports under `/api/admin/analytics/*`. `/admin/analytics` supports bookmarkable date, audience, and feature filters. Ingestion is fail-open and duplicate event IDs are idempotent. Run authenticated `POST /api/admin/analytics/maintenance` daily: it aggregates expired raw events before deletion and removes aggregate rows older than 12 months. Disable the three analytics flags to roll back collection/dashboard without reverting the additive database migration.
+The main endpoints are `POST /api/analytics/events/batch` and protected reports under `/api/admin/analytics/*`. `/admin/analytics` supports bookmarkable date, audience, and feature filters. Ingestion is fail-open and duplicate event IDs are idempotent. When analytics is enabled, the API runs maintenance on startup and every 24 hours: it aggregates expired raw events before deletion and removes aggregate rows older than 12 months. The authenticated `POST /api/admin/analytics/maintenance` endpoint remains available for an explicit retry. Disable the three analytics flags to roll back collection/dashboard without reverting the additive database migration.

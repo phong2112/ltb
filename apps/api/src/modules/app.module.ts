@@ -18,11 +18,11 @@ import { SourcingModule } from "./sourcing";
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [
-        "../../.env.dev",
         "../../.env.local",
+        "../../.env.dev",
         "../../.env",
-        ".env.dev",
         ".env.local",
+        ".env.dev",
         ".env",
       ],
       validate: validateEnv,

@@ -330,7 +330,6 @@ model Application {
   cvParseResult         CvParseResult?
   followUpTask          FollowUpTask?
   matchResult           MatchResult?
-  messages              CandidateMessage[]
   activities            ActivityLog[]
   chatConversations     ChatConversation[]
   promotedFromPool      TalentPoolEntry?   @relation("PromotedFromPool")
@@ -434,18 +433,6 @@ model MessageTemplate {
   content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-model CandidateMessage {
-  id            String      @id @default(cuid())
-  applicationId String
-  channel       String
-  direction     String
-  content       String
-  application   Application @relation(fields: [applicationId], references: [id], onDelete: Restrict)
-  createdAt     DateTime    @default(now())
-
-  @@index([applicationId])
 }
 
 model GuestDevice {
@@ -577,12 +564,13 @@ model ProductEventDailyAggregate {
   action       String                @default("")
   outcome      ProductEventOutcome
   errorCode    String                @default("")
+  funnelStep   String                @default("")
   eventCount   Int
   sessionCount Int
   createdAt    DateTime              @default(now())
   updatedAt    DateTime              @updatedAt
 
-  @@unique([date, actorType, eventName, feature, action, outcome, errorCode])
+  @@unique([date, actorType, eventName, feature, action, outcome, errorCode, funnelStep])
   @@index([date])
   @@index([feature, date])
 }

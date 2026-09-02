@@ -1,9 +1,10 @@
 import { Controller, Get } from "@nestjs/common";
+import { API_ROUTES } from "@hr-copilot/shared";
 import { ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { AiQueueService } from "@/modules/ai/queue/index.service";
 
 @ApiTags("Health")
-@Controller("health")
+@Controller(API_ROUTES.health)
 export class HealthController {
   constructor(private readonly aiQueueService: AiQueueService) {}
 

@@ -49,6 +49,19 @@ describe("validateEnv", () => {
       .toThrow("CHAT_REALTIME_TICKET_SECRET must be at least 32 characters");
   });
 
+  it("names invalid analytics flags in startup errors", () => {
+    expect(() => validateEnv({ ...requiredConfig, ANALYTICS_ENABLED: "yes" }))
+      .toThrow("ANALYTICS_ENABLED must be true or false");
+  });
+
+  it("requires a long analytics HMAC secret when collection is enabled", () => {
+    expect(() => validateEnv({
+      ...requiredConfig,
+      ANALYTICS_ENABLED: "true",
+      ANALYTICS_HMAC_SECRET: "short",
+    })).toThrow("ANALYTICS_HMAC_SECRET must be at least 32 characters when ANALYTICS_ENABLED=true");
+  });
+
   it("rejects negative proxy hop counts", () => {
     expect(() => validateEnv({ ...requiredConfig, TRUST_PROXY_HOPS: "-1" }))
       .toThrow("TRUST_PROXY_HOPS must be a non-negative integer");

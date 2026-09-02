@@ -1,11 +1,11 @@
 import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, StreamableFile, UseGuards } from "@nestjs/common";
+import { API_ROUTES } from "@hr-copilot/shared";
 import { ConfigService } from "@nestjs/config";
 import { ApiCookieAuth, ApiCreatedResponse, ApiNoContentResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiProduces, ApiQuery, ApiTags, ApiUnauthorizedResponse } from "@nestjs/swagger";
 import { ApplicationStatus } from "@prisma/client";
 import type { Response } from "express";
 import { ACCESS_TOKEN_SECURITY_NAME } from "@/utils/swagger";
 import { JwtAuthGuard } from "@/modules/auth/guards/index.guard";
-import { CreateCandidateMessageDto } from "@/modules/candidates/dto/message/index.dto";
 import { normalizeApplicationStatusInput, UpdateApplicationStatusDto } from "@/modules/candidates/dto/status/index.dto";
 import { CandidatesService } from "@/modules/candidates/service/index.service";
 import { CvExportService } from "@/modules/candidates/export/cv-export.service";
@@ -14,7 +14,7 @@ import { CreateCvExportDto } from "@/modules/candidates/dto/export/index.dto";
 @ApiTags("Candidates")
 @ApiCookieAuth(ACCESS_TOKEN_SECURITY_NAME)
 @ApiUnauthorizedResponse({ description: "Missing or invalid access token." })
-@Controller("admin/candidates")
+@Controller(API_ROUTES.candidates.base)
 @UseGuards(JwtAuthGuard)
 export class CandidatesController {
   constructor(
@@ -40,7 +40,7 @@ export class CandidatesController {
 
   @ApiOperation({ summary: "Export candidate CV files as a private ZIP archive" })
   @ApiProduces("application/zip")
-  @Post("cv-exports")
+  @Post(API_ROUTES.candidates.cvExports)
   async exportCvs(@Body() dto: CreateCvExportDto, @Res() response: Response) {
     await this.cvExportService.export(dto, response);
   }
@@ -50,7 +50,7 @@ export class CandidatesController {
   @ApiProduces("application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
   @ApiOkResponse({ description: "Candidate CV file stream." })
   @ApiNotFoundResponse({ description: "Candidate file not found." })
-  @Get("files/:fileId")
+  @Get(`${API_ROUTES.candidates.files}/${API_ROUTES.candidates.fileId}`)
   async getCandidateFile(@Param("fileId") fileId: string, @Res({ passthrough: true }) response: Response) {
     const { file, openedFile } = await this.candidatesService.openCandidateFile(fileId);
 
@@ -70,27 +70,16 @@ export class CandidatesController {
   @ApiParam({ name: "applicationId", example: "cmapplication123" })
   @ApiOkResponse({ description: "Current CV processing status and match result when available." })
   @ApiNotFoundResponse({ description: "Application or CV analysis not found." })
-  @Get("applications/:applicationId/analysis")
+  @Get(`${API_ROUTES.candidates.applications}/${API_ROUTES.candidates.applicationId}/${API_ROUTES.candidates.analysis}`)
   getApplicationAnalysis(@Param("applicationId") applicationId: string) {
     return this.candidatesService.getApplicationAnalysis(applicationId);
-  }
-
-  @ApiOperation({
-    summary: "Create an application-scoped candidate message log entry",
-  })
-  @ApiParam({ name: "applicationId", example: "cmapplication123" })
-  @ApiCreatedResponse({ description: "Created candidate message." })
-  @ApiNotFoundResponse({ description: "Application not found." })
-  @Post("applications/:applicationId/messages")
-  createApplicationMessage(@Param("applicationId") applicationId: string, @Body() dto: CreateCandidateMessageDto) {
-    return this.candidatesService.createMessageForApplication(applicationId, dto);
   }
 
   @ApiOperation({ summary: "Retry AI CV analysis for an application" })
   @ApiParam({ name: "applicationId", example: "cmapplication123" })
   @ApiOkResponse({ description: "AI analysis status after retry was requested." })
   @ApiNotFoundResponse({ description: "Application not found." })
-  @Post("applications/:applicationId/ai/retry")
+  @Post(`${API_ROUTES.candidates.applications}/${API_ROUTES.candidates.applicationId}/${API_ROUTES.candidates.aiRetry}`)
   retryApplicationAnalysis(@Param("applicationId") applicationId: string) {
     return this.candidatesService.retryApplicationAnalysis(applicationId);
   }
@@ -101,7 +90,7 @@ export class CandidatesController {
   @ApiParam({ name: "applicationId", example: "cmapplication123" })
   @ApiOkResponse({ description: "Updated application." })
   @ApiNotFoundResponse({ description: "Application not found." })
-  @Patch("applications/:applicationId")
+  @Patch(`${API_ROUTES.candidates.applications}/${API_ROUTES.candidates.applicationId}`)
   updateApplication(@Param("applicationId") applicationId: string, @Body() dto: UpdateApplicationStatusDto) {
     return this.candidatesService.updateApplication(applicationId, dto);
   }
@@ -110,7 +99,7 @@ export class CandidatesController {
   @ApiParam({ name: "id", example: "cmcandidate123" })
   @ApiNoContentResponse({ description: "Candidate deleted." })
   @ApiNotFoundResponse({ description: "Candidate not found." })
-  @Delete(":id")
+  @Delete(API_ROUTES.candidates.id)
   deleteCandidate(@Param("id") id: string) {
     return this.candidatesService.deleteCandidate(id);
   }
