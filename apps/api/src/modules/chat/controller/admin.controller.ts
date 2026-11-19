@@ -1,11 +1,12 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
-import { ApiCookieAuth, ApiTags } from "@nestjs/swagger";
+import { ApiCookieAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { API_ROUTES } from "@hr-copilot/shared";
 import { AuthenticatedRequest } from "@/models/auth";
 import { JwtAuthGuard } from "@/modules/auth/guards/index.guard";
 import { ACCESS_TOKEN_SECURITY_NAME } from "@/utils/swagger";
 import { AdminChatQueryDto, ChatMessagesQueryDto, SendChatMessageDto, UpdateChatStatusDto } from "../dto";
 import { ChatRealtimeTicketService } from "../realtime/ticket.service";
+import { ChatHandoverService } from "../service/handover.service";
 import { ChatService } from "../service/index.service";
 
 @ApiTags("Admin chat")
@@ -16,6 +17,7 @@ export class AdminChatController {
   constructor(
     private readonly chatService: ChatService,
     private readonly realtimeTickets: ChatRealtimeTicketService,
+    private readonly handover: ChatHandoverService,
   ) {}
 
   @Post(API_ROUTES.adminChat.realtimeTicket)
@@ -46,6 +48,18 @@ export class AdminChatController {
   @Post(`${API_ROUTES.adminChat.conversations}/${API_ROUTES.adminChat.id}/${API_ROUTES.adminChat.read}`)
   markRead(@Param("id") id: string) {
     return this.chatService.markAdminRead(id);
+  }
+
+  @Post(`${API_ROUTES.adminChat.conversations}/${API_ROUTES.adminChat.id}/${API_ROUTES.adminChat.join}`)
+  @ApiOperation({ summary: "TA joins the conversation and pauses the bot" })
+  async join(@Param("id") id: string, @Req() request: AuthenticatedRequest) {
+    return (await this.handover.join(id, request.user?.sub ?? "hr-admin")).conversation;
+  }
+
+  @Post(`${API_ROUTES.adminChat.conversations}/${API_ROUTES.adminChat.id}/${API_ROUTES.adminChat.leave}`)
+  @ApiOperation({ summary: "TA leaves the conversation and resumes the bot" })
+  async leave(@Param("id") id: string, @Req() request: AuthenticatedRequest) {
+    return (await this.handover.leave(id, request.user?.sub ?? "hr-admin")).conversation;
   }
 
   @Patch(`${API_ROUTES.adminChat.conversations}/${API_ROUTES.adminChat.id}/${API_ROUTES.adminChat.status}`)

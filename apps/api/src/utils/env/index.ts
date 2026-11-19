@@ -16,6 +16,7 @@ const integerVariables = [
   "JWT_REFRESH_TOKEN_TTL_SECONDS",
   "GROQ_TIMEOUT_MS",
   "GROQ_SOURCING_TIMEOUT_MS",
+  "GROQ_CHAT_TIMEOUT_MS",
   "GEMINI_TIMEOUT_MS",
   "GEMINI_QUOTA_COOLDOWN_MS",
   "AI_JOB_ATTEMPTS",
@@ -207,6 +208,14 @@ export function validateEnv(config: Record<string, unknown>) {
         throw new Error(`${key} is required when AI_PROVIDER=groq`);
       }
     }
+  }
+
+  const chatAiProvider = String(config.CHAT_AI_PROVIDER || "disabled");
+  if (!["disabled", "groq"].includes(chatAiProvider)) {
+    throw new Error("CHAT_AI_PROVIDER must be one of: disabled, groq");
+  }
+  if (chatAiProvider === "groq" && !hasValue(config.GROQ_API_KEY)) {
+    throw new Error("GROQ_API_KEY is required when CHAT_AI_PROVIDER=groq");
   }
 
   const previewAiProvider = String(config.PREVIEW_AI_PROVIDER || "disabled");

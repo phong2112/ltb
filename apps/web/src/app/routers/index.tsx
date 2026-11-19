@@ -26,6 +26,7 @@ const CandidateInbox = lazy(() => import("@/app/pages/admin/CandidateInbox"));
 const CandidateDetail = lazy(() => import("@/app/pages/admin/CandidateDetail"));
 const TalentPoolDetail = lazy(() => import("@/app/pages/admin/TalentPoolDetail"));
 const CandidateChats = lazy(() => import("@/app/pages/admin/CandidateChats"));
+const ChatKnowledge = lazy(() => import("@/app/pages/admin/ChatKnowledge"));
 const FollowUp = lazy(() => import("@/app/pages/admin/FollowUp"));
 const MessageTemplates = lazy(() => import("@/app/pages/admin/MessageTemplates"));
 const AdminSettings = lazy(() => import("@/app/pages/admin/AdminSettings"));
@@ -148,6 +149,7 @@ export const router = createBrowserRouter([
               { path: "talent-pool", element: <Navigate to="/admin/candidates" replace /> },
               { path: "talent-pool/:id", Component: TalentPoolDetail },
               { path: "chats", Component: CandidateChats },
+              { path: "chats/knowledge", Component: ChatKnowledge },
               { path: "follow-up", Component: FollowUp },
               { path: "templates", Component: MessageTemplates },
               { path: "analytics", Component: AdminAnalytics },

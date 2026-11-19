@@ -94,6 +94,12 @@ services:
         value: "120000"
       - key: GROQ_SOURCING_TIMEOUT_MS
         value: "15000"
+      - key: CHAT_AI_PROVIDER
+        value: "disabled"
+      - key: GROQ_CHAT_MODEL_CHAIN
+        value: "openai/gpt-oss-20b,openai/gpt-oss-120b"
+      - key: GROQ_CHAT_TIMEOUT_MS
+        value: "15000"
       - key: SOURCING_DISCOVERY_ENABLED
         value: "false"
       - key: BRAVE_SEARCH_API_KEY

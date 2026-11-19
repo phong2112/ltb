@@ -3,7 +3,9 @@ import { ConfigService } from "@nestjs/config";
 import type {
   AiProvider,
   AnalyzeMatchInput,
+  ChatReplyResult,
   CvSummary,
+  GenerateChatReplyInput,
   ExtractProfileInput,
   ExtractedProfile,
   ProviderMatchAnalysis,
@@ -34,6 +36,16 @@ export class AiModelPortalService implements AiProvider {
 
   get previewEnabled() {
     return (this.configService.get<string>("PREVIEW_AI_PROVIDER") ?? "disabled") === "gemini";
+  }
+
+  /** Chat replies have their own switch because guest messages go to the provider. */
+  get chatEnabled() {
+    return (this.configService.get<string>("CHAT_AI_PROVIDER") ?? "disabled") === "groq";
+  }
+
+  generateChatReply(input: GenerateChatReplyInput): Promise<ChatReplyResult> {
+    if (!this.chatEnabled) return Promise.reject(new Error("Chat AI is disabled"));
+    return this.groqProvider.generateChatReply(input);
   }
 
   analyzeMatch(input: AnalyzeMatchInput): Promise<ProviderMatchAnalysis> {

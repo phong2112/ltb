@@ -11,6 +11,8 @@ export {
   getAdminChatUnreadSummary,
   getAdminChatConversation,
   getGuestChatSnapshot,
+  joinAdminChat,
+  leaveAdminChat,
   listAdminChatConversations,
   markAdminChatRead,
   markGuestChatRead,
@@ -20,6 +22,12 @@ export {
   sendGuestChatMessage,
   updateAdminChatStatus,
 } from "./chat";
+export {
+  createChatKnowledgeEntry,
+  deleteChatKnowledgeEntry,
+  listChatKnowledge,
+  updateChatKnowledgeEntry,
+} from "./chat-knowledge";
 export {
   createJobRequest,
   getAdminJobs,

@@ -12,9 +12,17 @@ import {
   sendGuestChatMessage,
 } from "@/app/apis/requests";
 import { connectChatRealtime, type ChatRealtimeConnection } from "@/app/services/chat-realtime";
+import GuestMessageList from "./MessageList";
 
 const RECOVERY_KEY = "candidate_chat_recovery_token";
 const DRAFT_KEY = "candidate_chat_draft";
+const BOT_TYPING_TIMEOUT_MS = 45_000;
+const SUGGESTED_QUESTIONS = [
+  "Đang tuyển những vị trí nào?",
+  "Quy trình phỏng vấn như thế nào?",
+  "Thời gian và địa điểm làm việc?",
+  "Bao lâu thì có phản hồi CV?",
+];
 
 export default function GuestChatWidget() {
   const [open, setOpen] = useState(false);
@@ -74,7 +82,7 @@ export default function GuestChatWidget() {
       setMessages(snapshot.messages.items);
       setReady(true);
       setError("");
-      if (snapshot.messages.items.some(message => message.senderType === "TA" && !message.readAt)) {
+      if (snapshot.messages.items.some(isUnreadForGuest)) {
         void markGuestChatRead().catch(() => undefined);
       }
     } catch (requestError) {
@@ -104,16 +112,17 @@ export default function GuestChatWidget() {
         onReady: () => void loadConversation(),
         onMessage: event => {
           setMessages(current => dedupeMessages([...current, event.message]));
-          if (event.message.senderType === "TA" && !event.message.readAt) {
+          if (isUnreadForGuest(event.message)) {
             void markGuestChatRead().catch(() => undefined);
           }
         },
         onConversation: event => {
-          setConversation(current => current ? {
-            ...current,
+          setConversation(current => ({
+            candidate: current?.candidate ?? null,
             status: event.status,
+            mode: event.mode,
             lastMessageAt: event.lastMessageAt,
-          } : current);
+          }));
         },
         onConnectionChange: setRealtimeConnected,
       });
@@ -144,8 +153,8 @@ export default function GuestChatWidget() {
     else removeStorage(DRAFT_KEY);
   }, [draft]);
 
-  async function sendMessage() {
-    const content = draft.trim();
+  async function sendMessage(suggestedContent?: string) {
+    const content = (suggestedContent ?? draft).trim();
     if (!content || sending) return;
     setSending(true);
     setError("");
@@ -200,15 +209,20 @@ export default function GuestChatWidget() {
         type="button"
         onClick={() => setOpen(true)}
         className="fixed bottom-5 right-4 z-50 flex h-14 items-center gap-2 rounded-full bg-primary px-5 text-sm font-black text-white shadow-xl transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 sm:bottom-6 sm:right-6"
-        aria-label="Mở chat với tư vấn tuyển dụng"
+        aria-label="Mở chat hỏi đáp tuyển dụng"
       >
         <MessageCircle size={21} aria-hidden="true" />
-        <span>Chat với TA</span>
+        <span>Hỏi đáp tuyển dụng</span>
       </button>
     );
   }
 
   const blocked = conversation?.status === "BLOCKED";
+  const taIsHandling = conversation?.mode === "HUMAN";
+  const lastMessage = messages.at(-1);
+  const isBotTyping = !taIsHandling
+    && lastMessage?.senderType === "GUEST"
+    && Date.now() - new Date(lastMessage.createdAt).getTime() < BOT_TYPING_TIMEOUT_MS;
 
   return (
     <section
@@ -217,8 +231,10 @@ export default function GuestChatWidget() {
     >
       <header className="flex min-h-16 items-center justify-between bg-primary px-4 text-white">
         <div className="min-w-0">
-          <p className="font-black">Tư vấn tuyển dụng</p>
-          <p className="truncate text-xs text-white/80">{realtimeConnected ? "Đang kết nối realtime" : "Đang kết nối lại…"}</p>
+          <p className="font-black">{taIsHandling ? "Tư vấn viên TA" : "Trợ lý tuyển dụng"}</p>
+          <p className="truncate text-xs text-white/80">
+            {!realtimeConnected ? "Đang kết nối lại…" : taIsHandling ? "TA đang hỗ trợ trực tiếp" : "Trợ lý ảo · gõ “gặp TA” để gặp người thật"}
+          </p>
         </div>
         <div className="flex items-center gap-1">
           <button type="button" onClick={() => void startNewConversation()} className="rounded-full p-2 hover:bg-white/15" title="Bắt đầu chat mới" aria-label="Bắt đầu chat mới">
@@ -242,21 +258,18 @@ export default function GuestChatWidget() {
           <div className="mx-auto mt-10 max-w-xs rounded-2xl border border-border bg-white p-5 text-center shadow-sm">
             <MessageCircle className="mx-auto mb-3 text-primary" size={28} />
             <p className="font-black text-foreground">Xin chào!</p>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">Bạn có thể hỏi trực tiếp về vị trí tuyển dụng hoặc quá trình ứng tuyển. Không cần đăng nhập.</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">Mình là trợ lý tuyển dụng. Bạn có thể hỏi về vị trí đang tuyển, quy trình phỏng vấn, thời gian làm việc, lương và phúc lợi. Không cần đăng nhập.</p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              {SUGGESTED_QUESTIONS.map(question => (
+                <button key={question} type="button" disabled={sending || blocked} onClick={() => void sendMessage(question)} className="rounded-full border border-primary/40 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/5 disabled:opacity-45">
+                  {question}
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="space-y-3">
-            {messages.map(message => {
-              const fromGuest = message.senderType === "GUEST";
-              return (
-                <div key={message.id} className={`flex ${fromGuest ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-sm leading-5 shadow-sm ${fromGuest ? "rounded-br-md bg-primary text-white" : "rounded-bl-md border border-border bg-white text-foreground"}`}>
-                    <p className="whitespace-pre-wrap break-words">{message.content}</p>
-                    <p className={`mt-1 text-[10px] ${fromGuest ? "text-white/70" : "text-muted-foreground"}`}>{formatMessageTime(message.createdAt)}</p>
-                  </div>
-                </div>
-              );
-            })}
+            <GuestMessageList messages={messages} isBotTyping={isBotTyping} />
             <div ref={messageEndRef} />
           </div>
         )}
@@ -291,18 +304,18 @@ export default function GuestChatWidget() {
             </button>
           </div>
         )}
-        <p className="mt-2 text-center text-[10px] text-muted-foreground">Phiên chat được giữ trên trình duyệt này. Xóa toàn bộ dữ liệu trang sẽ mất quyền mở lại lịch sử.</p>
+        <p className="mt-2 text-center text-[10px] text-muted-foreground">Trợ lý ảo có thể trả lời chưa chính xác. Đừng chia sẻ thông tin nhạy cảm như số CCCD hay tài khoản ngân hàng. Phiên chat được giữ trên trình duyệt này.</p>
       </div>
     </section>
   );
 }
 
-function dedupeMessages(items: ApiChatMessage[]) {
-  return [...new Map(items.map(item => [item.id, item])).values()];
+function isUnreadForGuest(message: ApiChatMessage) {
+  return message.senderType !== "GUEST" && !message.readAt;
 }
 
-function formatMessageTime(value: string) {
-  return new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" }).format(new Date(value));
+function dedupeMessages(items: ApiChatMessage[]) {
+  return [...new Map(items.map(item => [item.id, item])).values()];
 }
 
 function describeChatError(error: unknown, fallback: string) {

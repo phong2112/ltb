@@ -56,6 +56,7 @@ The API Docker image also runs `prisma migrate deploy` before starting. Applying
 - Submit an application with consent and a valid CV; verify invalid file signatures and oversized files are rejected.
 - Open the private candidate detail/CV view and retry AI analysis once.
 - Start a guest chat, reply from the admin inbox, refresh both browsers, and verify history/read state persists.
+- In a new guest chat, ask an FAQ question and confirm the bot answers; type "gặp TA" and confirm the inbox shows **Cần TA**. Click **Tham gia & ngắt bot**, send a guest message, and confirm the bot stays silent; click **Rời & bật bot** and confirm the bot answers again.
 - If analytics is enabled, confirm the dashboard loads and new events appear without candidate form values or CV text.
 - Verify CORS rejects an unrelated browser origin.
 

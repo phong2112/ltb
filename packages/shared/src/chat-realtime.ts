@@ -8,7 +8,8 @@ export const CHAT_REALTIME_EVENTS = {
 } as const;
 
 export type ChatRealtimeRole = "GUEST" | "ADMIN";
-export type ChatRealtimeSenderType = "GUEST" | "TA";
+export type ChatRealtimeSenderType = "GUEST" | "TA" | "BOT" | "SYSTEM";
+export type ChatRealtimeConversationMode = "BOT" | "HUMAN";
 export type ChatRealtimeConversationStatus = "OPEN" | "CLOSED" | "BLOCKED";
 
 export type ChatRealtimeTicketResponse = {
@@ -41,6 +42,8 @@ export type ChatConversationUpdatedEvent = {
   eventId: string;
   conversationId: string;
   status: ChatRealtimeConversationStatus;
+  mode: ChatRealtimeConversationMode;
+  handoffRequestedAt?: string | null;
   lastMessageAt?: string | null;
 };
 

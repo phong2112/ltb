@@ -1,8 +1,11 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException, Optional, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { ChatConversationStatus, ChatSenderType, Prisma } from "@prisma/client";
+import { ChatConversationMode, ChatConversationStatus, ChatSenderType, Prisma } from "@prisma/client";
 import { PrismaService } from "@/modules/prisma";
+import { ChatBotService } from "../bot/reply.service";
+import { isHandoffRequest } from "../bot/text";
 import { ChatRealtimePublisher } from "../realtime/publisher.service";
+import { ChatHandoverService } from "./handover.service";
 import { ChatTokenService } from "./token.service";
 
 const TA_USER_ID = "hr-admin";
@@ -18,6 +21,8 @@ export class ChatService {
     private readonly tokens: ChatTokenService,
     private readonly config: ConfigService,
     @Optional() private readonly realtime?: ChatRealtimePublisher,
+    @Optional() private readonly bot?: ChatBotService,
+    @Optional() private readonly handover?: ChatHandoverService,
   ) {}
 
   async createOrRotateSession(sessionToken?: string) {
@@ -78,6 +83,7 @@ export class ChatService {
       where: { guestDeviceId_taUserId: { guestDeviceId: device.id, taUserId: TA_USER_ID } },
       select: {
         status: true,
+        mode: true,
         lastMessageAt: true,
         candidate: { select: { fullName: true } },
         messages: {
@@ -140,8 +146,12 @@ export class ChatService {
           clientMessageId,
         },
       });
-      await tx.chatConversation.update({ where: { id: conversation.id }, data: { lastMessageAt: message.createdAt } });
-      return { message, conversation: { ...conversation, lastMessageAt: message.createdAt } };
+      const handoffRequestedAt = nextHandoffRequestedAt(conversation, trimmed, message.createdAt);
+      await tx.chatConversation.update({
+        where: { id: conversation.id },
+        data: { lastMessageAt: message.createdAt, handoffRequestedAt },
+      });
+      return { message, conversation: { ...conversation, handoffRequestedAt, lastMessageAt: message.createdAt } };
     });
 
     this.publishRealtime(() => {
@@ -150,10 +160,15 @@ export class ChatService {
         guestDeviceId: device.id,
         conversationId: result.conversation.id,
         status: result.conversation.status,
+        mode: result.conversation.mode,
+        handoffRequestedAt: result.conversation.handoffRequestedAt,
         lastMessageAt: result.message.createdAt,
         eventId: "conversation:" + result.conversation.id + ":" + result.message.id,
       });
     });
+    if (result.conversation.mode === ChatConversationMode.BOT) {
+      this.bot?.scheduleReply(result.conversation.id);
+    }
     return result.message;
   }
 
@@ -166,7 +181,7 @@ export class ChatService {
     if (!conversation) return { count: 0 };
     const readAt = new Date();
     const result = await this.prisma.chatMessage.updateMany({
-      where: { conversationId: conversation.id, senderType: ChatSenderType.TA, readAt: null },
+      where: { conversationId: conversation.id, senderType: { not: ChatSenderType.GUEST }, readAt: null },
       data: { readAt },
     });
     if (result.count > 0) {
@@ -255,7 +270,11 @@ export class ChatService {
   }
 
   async sendAdminMessage(id: string, userId: string, content: string, clientMessageId: string) {
-    const conversation = await this.requireAdminConversation(id);
+    let conversation = await this.requireAdminConversation(id);
+    // Replying as TA pauses the bot, so the guest never gets a bot answer and a TA answer to the same question.
+    if (conversation.mode === ChatConversationMode.BOT && this.handover) {
+      conversation = (await this.handover.join(id, userId)).conversation;
+    }
     if (conversation.status === ChatConversationStatus.BLOCKED) {
       throw new ForbiddenException("Hãy bỏ chặn trước khi gửi tin nhắn.");
     }
@@ -280,6 +299,8 @@ export class ChatService {
         guestDeviceId: conversation.guestDeviceId,
         conversationId: id,
         status,
+        mode: conversation.mode,
+        handoffRequestedAt: conversation.handoffRequestedAt,
         lastMessageAt: message.createdAt,
         eventId: "conversation:" + id + ":" + message.id,
       });
@@ -312,6 +333,8 @@ export class ChatService {
       guestDeviceId: conversation.guestDeviceId,
       conversationId: id,
       status: updated.status,
+      mode: updated.mode,
+      handoffRequestedAt: updated.handoffRequestedAt,
       lastMessageAt: updated.lastMessageAt,
       eventId: "conversation:" + id + ":status:" + updated.updatedAt.getTime(),
     }));
@@ -377,4 +400,14 @@ export class ChatService {
       },
     };
   }
+}
+
+/** A guest asking for a human only needs flagging while the bot handles the conversation. */
+function nextHandoffRequestedAt(
+  conversation: { mode: ChatConversationMode; handoffRequestedAt: Date | null },
+  content: string,
+  at: Date,
+) {
+  if (conversation.handoffRequestedAt || conversation.mode !== ChatConversationMode.BOT) return conversation.handoffRequestedAt;
+  return isHandoffRequest(content) ? at : null;
 }

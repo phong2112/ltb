@@ -6,7 +6,7 @@ import {
   type ChatReadUpdatedEvent,
   type ChatRealtimeRole,
 } from "@hr-copilot/shared";
-import type { ChatConversationStatus, ChatMessage } from "@prisma/client";
+import type { ChatConversationMode, ChatConversationStatus, ChatMessage } from "@prisma/client";
 import type { Server } from "socket.io";
 import { adminChatRoom, CHAT_ADMIN_USER_ID, guestChatRoom } from "../constants";
 
@@ -35,6 +35,8 @@ export class ChatRealtimePublisher {
     guestDeviceId: string;
     conversationId: string;
     status: ChatConversationStatus;
+    mode: ChatConversationMode;
+    handoffRequestedAt?: Date | null;
     lastMessageAt?: Date | null;
     eventId: string;
   }) {
@@ -42,6 +44,8 @@ export class ChatRealtimePublisher {
       eventId: input.eventId,
       conversationId: input.conversationId,
       status: input.status,
+      mode: input.mode,
+      handoffRequestedAt: input.handoffRequestedAt?.toISOString() ?? null,
       lastMessageAt: input.lastMessageAt?.toISOString() ?? null,
     };
     this.emitToConversation(input.guestDeviceId, CHAT_REALTIME_EVENTS.conversationUpdated, payload);

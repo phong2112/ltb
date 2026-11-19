@@ -104,3 +104,11 @@ export function updateAdminChatStatus(id: string, status: ChatConversationStatus
     body: { status },
   });
 }
+
+export function joinAdminChat(id: string) {
+  return apiRequest<ApiChatConversation>(API_ENDPOINTS.adminChat.join(id), { method: "POST" });
+}
+
+export function leaveAdminChat(id: string) {
+  return apiRequest<ApiChatConversation>(API_ENDPOINTS.adminChat.leave(id), { method: "POST" });
+}
