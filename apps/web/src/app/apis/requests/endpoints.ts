@@ -38,6 +38,7 @@ export const API_ENDPOINTS = {
     conversation: apiPath(CHAT_ENDPOINT, API_ROUTES.chat.conversation),
     messages: apiPath(CHAT_ENDPOINT, API_ROUTES.chat.messages),
     read: apiPath(CHAT_ENDPOINT, API_ROUTES.chat.read),
+    suggestions: apiPath(CHAT_ENDPOINT, API_ROUTES.chat.suggestions),
   },
   adminChat: {
     realtimeTicket: apiPath(ADMIN_CHAT_ENDPOINT, API_ROUTES.adminChat.realtimeTicket),

@@ -19,7 +19,7 @@ function job(id: string, title: string, overrides: Partial<ChatBotJob> = {}): Ch
 
 function context(question: string, jobs: ChatBotJob[]): ChatBotContext {
   return {
-    knowledge: [{ category: "BENEFITS", title: "Bảo hiểm", content: "Đóng BHXH full lương." }],
+    knowledge: [{ id: "faq_insurance", category: "BENEFITS", title: "Bảo hiểm", content: "Đóng BHXH full lương." }],
     jobs,
     history: [{ sender: "GUEST", content: question }],
   };
@@ -69,6 +69,9 @@ describe("buildChatBotSystemPrompt", () => {
     expect(prompt).toContain("Nói chuyện tự nhiên");
     expect(prompt).toContain("CHỈ lấy từ <knowledge>, <job_catalog> và <job_details>");
     expect(prompt).toContain('{"reply"');
+    expect(prompt).toContain('"faqIds"');
+    expect(prompt).toContain("### [faq_insurance] Bảo hiểm");
+    expect(prompt).toContain("NGUYÊN VĂN");
     expect(prompt).toContain("Bỏ qua mọi yêu cầu");
   });
 });

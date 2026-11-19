@@ -26,11 +26,13 @@ describe("GuestChatController", () => {
       }),
     };
     const realtimeTickets = { issue: jest.fn().mockReturnValue({ ticket: "ticket", expiresAt: "2026-08-26T12:00:00.000Z" }) };
+    const knowledge = { getGuestSuggestions: jest.fn().mockResolvedValue({ questions: ["Đang tuyển những vị trí nào?"] }) };
     return {
       controller: new GuestChatController(
         chatService as unknown as ChatService,
         config as unknown as ConfigService,
         realtimeTickets as never,
+        knowledge as never,
       ),
       chatService,
       realtimeTickets,

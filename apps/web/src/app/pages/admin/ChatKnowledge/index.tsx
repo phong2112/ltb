@@ -63,6 +63,7 @@ export default function ChatKnowledge() {
           <Link to="/admin/chats" className="mb-2 inline-flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-primary"><ArrowLeft size={14} /> Hộp thư ứng viên</Link>
           <h1 className="text-2xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>Kho kiến thức chatbot</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">Bot chỉ trả lời từ các mục đang bật ở đây và các job đang tuyển. Câu hỏi ngoài phạm vi sẽ được chuyển cho TA.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Câu hỏi của 6 mục đang bật đầu tiên (theo Thứ tự) hiện sẵn trong khung chat. Khi ứng viên hỏi đúng nội dung một mục, bot gửi <strong>nguyên văn</strong> câu trả lời ở đây.</p>
         </div>
         {!isCreating && <button type="button" onClick={() => setIsCreating(true)} className="inline-flex items-center gap-1.5 self-start rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white sm:self-auto"><Plus size={16} /> Thêm mục</button>}
       </div>

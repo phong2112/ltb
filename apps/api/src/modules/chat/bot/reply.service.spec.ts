@@ -8,6 +8,7 @@ import type { ChatRealtimePublisher } from "../realtime/publisher.service";
 import type { ChatKnowledgeService } from "../service/knowledge.service";
 import { CHAT_BOT_FALLBACK_REPLIES } from "./prompt";
 import { ChatBotService, findPendingGuestMessage } from "./reply.service";
+import { VSF_FAQ } from "./vsf-faq.fixture";
 
 type Message = { id: string; senderType: ChatSenderType; content: string; clientMessageId?: string };
 
@@ -38,7 +39,7 @@ function setup(options: {
         id: "c1",
         mode: options.mode ?? ChatConversationMode.BOT,
         status: options.status ?? ChatConversationStatus.OPEN,
-        messages: options.messagesNewestFirst ?? [{ id: "g1", senderType: ChatSenderType.GUEST, content: "Phỏng vấn mấy vòng?" }],
+        messages: options.messagesNewestFirst ?? [{ id: "g1", senderType: ChatSenderType.GUEST, content: "Cho mình hỏi phỏng vấn gồm mấy vòng?" }],
       }),
     },
     job: { findMany: jest.fn().mockResolvedValue([]) },
@@ -46,9 +47,9 @@ function setup(options: {
   };
   const ai = {
     chatEnabled: options.chatEnabled ?? true,
-    generateChatReply: options.generateChatReply ?? jest.fn().mockResolvedValue({ reply: "Một vòng online.", handoff: false }),
+    generateChatReply: options.generateChatReply ?? jest.fn().mockResolvedValue({ reply: "Một vòng online.", handoff: false, faqIds: [] }),
   };
-  const knowledge = { listActive: jest.fn().mockResolvedValue([{ category: "FAQ", title: "Phỏng vấn mấy vòng", content: "01 vòng online" }]) };
+  const knowledge = { listActive: jest.fn().mockResolvedValue([{ id: "faq_interview", category: "FAQ", title: "Phỏng vấn mấy vòng", content: "01 vòng online" }, ...VSF_FAQ]) };
   const realtime = { messageCreated: jest.fn(), conversationUpdated: jest.fn() };
   const service = new ChatBotService(
     prisma as unknown as PrismaService,
@@ -144,6 +145,41 @@ describe("ChatBotService.replyTo", () => {
   });
 });
 
+describe("ChatBotService FAQ answers", () => {
+  beforeEach(() => {
+    jest.spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
+  });
+
+  it.each(VSF_FAQ.map(entry => [entry.title, entry.content]))(
+    "answers the suggested question %s with the full approved text and no AI call",
+    async (question, approvedAnswer) => {
+      const { service, ai, tx } = setup({ messagesNewestFirst: [{ id: "g1", senderType: ChatSenderType.GUEST, content: question }] });
+      await service.replyTo("c1");
+      expect(ai.generateChatReply).not.toHaveBeenCalled();
+      expect(tx.chatMessage.upsert.mock.calls[0][0].create.content).toBe(approvedAnswer);
+    },
+  );
+
+  it("replaces the AI wording with the approved FAQ text when the AI picks FAQ entries", async () => {
+    const generateChatReply = jest.fn().mockResolvedValue({
+      reply: "Thông thường 1 vòng.",
+      handoff: false,
+      faqIds: ["faq_vsf_interview_process", "faq_vsf_salary_policy"],
+    });
+    const { service, tx } = setup({ generateChatReply });
+    await service.replyTo("c1");
+    const [interview, salary] = VSF_FAQ;
+    expect(tx.chatMessage.upsert.mock.calls[0][0].create.content).toBe(`${interview.content}\n\n${salary.content}`);
+  });
+
+  it("ignores unknown FAQ ids and keeps the AI reply", async () => {
+    const generateChatReply = jest.fn().mockResolvedValue({ reply: "Câu trả lời của AI.", handoff: false, faqIds: ["made_up_id"] });
+    const { service, tx } = setup({ generateChatReply });
+    await service.replyTo("c1");
+    expect(tx.chatMessage.upsert.mock.calls[0][0].create.content).toBe("Câu trả lời của AI.");
+  });
+});
+
 describe("ChatBotService quota retry", () => {
   beforeEach(() => {
     jest.spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
@@ -153,7 +189,7 @@ describe("ChatBotService quota retry", () => {
   it("waits out a short rate limit and still answers with AI", async () => {
     const generateChatReply = jest.fn()
       .mockRejectedValueOnce(new QuotaExceededError(4_000))
-      .mockResolvedValueOnce({ reply: "Một vòng online.", handoff: false });
+      .mockResolvedValueOnce({ reply: "Một vòng online.", handoff: false, faqIds: [] });
     const { service, tx, wait } = setup({ generateChatReply });
     await service.replyTo("c1");
     expect(wait).toHaveBeenCalledWith(4_000);

@@ -11,6 +11,7 @@ export {
   getAdminChatUnreadSummary,
   getAdminChatConversation,
   getGuestChatSnapshot,
+  getGuestChatSuggestions,
   joinAdminChat,
   leaveAdminChat,
   listAdminChatConversations,

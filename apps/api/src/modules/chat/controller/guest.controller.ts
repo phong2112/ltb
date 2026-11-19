@@ -10,6 +10,7 @@ import { GUEST_CHAT_COOKIE_NAME } from "../constants";
 import { RestoreGuestSessionDto, SendChatMessageDto } from "../dto";
 import { ChatRealtimeTicketService } from "../realtime/ticket.service";
 import { ChatService } from "../service/index.service";
+import { ChatKnowledgeService } from "../service/knowledge.service";
 
 @ApiTags("Guest chat")
 @Controller(API_ROUTES.chat.base)
@@ -19,6 +20,7 @@ export class GuestChatController {
     private readonly chatService: ChatService,
     private readonly config: ConfigService,
     private readonly realtimeTickets: ChatRealtimeTicketService,
+    private readonly knowledge: ChatKnowledgeService,
   ) {}
 
   @Post(API_ROUTES.chat.session)
@@ -54,6 +56,12 @@ export class GuestChatController {
     this.assertAllowedOrigin(request);
     const deviceId = await this.chatService.getGuestRealtimeIdentity(this.sessionToken(request));
     return this.realtimeTickets.issue("GUEST", deviceId);
+  }
+
+  @Get(API_ROUTES.chat.suggestions)
+  @ApiOperation({ summary: "Suggested questions shown in the guest chat widget" })
+  getSuggestions() {
+    return this.knowledge.getGuestSuggestions();
   }
 
   @Get(API_ROUTES.chat.conversation)

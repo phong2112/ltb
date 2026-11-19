@@ -5,6 +5,7 @@ import {
   ApiRequestError,
   createGuestChatRealtimeTicket,
   createGuestChatSession,
+  getGuestChatSuggestions,
   getGuestChatSnapshot,
   markGuestChatRead,
   resetGuestChatSession,
@@ -13,15 +14,17 @@ import {
 } from "@/app/apis/requests";
 import { connectChatRealtime, type ChatRealtimeConnection } from "@/app/services/chat-realtime";
 import GuestMessageList from "./MessageList";
+import SuggestedQuestions from "./SuggestedQuestions";
 
 const RECOVERY_KEY = "candidate_chat_recovery_token";
 const DRAFT_KEY = "candidate_chat_draft";
 const BOT_TYPING_TIMEOUT_MS = 45_000;
-const SUGGESTED_QUESTIONS = [
+// Shown only if the suggestions request fails; the live list comes from the TA knowledge base.
+const FALLBACK_SUGGESTED_QUESTIONS = [
   "Đang tuyển những vị trí nào?",
-  "Quy trình phỏng vấn như thế nào?",
-  "Thời gian và địa điểm làm việc?",
-  "Bao lâu thì có phản hồi CV?",
+  "Quy trình phỏng vấn tại VSF như thế nào?",
+  "Mức lương cho vị trí đang tuyển là bao nhiêu?",
+  "Thời gian và địa điểm làm việc tại VSF như thế nào?",
 ];
 
 export default function GuestChatWidget() {
@@ -34,6 +37,7 @@ export default function GuestChatWidget() {
   const [conversation, setConversation] = useState<ApiGuestChatConversation | null>(null);
   const [messages, setMessages] = useState<ApiChatMessage[]>([]);
   const [draft, setDraft] = useState(() => readStorage(DRAFT_KEY));
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[] | null>(null);
   const [error, setError] = useState("");
   const messageEndRef = useRef<HTMLDivElement>(null);
   const pendingMessageIdRef = useRef<string | null>(null);
@@ -143,6 +147,13 @@ export default function GuestChatWidget() {
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [loadConversation, open]);
+
+  useEffect(() => {
+    if (!open || suggestedQuestions) return;
+    getGuestChatSuggestions()
+      .then(response => setSuggestedQuestions(response.questions))
+      .catch(() => setSuggestedQuestions(FALLBACK_SUGGESTED_QUESTIONS));
+  }, [open, suggestedQuestions]);
 
   useEffect(() => {
     if (open) messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -259,13 +270,7 @@ export default function GuestChatWidget() {
             <MessageCircle className="mx-auto mb-3 text-primary" size={28} />
             <p className="font-black text-foreground">Xin chào!</p>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">Mình là trợ lý tuyển dụng. Bạn có thể hỏi về vị trí đang tuyển, quy trình phỏng vấn, thời gian làm việc, lương và phúc lợi. Không cần đăng nhập.</p>
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              {SUGGESTED_QUESTIONS.map(question => (
-                <button key={question} type="button" disabled={sending || blocked} onClick={() => void sendMessage(question)} className="rounded-full border border-primary/40 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/5 disabled:opacity-45">
-                  {question}
-                </button>
-              ))}
-            </div>
+            <SuggestedQuestions questions={suggestedQuestions ?? []} disabled={sending || blocked} layout="wrap" onPick={question => void sendMessage(question)} />
           </div>
         ) : (
           <div className="space-y-3">
@@ -277,6 +282,9 @@ export default function GuestChatWidget() {
 
       <div className="border-t border-border bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {error && <p className="mb-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{error}</p>}
+        {!blocked && messages.length > 0 && !draft && (
+          <SuggestedQuestions questions={suggestedQuestions ?? []} disabled={sending} layout="row" onPick={question => void sendMessage(question)} />
+        )}
         {blocked ? (
           <p className="rounded-xl bg-slate-100 px-3 py-3 text-center text-sm text-muted-foreground">Cuộc trò chuyện này hiện không nhận thêm tin nhắn.</p>
         ) : (

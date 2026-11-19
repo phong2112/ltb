@@ -6,7 +6,7 @@ export const API_ROUTES = {
   applications: { base: "applications", cvPreview: "cv-preview" },
   chat: {
     base: "chat", session: "session", restore: "session/restore", reset: "session/reset", realtimeTicket: "realtime-ticket",
-    conversation: "conversation", messages: "messages", read: "read",
+    conversation: "conversation", messages: "messages", read: "read", suggestions: "suggestions",
   },
   adminChat: {
     base: "admin/chat", realtimeTicket: "realtime-ticket", conversations: "conversations", unreadSummary: "unread-summary",

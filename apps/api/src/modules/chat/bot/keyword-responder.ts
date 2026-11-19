@@ -1,3 +1,4 @@
+import { composeFaqAnswer } from "./faq";
 import { CHAT_BOT_FALLBACK_REPLIES } from "./prompt";
 import { type ChatBotContext, type ChatBotJob, type ChatBotReply, jobPath } from "./context";
 import { buildQuery, matchedTermShare, pickBest, scoreJob, scoreKnowledge, withoutCommonTitleTerms } from "./relevance";
@@ -34,7 +35,7 @@ export function answerFromKeywords(context: ChatBotContext): ChatBotReply {
     && bestKnowledge.score >= MIN_KNOWLEDGE_SCORE
     && matchedTermShare(query, `${bestKnowledge.item.title} ${bestKnowledge.item.content}`) >= MIN_KNOWLEDGE_TERM_SHARE;
   if (bestKnowledge && knowledgeMatches && bestKnowledge.score >= (bestJob?.score ?? 0)) {
-    return { content: truncateText(bestKnowledge.item.content, 1_200), handoff: false };
+    return { content: composeFaqAnswer([bestKnowledge.item]), handoff: false };
   }
   if (bestJob && bestJob.score >= MIN_JOB_SCORE) {
     return { content: formatJob(bestJob.item), handoff: false };

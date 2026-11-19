@@ -1,4 +1,5 @@
 export type ChatBotKnowledge = {
+  id: string;
   category: string;
   title: string;
   content: string;

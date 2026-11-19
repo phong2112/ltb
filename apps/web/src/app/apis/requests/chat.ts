@@ -51,6 +51,10 @@ export async function getGuestChatSnapshot() {
   return response ?? { conversation: null, messages: { items: [], nextCursor: null } };
 }
 
+export function getGuestChatSuggestions() {
+  return apiRequest<{ questions: string[] }>(API_ENDPOINTS.chat.suggestions, { skipAuthRefresh: true });
+}
+
 export function sendGuestChatMessage(input: SendMessageInput) {
   return apiJsonRequest<ApiChatMessage, SendMessageInput>(API_ENDPOINTS.chat.messages, {
     method: "POST",

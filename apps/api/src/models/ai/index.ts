@@ -107,6 +107,8 @@ export type GenerateChatReplyInput = {
 export type ChatReplyResult = {
   reply: string;
   handoff: boolean;
+  /** Knowledge entries that fully answer the question; their approved text replaces `reply`. */
+  faqIds: string[];
 };
 
 export interface AiProvider {
