@@ -8,7 +8,7 @@ const JOB_LISTING_TERMS = new Set([
 ]);
 
 const MIN_KNOWLEDGE_SCORE = 2;
-const MIN_KNOWLEDGE_TERM_SHARE = 0.5;
+const MIN_KNOWLEDGE_TERM_SHARE = 0.4;
 // A job must match on its title or headline (weighted ×3), not only on description words.
 const MIN_JOB_SCORE = 3;
 const MAX_LISTED_JOBS = 6;

@@ -5,6 +5,8 @@ const STOP_WORDS = new Set([
   "a", "ah", "oi", "nhe", "nha", "la", "cua", "va", "co", "khong", "ko", "cho", "toi", "minh", "em", "anh",
   "ban", "nao", "gi", "the", "nhu", "ve", "duoc", "voi", "o", "thi", "nay", "do", "vay", "sao", "mot", "cac",
   "nhung", "hoi", "muon", "biet", "xin", "can", "de", "hay", "hien", "tai", "dang", "se", "da", "chi", "con", "is",
+  // Greetings and thanks often share a message with the real question.
+  "chao", "hello", "hi", "alo", "cam", "on", "thanks", "thank",
   "what", "how", "are", "you", "i", "an", "of", "to", "for", "and", "in", "on", "about", "please",
 ]);
 

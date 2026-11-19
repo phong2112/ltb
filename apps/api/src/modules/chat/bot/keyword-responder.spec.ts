@@ -94,6 +94,11 @@ describe("answerFromKeywords", () => {
     expect(reply.content).toContain("60 phút");
   });
 
+  it("answers the question when it comes with a greeting", () => {
+    const reply = answerFromKeywords(ask("Chào bạn, cho mình hỏi bên VSF phỏng vấn gồm mấy vòng và làm online hay offline vậy?"));
+    expect(reply.content).toContain("60 phút");
+  });
+
   it("answers a short salary follow-up from the FAQ", () => {
     const reply = answerFromKeywords(ask("Còn lương thì sao ạ?"));
     expect(reply.handoff).toBe(false);
