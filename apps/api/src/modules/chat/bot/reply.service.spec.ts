@@ -16,6 +16,7 @@ function setup(options: {
   mode?: ChatConversationMode;
   status?: ChatConversationStatus;
   messagesNewestFirst?: Message[];
+  question?: string;
   updateCount?: number;
   chatEnabled?: boolean;
   generateChatReply?: jest.Mock;
@@ -39,7 +40,7 @@ function setup(options: {
         id: "c1",
         mode: options.mode ?? ChatConversationMode.BOT,
         status: options.status ?? ChatConversationStatus.OPEN,
-        messages: options.messagesNewestFirst ?? [{ id: "g1", senderType: ChatSenderType.GUEST, content: "Cho mình hỏi phỏng vấn gồm mấy vòng?" }],
+        messages: options.messagesNewestFirst ?? [{ id: "g1", senderType: ChatSenderType.GUEST, content: options.question ?? "Vị trí Data Analyst cần kỹ năng gì?" }],
       }),
     },
     job: { findMany: jest.fn().mockResolvedValue([]) },
@@ -125,7 +126,7 @@ describe("ChatBotService.replyTo", () => {
   });
 
   it("answers from the knowledge base without AI when chat AI is disabled", async () => {
-    const { service, ai, tx } = setup({ chatEnabled: false });
+    const { service, ai, tx } = setup({ question: "Cho mình hỏi phỏng vấn gồm mấy vòng?", chatEnabled: false });
     await service.replyTo("c1");
     expect(ai.generateChatReply).not.toHaveBeenCalled();
     expect(tx.chatMessage.upsert).toHaveBeenCalledWith(expect.objectContaining({
@@ -134,7 +135,7 @@ describe("ChatBotService.replyTo", () => {
   });
 
   it("falls back to the knowledge base when the AI fails, without flagging TA", async () => {
-    const { service, tx } = setup({ generateChatReply: jest.fn().mockRejectedValue(new Error("quota exceeded")) });
+    const { service, tx } = setup({ question: "Cho mình hỏi phỏng vấn gồm mấy vòng?", generateChatReply: jest.fn().mockRejectedValue(new Error("quota exceeded")) });
     await service.replyTo("c1");
     expect(tx.chatMessage.upsert).toHaveBeenCalledWith(expect.objectContaining({
       create: expect.objectContaining({ content: expect.stringContaining("01 vòng online") }),
@@ -172,6 +173,35 @@ describe("ChatBotService FAQ answers", () => {
     expect(tx.chatMessage.upsert.mock.calls[0][0].create.content).toBe(`${interview.content}\n\n${salary.content}`);
   });
 
+  it("answers the job-list suggestion from the job table without calling the AI", async () => {
+    const { service, ai, prisma, tx } = setup({ messagesNewestFirst: [{ id: "g1", senderType: ChatSenderType.GUEST, content: "Đang tuyển những vị trí nào?" }] });
+    prisma.job.findMany.mockResolvedValue([{ id: "job-da", title: "Data Analyst", company: "VSF", locations: ["Hà Nội"], employment: null, level: null, salaryRange: null, description: "", requirements: "", benefits: null }]);
+    await service.replyTo("c1");
+    expect(ai.generateChatReply).not.toHaveBeenCalled();
+    expect(tx.chatMessage.upsert.mock.calls[0][0].create.content).toContain("- Data Analyst (Hà Nội): /jobs/job-da");
+  });
+
+  it("never turns a filtered job-list question into the salary FAQ", async () => {
+    const generateChatReply = jest.fn().mockResolvedValue({ reply: "Các vị trí về blockchain: chưa có.", handoff: false, faqIds: ["faq_vsf_salary_policy"] });
+    const { service, tx } = setup({
+      generateChatReply,
+      messagesNewestFirst: [{ id: "g1", senderType: ChatSenderType.GUEST, content: "Có vị trí nào về blockchain không?" }],
+    });
+    await service.replyTo("c1");
+    expect(generateChatReply).toHaveBeenCalled();
+    expect(tx.chatMessage.upsert.mock.calls[0][0].create.content).toBe("Các vị trí về blockchain: chưa có.");
+  });
+
+  it("sends the full FAQ when the AI answers a FAQ topic only partially", async () => {
+    const generateChatReply = jest.fn().mockResolvedValue({ reply: "Văn phòng HCM ở Vincom Đồng Khởi.", handoff: false, faqIds: [] });
+    const { service, tx } = setup({
+      generateChatReply,
+      messagesNewestFirst: [{ id: "g1", senderType: ChatSenderType.GUEST, content: "Văn phòng HCM ở đâu" }],
+    });
+    await service.replyTo("c1");
+    expect(tx.chatMessage.upsert.mock.calls[0][0].create.content).toBe(VSF_FAQ[2].content);
+  });
+
   it("ignores unknown FAQ ids and keeps the AI reply", async () => {
     const generateChatReply = jest.fn().mockResolvedValue({ reply: "Câu trả lời của AI.", handoff: false, faqIds: ["made_up_id"] });
     const { service, tx } = setup({ generateChatReply });
@@ -201,7 +231,7 @@ describe("ChatBotService quota retry", () => {
 
   it("uses the offline answer right away when the wait is too long", async () => {
     const generateChatReply = jest.fn().mockRejectedValue(new QuotaExceededError(60_000));
-    const { service, tx, wait } = setup({ generateChatReply });
+    const { service, tx, wait } = setup({ generateChatReply, question: "Cho mình hỏi phỏng vấn gồm mấy vòng?", });
     await service.replyTo("c1");
     expect(wait).not.toHaveBeenCalled();
     expect(generateChatReply).toHaveBeenCalledTimes(1);
