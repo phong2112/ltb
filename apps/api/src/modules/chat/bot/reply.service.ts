@@ -8,13 +8,14 @@ import { botReplyClientMessageId, CHAT_BOT_HISTORY_LIMIT, chatAiRetryWaitMs } fr
 import { ChatRealtimePublisher } from "../realtime/publisher.service";
 import { ChatKnowledgeService } from "../service/knowledge.service";
 import type { ChatBotContext, ChatBotJob, ChatBotReply, ChatBotTurn } from "./context";
+import { composeFaqAnswer, findFaqByQuestion, resolveFaqIds } from "./faq";
 import { answerFromKeywords } from "./keyword-responder";
 import { buildChatBotSystemPrompt, CHAT_BOT_FALLBACK_REPLIES, CHAT_BOT_PROMPT_VERSION } from "./prompt";
 import { htmlToPlainText, isHandoffRequest } from "./text";
 
 const MAX_JOBS_FOR_BOT = 30;
 
-type ReplySource = "ai" | "ai_error" | "keyword" | "handoff_rule";
+type ReplySource = "ai" | "ai_faq" | "ai_error" | "faq" | "keyword" | "handoff_rule";
 type BotReplyOutcome = ChatBotReply & { source: ReplySource };
 type RecentMessage = { id: string; senderType: ChatSenderType; content: string; clientMessageId: string };
 type SavedReply = {
@@ -100,6 +101,8 @@ export class ChatBotService {
     }
 
     const context: ChatBotContext = { history, ...(await this.loadKnowledgeContext()) };
+    const exactFaq = findFaqByQuestion(pending.content, context.knowledge);
+    if (exactFaq) return { content: composeFaqAnswer([exactFaq]), handoff: false, source: "faq" };
     if (!this.ai.chatEnabled) return { ...answerFromKeywords(context), source: "keyword" };
 
     try {
@@ -107,6 +110,8 @@ export class ChatBotService {
         systemPrompt: buildChatBotSystemPrompt(context),
         turns: history.map(toReplyTurn),
       });
+      const faqEntries = resolveFaqIds(result.faqIds, context.knowledge);
+      if (faqEntries.length > 0) return { content: composeFaqAnswer(faqEntries), handoff: false, source: "ai_faq" };
       return { content: result.reply, handoff: result.handoff, source: "ai" };
     } catch (error) {
       // Quota or provider errors fall back to the offline responder so greetings and FAQs still get an answer.

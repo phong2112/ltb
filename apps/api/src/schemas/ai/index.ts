@@ -73,4 +73,5 @@ export const sourcingPlanSchema = z.object({
 export const chatReplySchema = z.object({
   reply: z.string().trim().min(1).max(2000),
   handoff: z.boolean(),
+  faqIds: z.array(z.string().max(100)).max(5).optional().default([]),
 });

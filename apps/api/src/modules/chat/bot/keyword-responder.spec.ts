@@ -1,15 +1,9 @@
-import type { ChatBotContext, ChatBotJob, ChatBotKnowledge } from "./context";
+import type { ChatBotContext, ChatBotJob } from "./context";
 import { answerFromKeywords } from "./keyword-responder";
 import { CHAT_BOT_FALLBACK_REPLIES } from "./prompt";
+import { VSF_FAQ } from "./vsf-faq.fixture";
 
-// Mirrors the VSF FAQ inserted by migration 20261119120100_seed_chat_knowledge_vsf.
-const vsfFaq: ChatBotKnowledge[] = [
-  { category: "RECRUITMENT_PROCESS", title: "Quy trình phỏng vấn tại VSF như thế nào?", content: "01 vòng phỏng vấn online khoảng 60 phút." },
-  { category: "BENEFITS", title: "Mức lương cho vị trí đang tuyển là bao nhiêu?", content: "VSF không đề xuất khung lương cụ thể cho từng vị trí." },
-  { category: "COMPANY_POLICY", title: "Thời gian và địa điểm làm việc tại VSF như thế nào?", content: "Văn phòng Hà Nội: Technopark. Văn phòng TP. Hồ Chí Minh: Vincom Đồng Khởi." },
-  { category: "RECRUITMENT_PROCESS", title: "Sau khi ứng tuyển, bao lâu tôi sẽ nhận được phản hồi về CV?", content: "Khoảng 01 tuần kể từ khi nhận hồ sơ." },
-  { category: "RECRUITMENT_PROCESS", title: "Sau phỏng vấn bao lâu sẽ có kết quả?", content: "Trong khoảng 02 – 05 ngày làm việc." },
-];
+const vsfFaq = VSF_FAQ;
 
 const jobs: ChatBotJob[] = [
   {
@@ -66,6 +60,13 @@ describe("answerFromKeywords", () => {
     expect(reply.content).toContain("/jobs/job-ba");
     expect(reply.handoff).toBe(false);
   });
+
+  it.each(VSF_FAQ.map(entry => [entry.title, entry.content]))(
+    "returns the complete approved answer without cutting it: %s",
+    (question, approvedAnswer) => {
+      expect(answerFromKeywords(ask(question)).content).toBe(approvedAnswer);
+    },
+  );
 
   it.each([
     ["Xin chào", "Chào bạn"],

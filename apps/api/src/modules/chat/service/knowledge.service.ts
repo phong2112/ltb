@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import { PrismaService } from "@/modules/prisma";
+import { CHAT_JOB_LISTING_SUGGESTION, CHAT_SUGGESTED_FAQ_LIMIT } from "../constants";
 import type { CreateChatKnowledgeDto, UpdateChatKnowledgeDto } from "../dto/knowledge";
 
 const KNOWLEDGE_ORDER: Prisma.ChatKnowledgeEntryOrderByWithRelationInput[] = [
@@ -21,8 +22,23 @@ export class ChatKnowledgeService {
     return this.prisma.chatKnowledgeEntry.findMany({
       where: { isActive: true },
       orderBy: KNOWLEDGE_ORDER,
-      select: { category: true, title: true, content: true },
+      select: { id: true, category: true, title: true, content: true },
     });
+  }
+
+  /** One-tap questions for the guest widget: open jobs first, then FAQ titles in the TA's chosen order. */
+  async getGuestSuggestions() {
+    return { questions: [CHAT_JOB_LISTING_SUGGESTION, ...(await this.listSuggestedQuestions(CHAT_SUGGESTED_FAQ_LIMIT))] };
+  }
+
+  private async listSuggestedQuestions(limit: number) {
+    const entries = await this.prisma.chatKnowledgeEntry.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      take: limit,
+      select: { title: true },
+    });
+    return entries.map(entry => entry.title);
   }
 
   create(dto: CreateChatKnowledgeDto) {
