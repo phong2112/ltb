@@ -106,8 +106,9 @@ export class ChatBotService {
       });
       return { content: result.reply, handoff: result.handoff, source: "ai" };
     } catch (error) {
+      // Quota or provider errors fall back to the offline responder so greetings and FAQs still get an answer.
       this.logger.warn(`chat_bot_ai_failed conversation=${conversationId} error=${describeError(error)}`);
-      return { content: CHAT_BOT_FALLBACK_REPLIES.providerFailed, handoff: true, source: "ai_error" };
+      return { ...answerFromKeywords(context), source: "ai_error" };
     }
   }
 

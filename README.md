@@ -131,8 +131,8 @@ Implemented:
 How it works:
 
 - Bot replies run after the guest request returns and are pushed through the existing realtime channel. Each guest message gets at most one bot reply (`clientMessageId = bot-reply:<guestMessageId>`), and a reply is stored only if the conversation is still in `BOT` mode at write time, so a reply generated while TA joins is dropped.
-- `CHAT_AI_PROVIDER=disabled` (default): an offline keyword responder quotes the knowledge base or job data; nothing leaves the API.
-- `CHAT_AI_PROVIDER=groq`: Groq drafts the reply from the knowledge base, published jobs, and the last 12 messages, using `GROQ_CHAT_MODEL_CHAIN` with the same fallback/quota handling as other Groq tasks. This is independent of `AI_PROVIDER` (CV matching). Turn it on only after the customer approves sending guest chat messages to Groq.
+- `CHAT_AI_PROVIDER=groq` (production, `render.yaml`): a conversational bot. It greets, follows up on earlier messages, and gives general CV/interview advice, but company facts (salary, policy, process, jobs) come only from the knowledge base and published jobs. Context: all active knowledge entries, up to 30 published jobs, and the last 12 messages. Uses `GROQ_CHAT_MODEL_CHAIN` with the same fallback/quota handling as other Groq tasks, independent of `AI_PROVIDER` (CV matching). Guest chat messages are sent to Groq; the widget tells guests their messages are processed by AI.
+- `CHAT_AI_PROVIDER=disabled` (code default) or a Groq failure: an offline responder quotes the matching knowledge entry or job, answers greetings/thanks, and hands everything else to TA; nothing leaves the API.
 - The prompt is versioned (`CHAT_BOT_PROMPT_VERSION` in `apps/api/src/modules/chat/bot/prompt.ts`) and logged with each reply, without message content.
 
 ### Phase 7: Sourcing Campaigns

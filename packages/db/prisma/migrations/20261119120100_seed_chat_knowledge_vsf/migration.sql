@@ -12,7 +12,7 @@ INSERT INTO "ChatKnowledgeEntry" ("id", "category", "title", "content", "isActiv
   'faq_vsf_salary_policy',
   'BENEFITS',
   'Mức lương cho vị trí đang tuyển là bao nhiêu?',
-  'Hiện tại, VSF chưa công bố trước khung lương cụ thể cho từng vị trí. Mức lương đề xuất sẽ được trao đổi trực tiếp với ứng viên sau buổi phỏng vấn, căn cứ trên năng lực, kinh nghiệm và kết quả đánh giá từ Hội đồng phỏng vấn.',
+  'VSF không đề xuất khung lương cụ thể cho từng vị trí. Mức lương đề xuất sẽ được trao đổi trực tiếp với ứng viên sau buổi phỏng vấn, căn cứ trên năng lực, kinh nghiệm và kết quả đánh giá từ Hội đồng phỏng vấn.',
   true, 20, CURRENT_TIMESTAMP
 ),
 (

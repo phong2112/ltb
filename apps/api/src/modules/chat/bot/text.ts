@@ -41,6 +41,23 @@ export function isHandoffRequest(message: string) {
   return HANDOFF_PHRASES.some(phrase => padded.includes(` ${phrase} `));
 }
 
+export type SmallTalk = "greeting" | "thanks" | "goodbye";
+
+const SMALL_TALK_PHRASES: Record<SmallTalk, string[]> = {
+  greeting: ["xin chao", "chao", "hello", "hi", "alo", "hey"],
+  thanks: ["cam on", "thanks", "thank you", "tks", "thank"],
+  goodbye: ["tam biet", "bye", "goodbye", "hen gap lai"],
+};
+
+/** Recognizes short social messages so the offline responder does not hand them to TA. */
+export function detectSmallTalk(message: string): SmallTalk | null {
+  const padded = ` ${normalizeForMatching(message)} `;
+  for (const [kind, phrases] of Object.entries(SMALL_TALK_PHRASES) as [SmallTalk, string[]][]) {
+    if (phrases.some(phrase => padded.includes(` ${phrase} `))) return kind;
+  }
+  return null;
+}
+
 export function truncateText(input: string, maxLength: number) {
   const trimmed = input.trim();
   return trimmed.length <= maxLength ? trimmed : `${trimmed.slice(0, maxLength - 1).trimEnd()}…`;

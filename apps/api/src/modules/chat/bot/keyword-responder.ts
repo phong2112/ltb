@@ -1,6 +1,6 @@
 import { CHAT_BOT_FALLBACK_REPLIES } from "./prompt";
 import { type ChatBotContext, type ChatBotJob, type ChatBotKnowledge, type ChatBotReply, jobPath } from "./context";
-import { normalizeForMatching, truncateText } from "./text";
+import { detectSmallTalk, normalizeForMatching, type SmallTalk, truncateText } from "./text";
 
 const STOP_WORDS = new Set([
   "a", "ah", "oi", "nhe", "nha", "la", "cua", "va", "co", "khong", "ko", "cho", "toi", "minh", "em", "anh",
@@ -19,13 +19,20 @@ const MIN_MATCH_SCORE = 2;
 const BIGRAM_WEIGHT = 3;
 const MAX_LISTED_JOBS = 6;
 
+const SMALL_TALK_REPLIES: Record<SmallTalk, string> = {
+  greeting: "Chào bạn! Mình là trợ lý tuyển dụng. Bạn muốn tìm hiểu về vị trí đang tuyển, quy trình phỏng vấn hay chế độ làm việc ạ?",
+  thanks: "Không có gì ạ! Nếu cần thêm thông tin, bạn cứ nhắn mình nhé.",
+  goodbye: "Cảm ơn bạn đã quan tâm. Chúc bạn một ngày tốt lành và hẹn gặp lại!",
+};
+
 type Query = { terms: string[]; bigrams: string[] };
 
 /** Offline responder used when chat AI is disabled. It only quotes stored knowledge and job data. */
 export function answerFromKeywords(context: ChatBotContext): ChatBotReply {
   const question = [...context.history].reverse().find(turn => turn.sender === "GUEST")?.content ?? "";
   const query: Query = { terms: significantTerms(question), bigrams: bigramsOf(question) };
-  if (query.terms.length === 0) return { content: CHAT_BOT_FALLBACK_REPLIES.unknown, handoff: true };
+  const smallTalk = detectSmallTalk(question);
+  if (query.terms.length === 0) return smallTalkOrUnknown(smallTalk);
 
   const bestKnowledge = pickBest(context.knowledge, entry => scoreText(query, `${entry.title} ${entry.content}`));
   const bestJob = pickBest(context.jobs, job => scoreText(query, jobSearchText(job)));
@@ -39,7 +46,13 @@ export function answerFromKeywords(context: ChatBotContext): ChatBotReply {
   if (query.terms.some(term => JOB_LISTING_TERMS.has(term)) && context.jobs.length > 0) {
     return { content: formatJobList(context.jobs), handoff: false };
   }
-  return { content: CHAT_BOT_FALLBACK_REPLIES.unknown, handoff: true };
+  return smallTalkOrUnknown(smallTalk);
+}
+
+function smallTalkOrUnknown(smallTalk: SmallTalk | null): ChatBotReply {
+  return smallTalk
+    ? { content: SMALL_TALK_REPLIES[smallTalk], handoff: false }
+    : { content: CHAT_BOT_FALLBACK_REPLIES.unknown, handoff: true };
 }
 
 function significantTerms(input: string) {
@@ -75,7 +88,7 @@ function jobSearchText(job: ChatBotJob) {
 }
 
 function formatKnowledge(entry: ChatBotKnowledge) {
-  return `${entry.title}\n${truncateText(entry.content, 1_200)}`;
+  return truncateText(entry.content, 1_200);
 }
 
 function formatJob(job: ChatBotJob) {

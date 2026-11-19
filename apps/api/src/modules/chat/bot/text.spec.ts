@@ -1,4 +1,4 @@
-import { isHandoffRequest, normalizeForMatching, truncateText } from "./text";
+import { detectSmallTalk, isHandoffRequest, normalizeForMatching, truncateText } from "./text";
 
 describe("chat bot text helpers", () => {
   it("normalizes Vietnamese diacritics for matching", () => {
@@ -14,6 +14,17 @@ describe("chat bot text helpers", () => {
     "does not flag ordinary questions: %s",
     message => expect(isHandoffRequest(message)).toBe(false),
   );
+
+  it.each([
+    ["Xin chào ạ", "greeting"],
+    ["Hi", "greeting"],
+    ["Cảm ơn bạn nhiều", "thanks"],
+    ["Tạm biệt", "goodbye"],
+    ["Lương bao nhiêu?", null],
+    ["Chiến lược công ty", null],
+  ])("classifies small talk: %s", (message, expected) => {
+    expect(detectSmallTalk(message)).toBe(expected);
+  });
 
   it("truncates long text with an ellipsis", () => {
     expect(truncateText("abcdefghij", 5)).toBe("abcd…");

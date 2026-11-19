@@ -5,7 +5,7 @@ import { CHAT_BOT_FALLBACK_REPLIES } from "./prompt";
 // Mirrors the VSF FAQ inserted by migration 20261119120100_seed_chat_knowledge_vsf.
 const vsfFaq: ChatBotKnowledge[] = [
   { category: "RECRUITMENT_PROCESS", title: "Quy trình phỏng vấn tại VSF như thế nào?", content: "01 vòng phỏng vấn online khoảng 60 phút." },
-  { category: "BENEFITS", title: "Mức lương cho vị trí đang tuyển là bao nhiêu?", content: "VSF chưa công bố trước khung lương cụ thể." },
+  { category: "BENEFITS", title: "Mức lương cho vị trí đang tuyển là bao nhiêu?", content: "VSF không đề xuất khung lương cụ thể cho từng vị trí." },
   { category: "COMPANY_POLICY", title: "Thời gian và địa điểm làm việc tại VSF như thế nào?", content: "Văn phòng Hà Nội: Technopark. Văn phòng TP. Hồ Chí Minh: Vincom Đồng Khởi." },
   { category: "RECRUITMENT_PROCESS", title: "Sau khi ứng tuyển, bao lâu tôi sẽ nhận được phản hồi về CV?", content: "Khoảng 01 tuần kể từ khi nhận hồ sơ." },
   { category: "RECRUITMENT_PROCESS", title: "Sau phỏng vấn bao lâu sẽ có kết quả?", content: "Trong khoảng 02 – 05 ngày làm việc." },
@@ -45,7 +45,7 @@ function ask(question: string, knowledge = vsfFaq): ChatBotContext {
 describe("answerFromKeywords", () => {
   it.each([
     ["Phỏng vấn gồm mấy vòng ạ?", "60 phút"],
-    ["Lương bao nhiêu vậy chị?", "chưa công bố"],
+    ["Lương bao nhiêu vậy chị?", "không đề xuất khung lương"],
     ["Văn phòng ở đâu?", "Technopark"],
     ["Nộp CV xong bao lâu thì có phản hồi?", "01 tuần"],
     ["Phỏng vấn xong bao lâu có kết quả?", "05 ngày"],
@@ -65,6 +65,21 @@ describe("answerFromKeywords", () => {
     const reply = answerFromKeywords(ask("Đang tuyển vị trí nào vậy?", []));
     expect(reply.content).toContain("/jobs/job-ba");
     expect(reply.handoff).toBe(false);
+  });
+
+  it.each([
+    ["Xin chào", "Chào bạn"],
+    ["cảm ơn nhé", "Không có gì"],
+    ["bye bạn", "hẹn gặp lại"],
+  ])("answers small talk without handing off: %s", (message, expected) => {
+    const reply = answerFromKeywords(ask(message));
+    expect(reply.handoff).toBe(false);
+    expect(reply.content).toContain(expected);
+  });
+
+  it("quotes the FAQ answer without repeating its question", () => {
+    const reply = answerFromKeywords(ask("Phỏng vấn gồm mấy vòng ạ?"));
+    expect(reply.content).not.toContain("Quy trình phỏng vấn tại VSF như thế nào?");
   });
 
   it("hands off when nothing matches", () => {

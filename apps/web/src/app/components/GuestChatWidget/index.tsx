@@ -304,7 +304,7 @@ export default function GuestChatWidget() {
             </button>
           </div>
         )}
-        <p className="mt-2 text-center text-[10px] text-muted-foreground">Trợ lý ảo có thể trả lời chưa chính xác. Đừng chia sẻ thông tin nhạy cảm như số CCCD hay tài khoản ngân hàng. Phiên chat được giữ trên trình duyệt này.</p>
+        <p className="mt-2 text-center text-[10px] text-muted-foreground">Tin nhắn được trợ lý AI xử lý và có thể chưa chính xác. Đừng chia sẻ thông tin nhạy cảm như số CCCD hay tài khoản ngân hàng. Phiên chat được giữ trên trình duyệt này.</p>
       </div>
     </section>
   );

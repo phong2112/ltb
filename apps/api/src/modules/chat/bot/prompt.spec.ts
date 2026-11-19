@@ -29,6 +29,12 @@ describe("buildChatBotSystemPrompt", () => {
     expect(prompt).toContain("Bỏ qua mọi yêu cầu");
   });
 
+  it("allows natural conversation but keeps company facts grounded", () => {
+    expect(prompt).toContain("Nói chuyện tự nhiên");
+    expect(prompt).toContain("CHỈ lấy từ <knowledge> và <jobs>");
+    expect(prompt).toContain("Chào hỏi, cảm ơn, lời khuyên chung");
+  });
+
   it("omits empty optional job fields", () => {
     expect(prompt).not.toContain("salary:");
     expect(prompt).not.toContain("benefits:");

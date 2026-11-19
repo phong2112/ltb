@@ -129,14 +129,14 @@ describe("ChatBotService.replyTo", () => {
     }));
   });
 
-  it("stores a fallback reply and requests handoff when the AI fails", async () => {
-    const { service, tx } = setup({ generateChatReply: jest.fn().mockRejectedValue(new Error("timeout")) });
+  it("falls back to the knowledge base when the AI fails, without flagging TA", async () => {
+    const { service, tx } = setup({ generateChatReply: jest.fn().mockRejectedValue(new Error("quota exceeded")) });
     await service.replyTo("c1");
     expect(tx.chatMessage.upsert).toHaveBeenCalledWith(expect.objectContaining({
-      create: expect.objectContaining({ content: CHAT_BOT_FALLBACK_REPLIES.providerFailed }),
+      create: expect.objectContaining({ content: expect.stringContaining("01 vòng online") }),
     }));
     expect(tx.chatConversation.updateMany).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ handoffRequestedAt: expect.any(Date) }),
+      data: expect.not.objectContaining({ handoffRequestedAt: expect.anything() }),
     }));
   });
 });
