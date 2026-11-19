@@ -82,6 +82,30 @@ describe("answerFromKeywords", () => {
     expect(reply.content).not.toContain("Quy trình phỏng vấn tại VSF như thế nào?");
   });
 
+  it("prefers the FAQ over long job descriptions that mention the same words", () => {
+    const longJob: ChatBotJob = {
+      ...jobs[0],
+      id: "job-ops",
+      title: "Chuyên viên vận hành phần mềm",
+      description: "Tham gia phỏng vấn, vận hành, hỗ trợ VSF. ".repeat(40),
+      requirements: "Có kinh nghiệm vận hành phần mềm, phỏng vấn người dùng. ".repeat(20),
+    };
+    const reply = answerFromKeywords({ knowledge: vsfFaq, jobs: [longJob], history: [{ sender: "GUEST", content: "Xin chào, phỏng vấn ở VSF mấy vòng vậy?" }] });
+    expect(reply.content).toContain("60 phút");
+  });
+
+  it("answers a short salary follow-up from the FAQ", () => {
+    const reply = answerFromKeywords(ask("Còn lương thì sao ạ?"));
+    expect(reply.handoff).toBe(false);
+    expect(reply.content).toContain("khung lương");
+  });
+
+  it("answers job questions without HTML", () => {
+    const reply = answerFromKeywords(ask("Vị trí DevOps cần gì?", []));
+    expect(reply.content).not.toMatch(/<[a-z]/i);
+    expect(reply.content).toContain("/jobs/job-devops/apply");
+  });
+
   it("hands off when nothing matches", () => {
     expect(answerFromKeywords(ask("Thời tiết hôm nay"))).toEqual({ content: CHAT_BOT_FALLBACK_REPLIES.unknown, handoff: true });
   });
