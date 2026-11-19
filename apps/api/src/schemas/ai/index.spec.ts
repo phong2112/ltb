@@ -1,4 +1,4 @@
-import { cvSummarySchema } from ".";
+import { chatReplySchema, cvSummarySchema } from ".";
 
 function summaryWithDuration(duration: string | null) {
   return {
@@ -26,5 +26,15 @@ describe("cvSummarySchema", () => {
     const parsed = cvSummarySchema.parse(summaryWithDuration("Nov 2025"));
 
     expect(parsed.workExperiences[0]?.duration).toBeNull();
+  });
+});
+
+describe("chatReplySchema", () => {
+  it("accepts an empty reply when FAQ entries are selected", () => {
+    expect(chatReplySchema.parse({ reply: "", handoff: false, faqIds: ["faq_vsf_salary_policy"] }).faqIds).toEqual(["faq_vsf_salary_policy"]);
+  });
+
+  it("rejects an empty reply without FAQ entries", () => {
+    expect(chatReplySchema.safeParse({ reply: " ", handoff: false }).success).toBe(false);
   });
 });

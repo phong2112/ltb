@@ -1,7 +1,8 @@
 import { composeFaqAnswer } from "./faq";
+import { detectJobListing, formatJobListing, mentionsFaqTopic } from "./job-listing";
 import { CHAT_BOT_FALLBACK_REPLIES } from "./prompt";
-import { type ChatBotContext, type ChatBotJob, type ChatBotReply, jobPath } from "./context";
-import { buildQuery, matchedTermShare, pickBest, scoreJob, scoreKnowledge, withoutCommonTitleTerms } from "./relevance";
+import { type ChatBotContext, type ChatBotJob, type ChatBotKnowledge, type ChatBotReply, jobPath } from "./context";
+import { buildQuery, matchedTermShare, pickBest, scoreJob, scoreKnowledge, withoutCommonTitleTerms, withoutTitleTerms } from "./relevance";
 import { detectSmallTalk, normalizeForMatching, type SmallTalk, truncateText } from "./text";
 
 const JOB_LISTING_TERMS = new Set([
@@ -12,7 +13,6 @@ const MIN_KNOWLEDGE_SCORE = 2;
 const MIN_KNOWLEDGE_TERM_SHARE = 0.4;
 // A job must match on its title or headline (weighted ×3), not only on description words.
 const MIN_JOB_SCORE = 3;
-const MAX_LISTED_JOBS = 6;
 
 const SMALL_TALK_REPLIES: Record<SmallTalk, string> = {
   greeting: "Chào bạn! Mình là trợ lý tuyển dụng. Bạn muốn tìm hiểu về vị trí đang tuyển, quy trình phỏng vấn hay chế độ làm việc ạ?",
@@ -24,26 +24,42 @@ const SMALL_TALK_REPLIES: Record<SmallTalk, string> = {
 export function answerFromKeywords(context: ChatBotContext): ChatBotReply {
   const question = [...context.history].reverse().find(turn => turn.sender === "GUEST")?.content ?? "";
   const query = buildQuery(question);
+  const listing = detectJobListing(question);
+  if (listing) return { content: formatJobListing(context.jobs, listing.filters), handoff: false };
+
   const smallTalk = detectSmallTalk(question);
   if (query.terms.length === 0) return smallTalkOrUnknown(smallTalk);
 
-  const bestKnowledge = pickBest(context.knowledge, entry => scoreKnowledge(query, entry));
+  const knowledge = findMatchingKnowledge(context, question);
+  if (knowledge) return { content: composeFaqAnswer([knowledge]), handoff: false };
+
   const jobQuery = withoutCommonTitleTerms(query, context.jobs);
   const bestJob = pickBest(context.jobs, job => scoreJob(jobQuery, job));
-
-  const knowledgeMatches = bestKnowledge !== null
-    && bestKnowledge.score >= MIN_KNOWLEDGE_SCORE
-    && matchedTermShare(query, `${bestKnowledge.item.title} ${bestKnowledge.item.content}`) >= MIN_KNOWLEDGE_TERM_SHARE;
-  if (bestKnowledge && knowledgeMatches && bestKnowledge.score >= (bestJob?.score ?? 0)) {
-    return { content: composeFaqAnswer([bestKnowledge.item]), handoff: false };
-  }
   if (bestJob && bestJob.score >= MIN_JOB_SCORE) {
     return { content: formatJob(bestJob.item), handoff: false };
   }
   if (query.terms.some(term => JOB_LISTING_TERMS.has(normalizeForMatching(term))) && context.jobs.length > 0) {
-    return { content: formatJobList(context.jobs), handoff: false };
+    return { content: formatJobListing(context.jobs), handoff: false };
   }
   return smallTalkOrUnknown(smallTalk);
+}
+
+/**
+ * The knowledge entry a question is about, or null. A FAQ topic word ("lương", "phỏng vấn"…) beats a job-title match,
+ * and job-name words do not count against the FAQ ("Lương Data Analyst bao nhiêu?").
+ */
+export function findMatchingKnowledge(context: ChatBotContext, question: string): ChatBotKnowledge | null {
+  const query = buildQuery(question);
+  if (query.terms.length === 0) return null;
+
+  const bestKnowledge = pickBest(context.knowledge, entry => scoreKnowledge(query, entry));
+  const jobQuery = withoutCommonTitleTerms(query, context.jobs);
+  const bestJob = pickBest(context.jobs, job => scoreJob(jobQuery, job));
+  if (!bestKnowledge || bestKnowledge.score < MIN_KNOWLEDGE_SCORE) return null;
+
+  const share = matchedTermShare(withoutTitleTerms(query, bestJob?.item.title), `${bestKnowledge.item.title} ${bestKnowledge.item.content}`);
+  const preferKnowledge = mentionsFaqTopic(question) || bestKnowledge.score >= (bestJob?.score ?? 0);
+  return share >= MIN_KNOWLEDGE_TERM_SHARE && preferKnowledge ? bestKnowledge.item : null;
 }
 
 function smallTalkOrUnknown(smallTalk: SmallTalk | null): ChatBotReply {
@@ -62,10 +78,3 @@ function formatJob(job: ChatBotJob) {
   ].filter((line): line is string => line !== null).join("\n");
 }
 
-function formatJobList(jobs: ChatBotJob[]) {
-  const lines = jobs
-    .slice(0, MAX_LISTED_JOBS)
-    .map(job => `- ${job.title}${job.locations.length ? ` (${job.locations.join(", ")})` : ""}: ${jobPath(job)}`);
-  const more = jobs.length > MAX_LISTED_JOBS ? `\nXem tất cả ${jobs.length} vị trí tại /jobs` : "";
-  return `Các vị trí đang tuyển:\n${lines.join("\n")}${more}`;
-}

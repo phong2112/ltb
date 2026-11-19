@@ -70,8 +70,9 @@ export const sourcingPlanSchema = z.object({
   skillSignals: z.array(sourcingSignalSchema).max(12),
 });
 
+// When the model picks FAQ entries it may leave `reply` empty, because the server sends the approved text instead.
 export const chatReplySchema = z.object({
-  reply: z.string().trim().min(1).max(2000),
+  reply: z.string().trim().max(2000),
   handoff: z.boolean(),
   faqIds: z.array(z.string().max(100)).max(5).optional().default([]),
-});
+}).refine(value => value.reply.length > 0 || value.faqIds.length > 0, { message: "reply or faqIds is required", path: ["reply"] });

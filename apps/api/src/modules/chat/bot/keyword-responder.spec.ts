@@ -100,6 +100,20 @@ describe("answerFromKeywords", () => {
     expect(reply.content).toContain("60 phút");
   });
 
+  it("answers the job-list suggestion with jobs, not the salary FAQ", () => {
+    const reply = answerFromKeywords(ask("Đang tuyển những vị trí nào?"));
+    expect(reply.content).toContain("/jobs/job-devops");
+    expect(reply.content).not.toContain("khung lương");
+  });
+
+  it("answers a salary question about a named job with the salary FAQ", () => {
+    expect(answerFromKeywords(ask("Lương DevOps Engineer bao nhiêu?")).content).toBe(vsfFaq[1].content);
+  });
+
+  it("does not answer unrelated 'bao nhiêu' questions with the salary FAQ", () => {
+    expect(answerFromKeywords(ask("Giá vàng hôm nay bao nhiêu?"))).toEqual({ content: CHAT_BOT_FALLBACK_REPLIES.unknown, handoff: true });
+  });
+
   it("answers a short salary follow-up from the FAQ", () => {
     const reply = answerFromKeywords(ask("Còn lương thì sao ạ?"));
     expect(reply.handoff).toBe(false);

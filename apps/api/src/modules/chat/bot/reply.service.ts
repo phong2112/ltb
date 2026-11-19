@@ -9,13 +9,14 @@ import { ChatRealtimePublisher } from "../realtime/publisher.service";
 import { ChatKnowledgeService } from "../service/knowledge.service";
 import type { ChatBotContext, ChatBotJob, ChatBotReply, ChatBotTurn } from "./context";
 import { composeFaqAnswer, findFaqByQuestion, resolveFaqIds } from "./faq";
-import { answerFromKeywords } from "./keyword-responder";
+import { detectJobListing, formatJobListing, hasExactJobMatches, mentionsFaqTopic } from "./job-listing";
+import { answerFromKeywords, findMatchingKnowledge } from "./keyword-responder";
 import { buildChatBotSystemPrompt, CHAT_BOT_FALLBACK_REPLIES, CHAT_BOT_PROMPT_VERSION } from "./prompt";
 import { htmlToPlainText, isHandoffRequest } from "./text";
 
 const MAX_JOBS_FOR_BOT = 30;
 
-type ReplySource = "ai" | "ai_faq" | "ai_error" | "faq" | "keyword" | "handoff_rule";
+type ReplySource = "ai" | "ai_faq" | "ai_error" | "faq" | "job_list" | "keyword" | "handoff_rule";
 type BotReplyOutcome = ChatBotReply & { source: ReplySource };
 type RecentMessage = { id: string; senderType: ChatSenderType; content: string; clientMessageId: string };
 type SavedReply = {
@@ -103,6 +104,10 @@ export class ChatBotService {
     const context: ChatBotContext = { history, ...(await this.loadKnowledgeContext()) };
     const exactFaq = findFaqByQuestion(pending.content, context.knowledge);
     if (exactFaq) return { content: composeFaqAnswer([exactFaq]), handoff: false, source: "faq" };
+    const listing = detectJobListing(pending.content);
+    if (listing && hasExactJobMatches(context.jobs, listing.filters)) {
+      return { content: formatJobListing(context.jobs, listing.filters), handoff: false, source: "job_list" };
+    }
     if (!this.ai.chatEnabled) return { ...answerFromKeywords(context), source: "keyword" };
 
     try {
@@ -110,8 +115,13 @@ export class ChatBotService {
         systemPrompt: buildChatBotSystemPrompt(context),
         turns: history.map(toReplyTurn),
       });
-      const faqEntries = resolveFaqIds(result.faqIds, context.knowledge);
+      // A job-listing question is never a FAQ, even if the model maps "vị trí đang tuyển" to the salary entry.
+      const faqEntries = listing ? [] : resolveFaqIds(result.faqIds, context.knowledge);
       if (faqEntries.length > 0) return { content: composeFaqAnswer(faqEntries), handoff: false, source: "ai_faq" };
+      // The model sometimes answers a FAQ topic in its own words (e.g. only the HCM address); send the full approved text instead.
+      const missedFaq = !listing && mentionsFaqTopic(pending.content) ? findMatchingKnowledge(context, pending.content) : null;
+      if (missedFaq) return { content: composeFaqAnswer([missedFaq]), handoff: false, source: "ai_faq" };
+      if (!result.reply) return { ...answerFromKeywords(context), source: "keyword" };
       return { content: result.reply, handoff: result.handoff, source: "ai" };
     } catch (error) {
       // Quota or provider errors fall back to the offline responder so greetings and FAQs still get an answer.

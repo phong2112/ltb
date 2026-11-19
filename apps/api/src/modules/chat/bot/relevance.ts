@@ -7,6 +7,10 @@ const STOP_WORDS = new Set([
   "nhung", "hoi", "muon", "biet", "xin", "can", "de", "hay", "hien", "tai", "dang", "se", "da", "chi", "con", "is",
   // Greetings and thanks often share a message with the real question.
   "chao", "hello", "hi", "alo", "cam", "on", "thanks", "thank",
+  // Question words ("bao nhiêu") carry no topic: "giá vàng bao nhiêu" must not match the salary FAQ.
+  "bao", "nhieu",
+  // Generic recruiting words appear in every question and in FAQ titles ("vị trí đang tuyển").
+  "vi", "tri", "tuyen", "dung",
   "what", "how", "are", "you", "i", "an", "of", "to", "for", "and", "in", "on", "about", "please",
 ]);
 
@@ -43,6 +47,13 @@ export function matchedTermShare(query: MatchQuery, text: string) {
   if (query.terms.length === 0) return 0;
   const words = new Set(tokenize(text, query.keepDiacritics));
   return query.terms.filter(term => words.has(term)).length / query.terms.length;
+}
+
+/** Job names ("Data Analyst") never appear in FAQ answers, so they should not count against a FAQ match. */
+export function withoutTitleTerms(query: MatchQuery, title: string | undefined): MatchQuery {
+  if (!title) return query;
+  const titleWords = new Set(tokenize(title, query.keepDiacritics));
+  return { ...query, terms: query.terms.filter(term => !titleWords.has(term)) };
 }
 
 /** Drops query words that appear in many job titles, so "ứng viên" does not match every "Chuyên viên …" job. */

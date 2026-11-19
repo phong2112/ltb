@@ -3,7 +3,7 @@ import { type ChatBotContext, type ChatBotJob, jobPath } from "./context";
 import { rankRelevantJobs } from "./relevance";
 import { capitalize, truncateText } from "./text";
 
-export const CHAT_BOT_PROMPT_VERSION = "career-chat-v4";
+export const CHAT_BOT_PROMPT_VERSION = "career-chat-v6";
 
 // Groq's free tier allows ~8k tokens/minute per model, so the prompt lists every job in one
 // line and adds full details only for the few jobs related to the conversation.
@@ -37,6 +37,8 @@ export function buildChatBotSystemPrompt(context: ChatBotContext) {
     "",
     "Câu hỏi thường gặp (FAQ):",
     "- Mỗi mục trong <knowledge> có mã trong ngoặc vuông. Nếu câu hỏi được trả lời đầy đủ bởi một hoặc nhiều mục, đặt faqIds là mã các mục đó; hệ thống sẽ gửi NGUYÊN VĂN câu trả lời đã duyệt thay cho reply.",
+    "- Mọi câu hỏi về lương, quy trình hoặc số vòng phỏng vấn, giờ làm việc, địa điểm hoặc văn phòng, thời gian phản hồi CV, thời gian có kết quả phỏng vấn đều phải dùng faqIds của mục tương ứng, kể cả khi chỉ hỏi một phần (ví dụ chỉ hỏi văn phòng HCM).",
+    "- Câu hỏi tìm hoặc liệt kê vị trí đang tuyển (ví dụ \"có vị trí nào ở HCM?\") không phải FAQ: trả lời từ <job_catalog> và để faqIds rỗng.",
     "- Nếu câu hỏi còn phần khác ngoài FAQ (ví dụ chi tiết một vị trí), để faqIds rỗng và tự trả lời; khi nhắc tới nội dung FAQ thì giữ đủ mọi ý, không rút gọn, không thêm chi tiết.",
     "",
     "An toàn:",
