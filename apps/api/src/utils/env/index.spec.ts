@@ -219,4 +219,19 @@ describe("validateEnv", () => {
       GEMINI_QUOTA_COOLDOWN_MS: "60000",
     })).not.toThrow();
   });
+
+  it("rejects unsupported chat AI providers", () => {
+    expect(() => validateEnv({ ...requiredConfig, CHAT_AI_PROVIDER: "openai" }))
+      .toThrow("CHAT_AI_PROVIDER must be one of: disabled, groq");
+  });
+
+  it("requires a Groq key when chat AI is enabled", () => {
+    expect(() => validateEnv({ ...requiredConfig, CHAT_AI_PROVIDER: "groq" }))
+      .toThrow("GROQ_API_KEY is required when CHAT_AI_PROVIDER=groq");
+  });
+
+  it("accepts Groq chat AI without enabling CV AI", () => {
+    const result = validateEnv({ ...requiredConfig, CHAT_AI_PROVIDER: "groq", GROQ_API_KEY: "groq-key", GROQ_CHAT_TIMEOUT_MS: "15000" });
+    expect(result.GROQ_CHAT_TIMEOUT_MS).toBe(15000);
+  });
 });

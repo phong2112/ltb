@@ -1,5 +1,8 @@
 export type ChatConversationStatus = "OPEN" | "CLOSED" | "BLOCKED";
-export type ChatSenderType = "GUEST" | "TA";
+import type { ChatKnowledgeCategory } from "@hr-copilot/shared";
+
+export type ChatSenderType = "GUEST" | "TA" | "BOT" | "SYSTEM";
+export type ChatConversationMode = "BOT" | "HUMAN";
 
 export type ApiChatMessage = {
   id: string;
@@ -31,6 +34,9 @@ export type ApiChatConversation = {
   candidateId?: string | null;
   applicationId?: string | null;
   status: ChatConversationStatus;
+  mode: ChatConversationMode;
+  handoffRequestedAt?: string | null;
+  taJoinedAt?: string | null;
   lastMessageAt?: string | null;
   candidate?: ApiChatCandidate | null;
   application?: ApiChatApplication | null;
@@ -40,6 +46,7 @@ export type ApiChatConversation = {
 
 export type ApiGuestChatConversation = {
   status: ChatConversationStatus;
+  mode: ChatConversationMode;
   lastMessageAt?: string | null;
   candidate?: Pick<ApiChatCandidate, "fullName"> | null;
 };
@@ -66,3 +73,16 @@ export type ApiAdminConversationDetail = ApiChatPage<ApiChatMessage> & {
 export type ApiAdminChatUnreadSummary = {
   unreadMessages: number;
 };
+
+export type ApiChatKnowledgeEntry = {
+  id: string;
+  category: ChatKnowledgeCategory;
+  title: string;
+  content: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ApiChatKnowledgeInput = Pick<ApiChatKnowledgeEntry, "category" | "title" | "content" | "isActive" | "sortOrder">;

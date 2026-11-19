@@ -94,6 +94,21 @@ export type ApplicationPreviewExtraction = {
   };
 };
 
+export type ChatReplyTurn = {
+  role: "guest" | "assistant";
+  content: string;
+};
+
+export type GenerateChatReplyInput = {
+  systemPrompt: string;
+  turns: ChatReplyTurn[];
+};
+
+export type ChatReplyResult = {
+  reply: string;
+  handoff: boolean;
+};
+
 export interface AiProvider {
   readonly name: string;
   readonly model: string;

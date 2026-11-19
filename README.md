@@ -12,7 +12,8 @@ The candidate site and TA workspace run on the same domain:
 /admin                        protected TA workspace
 /admin/jobs                   protected job management
 /admin/candidates             protected candidate inbox
-/admin/chats                  protected first-party guest chat inbox
+/admin/chats                  protected first-party guest chat inbox (bot + TA hand-over)
+/admin/chats/knowledge        protected chat bot knowledge base
 /admin/analytics              protected product usage, issues, and application funnel dashboard
 /api/analytics/events/batch   public/optional-auth first-party event ingestion
 /api/admin/analytics/*        protected aggregate analytics reports
@@ -116,6 +117,24 @@ Implemented:
 The realtime version remains deliberately text-only and first-party. Attachments, typing indicators, presence, and external messaging accounts are deferred.
 
 Relevant settings: `GUEST_CHAT_SESSION_TTL_DAYS`, `GUEST_CHAT_RECOVERY_TTL_DAYS`, `GUEST_CHAT_RATE_LIMIT_MAX`, `GUEST_CHAT_RATE_LIMIT_WINDOW_SECONDS`, `CHAT_REALTIME_TICKET_SECRET`, `CHAT_REALTIME_TICKET_TTL_SECONDS`, and frontend `VITE_REALTIME_URL`.
+
+### Phase 6B: Chat Bot With TA Hand-over
+
+Implemented:
+
+- Every new guest conversation starts in `BOT` mode: the bot answers questions about TA, open jobs, salary/benefits, company policy, and the recruitment process.
+- The bot answers only from active entries in `/admin/chats/knowledge` and from published jobs. The initial VSF recruiting FAQ is inserted by migration `20261119120100_seed_chat_knowledge_vsf` and stays editable.
+- When the guest asks for a human ("gặp TA", "gặp HR"…) or the bot has no answer, the conversation is flagged **Cần TA** in the inbox.
+- Per conversation, TA can **Tham gia & ngắt bot** (mode `HUMAN`, bot stops replying) and **Rời & bật bot** (mode `BOT`; the bot answers any guest question TA left unanswered). Replying as TA in a bot conversation joins automatically. Both actions post a system message to the guest and are written to `ActivityLog` (`chat_ta_joined`, `chat_ta_left`).
+- Conversations that existed before this feature were migrated to `HUMAN` so the bot never jumps into an ongoing TA conversation.
+
+How it works:
+
+- Bot replies run after the guest request returns and are pushed through the existing realtime channel. Each guest message gets at most one bot reply (`clientMessageId = bot-reply:<guestMessageId>`), and a reply is stored only if the conversation is still in `BOT` mode at write time, so a reply generated while TA joins is dropped.
+- `CHAT_AI_PROVIDER=groq` (production, `render.yaml`): a conversational bot. It greets, follows up on earlier messages, and gives general CV/interview advice, but company facts (salary, policy, process, jobs) come only from the knowledge base and published jobs. Context: all active knowledge entries, up to 30 published jobs, and the last 12 messages. Uses `GROQ_CHAT_MODEL_CHAIN` with the same fallback/quota handling as other Groq tasks, independent of `AI_PROVIDER` (CV matching). Guest chat messages are sent to Groq; the widget tells guests their messages are processed by AI.
+- Rate limits: a Groq quota response is retried after the provider's `retry-after` (other models in `GROQ_CHAT_MODEL_CHAIN` are tried first), up to 3 attempts within 25 seconds so the guest keeps seeing the typing hint. Longer waits (e.g. a daily limit) and non-quota errors use the offline responder immediately. Free-tier Groq allows about 8,000 tokens/minute and 1,000 requests/day per model, shared with CV matching; each chat reply uses roughly 2,000+ tokens.
+- `CHAT_AI_PROVIDER=disabled` (code default) or a Groq failure: an offline responder quotes the matching knowledge entry or job, answers greetings/thanks, and hands everything else to TA; nothing leaves the API.
+- The prompt is versioned (`CHAT_BOT_PROMPT_VERSION` in `apps/api/src/modules/chat/bot/prompt.ts`) and logged with each reply, without message content.
 
 ### Phase 7: Sourcing Campaigns
 

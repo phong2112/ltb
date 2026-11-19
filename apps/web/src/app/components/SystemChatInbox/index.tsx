@@ -10,12 +10,16 @@ import type {
 import {
   createAdminChatRealtimeTicket,
   getAdminChatConversation,
+  joinAdminChat,
+  leaveAdminChat,
   listAdminChatConversations,
   markAdminChatRead,
   sendAdminChatMessage,
   updateAdminChatStatus,
 } from "@/app/apis/requests";
 import { connectChatRealtime } from "@/app/services/chat-realtime";
+import HandoverControls, { ModeBadge } from "./HandoverControls";
+import InboxMessage from "./InboxMessage";
 
 type Props = { initialApplicationId?: string | null };
 
@@ -32,6 +36,7 @@ export default function SystemChatInbox({ initialApplicationId }: Props) {
   const [loadingList, setLoadingList] = useState(true);
   const [loadingChat, setLoadingChat] = useState(false);
   const [sending, setSending] = useState(false);
+  const [handingOver, setHandingOver] = useState(false);
   const [realtimeConnected, setRealtimeConnected] = useState(false);
   const [error, setError] = useState("");
   const messageEndRef = useRef<HTMLDivElement>(null);
@@ -123,16 +128,14 @@ export default function SystemChatInbox({ initialApplicationId }: Props) {
         void loadListRef.current();
       },
       onConversation: event => {
-        setConversations(current => current.map(item => item.id === event.conversationId ? {
-          ...item,
+        const changes = {
           status: event.status,
+          mode: event.mode,
+          handoffRequestedAt: event.handoffRequestedAt,
           lastMessageAt: event.lastMessageAt,
-        } : item));
-        setConversation(current => current?.id === event.conversationId ? {
-          ...current,
-          status: event.status,
-          lastMessageAt: event.lastMessageAt,
-        } : current);
+        };
+        setConversations(current => current.map(item => item.id === event.conversationId ? { ...item, ...changes } : item));
+        setConversation(current => current?.id === event.conversationId ? { ...current, ...changes } : current);
       },
       onConnectionChange: setRealtimeConnected,
     });
@@ -188,6 +191,21 @@ export default function SystemChatInbox({ initialApplicationId }: Props) {
     }
   }
 
+  async function changeHandover(action: "join" | "leave") {
+    if (!selectedId || handingOver) return;
+    setHandingOver(true);
+    try {
+      const updated = action === "join" ? await joinAdminChat(selectedId) : await leaveAdminChat(selectedId);
+      setConversation(updated);
+      setConversations(current => current.map(item => item.id === selectedId ? { ...item, mode: updated.mode, handoffRequestedAt: updated.handoffRequestedAt } : item));
+      await loadChat();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Không thể chuyển chế độ hội thoại.");
+    } finally {
+      setHandingOver(false);
+    }
+  }
+
   async function setStatus(status: ChatConversationStatus) {
     if (!selectedId) return;
     try {
@@ -223,8 +241,8 @@ export default function SystemChatInbox({ initialApplicationId }: Props) {
                   <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-primary/10 font-black text-primary"><UserRound size={19} /></span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-2"><span className="truncate text-sm font-black text-foreground">{displayName(item)}</span><span className="flex-none text-[10px] text-muted-foreground">{formatListTime(item.lastMessageAt)}</span></span>
-                    <span className="mt-0.5 block truncate text-xs font-semibold text-primary">{item.application?.job?.title ?? "Khách career site"}</span>
-                    <span className="mt-1 flex items-center gap-2"><span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{latest?.senderType === "TA" ? "Bạn: " : ""}{latest?.content}</span>{item._count.messages > 0 && <span className="min-w-5 rounded-full bg-primary px-1.5 py-0.5 text-center text-[10px] font-black text-white">{item._count.messages}</span>}</span>
+                    <span className="mt-0.5 flex items-center gap-1.5"><span className="truncate text-xs font-semibold text-primary">{item.application?.job?.title ?? "Khách career site"}</span><ModeBadge mode={item.mode} />{item.handoffRequestedAt && item.mode === "BOT" && <span className="flex-none rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-black text-amber-800">Cần TA</span>}</span>
+                    <span className="mt-1 flex items-center gap-2"><span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{previewPrefix(latest?.senderType)}{latest?.content}</span>{item._count.messages > 0 && <span className="min-w-5 rounded-full bg-primary px-1.5 py-0.5 text-center text-[10px] font-black text-white">{item._count.messages}</span>}</span>
                   </span>
                 </div>
               </button>
@@ -245,6 +263,7 @@ export default function SystemChatInbox({ initialApplicationId }: Props) {
                 <div className="min-w-0"><p className="truncate font-black text-foreground">{displayName(conversation ?? selectedListItem)}</p><p className="truncate text-xs text-muted-foreground">{conversation?.application?.job?.title ?? selectedListItem?.application?.job?.title ?? "Khách career site"} · {realtimeConnected ? "Realtime" : "Đang kết nối lại"}</p></div>
               </div>
               <div className="flex flex-none items-center gap-1.5">
+                {conversation && <HandoverControls conversation={conversation} busy={handingOver} onJoin={() => void changeHandover("join")} onLeave={() => void changeHandover("leave")} />}
                 {conversation?.candidateId && <Link to={`/admin/candidates/${conversation.candidateId}${conversation.applicationId ? `?application=${conversation.applicationId}` : ""}`} className="hidden rounded-lg border border-border px-3 py-2 text-xs font-bold hover:border-primary hover:text-primary sm:block">Xem hồ sơ</Link>}
                 {conversation?.status === "BLOCKED" ? <button type="button" onClick={() => void setStatus("OPEN")} className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700">Bỏ chặn</button> : <button type="button" onClick={() => void setStatus("BLOCKED")} className="rounded-lg p-2 text-muted-foreground hover:bg-red-50 hover:text-red-700" title="Chặn"><Ban size={18} /></button>}
                 {conversation?.status === "CLOSED" ? <button type="button" onClick={() => void setStatus("OPEN")} className="rounded-lg bg-primary/10 px-3 py-2 text-xs font-bold text-primary">Mở lại</button> : conversation?.status !== "BLOCKED" && <button type="button" onClick={() => void setStatus("CLOSED")} className="rounded-lg p-2 text-muted-foreground hover:bg-emerald-50 hover:text-emerald-700" title="Đóng hội thoại"><CheckCircle2 size={18} /></button>}
@@ -255,10 +274,7 @@ export default function SystemChatInbox({ initialApplicationId }: Props) {
               {loadingChat ? <p className="flex h-full items-center justify-center text-sm text-muted-foreground"><RefreshCw className="mr-2 animate-spin" size={16} /> Đang tải…</p> : (
                 <div className="mx-auto max-w-3xl space-y-3">
                   {messageCursor && <button type="button" onClick={() => void loadOlderMessages()} className="mx-auto block rounded-full bg-white px-4 py-2 text-xs font-bold text-primary shadow-sm">Tải tin nhắn cũ</button>}
-                  {messages.map(message => {
-                    const fromTa = message.senderType === "TA";
-                    return <div key={message.id} className={`flex ${fromTa ? "justify-end" : "justify-start"}`}><div className={`max-w-[78%] rounded-2xl px-4 py-2.5 text-sm leading-5 shadow-sm ${fromTa ? "rounded-br-md bg-primary text-white" : "rounded-bl-md border border-border bg-white text-foreground"}`}><p className="whitespace-pre-wrap break-words">{message.content}</p><p className={`mt-1 text-[10px] ${fromTa ? "text-white/70" : "text-muted-foreground"}`}>{formatMessageTime(message.createdAt)}</p></div></div>;
-                  })}
+                  {messages.map(message => <InboxMessage key={message.id} message={message} />)}
                   <div ref={messageEndRef} />
                 </div>
               )}
@@ -268,7 +284,7 @@ export default function SystemChatInbox({ initialApplicationId }: Props) {
               {error && <p className="mx-auto mb-2 max-w-3xl rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{error}</p>}
               {conversation?.status === "BLOCKED" ? <p className="mx-auto max-w-3xl rounded-xl bg-slate-100 p-3 text-center text-sm text-muted-foreground">Hội thoại đang bị chặn.</p> : (
                 <div className="mx-auto flex max-w-3xl items-end gap-2">
-                  <textarea value={draft} onChange={event => { pendingMessageIdRef.current = null; setDraft(event.target.value.slice(0, 2000)); }} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void sendMessage(); } }} rows={1} maxLength={2000} placeholder={conversation?.status === "CLOSED" ? "Gửi tin nhắn sẽ tiếp tục hội thoại…" : "Nhập phản hồi…"} className="max-h-32 min-h-11 flex-1 resize-none rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" aria-label="Nội dung phản hồi" />
+                  <textarea value={draft} onChange={event => { pendingMessageIdRef.current = null; setDraft(event.target.value.slice(0, 2000)); }} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void sendMessage(); } }} rows={1} maxLength={2000} placeholder={composerPlaceholder(conversation)} className="max-h-32 min-h-11 flex-1 resize-none rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" aria-label="Nội dung phản hồi" />
                   <button type="button" onClick={() => void sendMessage()} disabled={!draft.trim() || sending} className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-primary text-white disabled:opacity-45" aria-label="Gửi phản hồi">{sending ? <RefreshCw className="animate-spin" size={18} /> : <Send size={18} />}</button>
                 </div>
               )}
@@ -284,6 +300,18 @@ function displayName(conversation?: Pick<ApiChatConversation, "id" | "candidate"
   return conversation?.candidate?.fullName ?? (conversation ? `Khách ${conversation.id.slice(-6).toUpperCase()}` : "Khách career site");
 }
 
+function previewPrefix(senderType?: ApiChatMessage["senderType"]) {
+  if (senderType === "TA") return "Bạn: ";
+  if (senderType === "BOT") return "Bot: ";
+  return "";
+}
+
+function composerPlaceholder(conversation: ApiChatConversation | null) {
+  if (conversation?.status === "CLOSED") return "Gửi tin nhắn sẽ tiếp tục hội thoại…";
+  if (conversation?.mode === "BOT") return "Gửi phản hồi sẽ tự tham gia và ngắt bot…";
+  return "Nhập phản hồi…";
+}
+
 function dedupeConversations(items: ApiAdminChatConversation[]) {
   return [...new Map(items.map(item => [item.id, item])).values()];
 }
@@ -295,8 +323,4 @@ function dedupeMessages(items: ApiChatMessage[]) {
 function formatListTime(value?: string | null) {
   if (!value) return "";
   return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit" }).format(new Date(value));
-}
-
-function formatMessageTime(value: string) {
-  return new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" }).format(new Date(value));
 }

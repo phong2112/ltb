@@ -3,19 +3,25 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { createHash } from "node:crypto";
 import type { Request } from "express";
+import { AiModelsModule } from "@/modules/ai/models.module";
 import { AuthModule } from "@/modules/auth";
 import { readCookie } from "@/modules/auth/guards/index.guard";
 import { GUEST_CHAT_COOKIE_NAME } from "./constants";
+import { ChatBotService } from "./bot/reply.service";
 import { AdminChatController } from "./controller/admin.controller";
 import { GuestChatController } from "./controller/guest.controller";
+import { ChatKnowledgeController } from "./controller/knowledge.controller";
 import { ChatRealtimeGateway } from "./realtime/gateway";
 import { ChatRealtimePublisher } from "./realtime/publisher.service";
 import { ChatRealtimeTicketService } from "./realtime/ticket.service";
+import { ChatHandoverService } from "./service/handover.service";
 import { ChatService } from "./service/index.service";
+import { ChatKnowledgeService } from "./service/knowledge.service";
 import { ChatTokenService } from "./service/token.service";
 
 @Module({
   imports: [
+    AiModelsModule,
     AuthModule,
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
@@ -30,9 +36,12 @@ import { ChatTokenService } from "./service/token.service";
       ],
     }),
   ],
-  controllers: [GuestChatController, AdminChatController],
+  controllers: [GuestChatController, AdminChatController, ChatKnowledgeController],
   providers: [
     ChatService,
+    ChatBotService,
+    ChatHandoverService,
+    ChatKnowledgeService,
     ChatTokenService,
     ChatRealtimeTicketService,
     ChatRealtimePublisher,

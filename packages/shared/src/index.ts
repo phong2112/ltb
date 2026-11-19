@@ -69,6 +69,7 @@ export {
   type ChatConversationUpdatedEvent,
   type ChatMessageCreatedEvent,
   type ChatReadUpdatedEvent,
+  type ChatRealtimeConversationMode,
   type ChatRealtimeConversationStatus,
   type ChatRealtimeMessage,
   type ChatRealtimeReadyEvent,
@@ -76,3 +77,9 @@ export {
   type ChatRealtimeSenderType,
   type ChatRealtimeTicketResponse,
 } from "./chat-realtime";
+export {
+  CHAT_KNOWLEDGE_CATEGORIES,
+  CHAT_KNOWLEDGE_CONTENT_MAX_LENGTH,
+  CHAT_KNOWLEDGE_TITLE_MAX_LENGTH,
+  type ChatKnowledgeCategory,
+} from "./chat-knowledge";

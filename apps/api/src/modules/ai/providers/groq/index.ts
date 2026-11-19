@@ -3,11 +3,15 @@ import { ConfigService } from "@nestjs/config";
 import Groq from "groq-sdk";
 import { z } from "zod";
 import { buildCvSummaryPrompt, buildExtractProfilePrompt, buildMatchPrompt, buildSourcingPlanPrompt } from "@/modules/ai/prompts";
-import { cvSummarySchema, extractedProfileSchema, matchAnalysisSchema, sourcingPlanSchema } from "@/schemas/ai";
+import { chatReplySchema, cvSummarySchema, extractedProfileSchema, matchAnalysisSchema, sourcingPlanSchema } from "@/schemas/ai";
+import { parseRetryAfterMs } from "./retry-after";
 import type {
   AiProvider,
   AnalyzeMatchInput,
+  ChatReplyResult,
+  ChatReplyTurn,
   CvSummary,
+  GenerateChatReplyInput,
   ExtractProfileInput,
   ExtractedProfile,
   ProviderMatchAnalysis,
@@ -19,8 +23,9 @@ import type {
 const MAX_PROFILE_CV_CHARACTERS = 45_000;
 const MAX_SUMMARY_CV_CHARACTERS = 45_000;
 const DEFAULT_MODEL = "openai/gpt-oss-120b";
+const DEFAULT_QUOTA_RETRY_MS = 60_000;
 
-type GroqTask = "matching" | "profile-extraction" | "cv-summary" | "sourcing-plan";
+type GroqTask = "matching" | "profile-extraction" | "cv-summary" | "sourcing-plan" | "chat-reply";
 
 @Injectable()
 export class GroqAiProvider implements AiProvider {
@@ -30,6 +35,7 @@ export class GroqAiProvider implements AiProvider {
   private readonly logger = new Logger(GroqAiProvider.name);
   private readonly timeoutMs: number;
   private readonly sourcingTimeoutMs: number;
+  private readonly chatTimeoutMs: number;
   private readonly configService: ConfigService;
   private readonly modelCooldowns = new Map<string, number>();
 
@@ -38,6 +44,7 @@ export class GroqAiProvider implements AiProvider {
     this.model = configService.get<string>("GROQ_MODEL") ?? DEFAULT_MODEL;
     this.timeoutMs = getPositiveIntegerConfig(configService, "GROQ_TIMEOUT_MS", 120_000);
     this.sourcingTimeoutMs = getPositiveIntegerConfig(configService, "GROQ_SOURCING_TIMEOUT_MS", 15_000);
+    this.chatTimeoutMs = getPositiveIntegerConfig(configService, "GROQ_CHAT_TIMEOUT_MS", 15_000);
     this.client = new Groq({
       apiKey: configService.get<string>("GROQ_API_KEY") || "disabled-placeholder",
       timeout: this.timeoutMs,
@@ -50,6 +57,17 @@ export class GroqAiProvider implements AiProvider {
 
   async analyzeMatch(input: AnalyzeMatchInput): Promise<ProviderMatchAnalysis> {
     return this.withModelFallback("matching", model => this.analyzeMatchWithModel(input, model));
+  }
+
+  async generateChatReply(input: GenerateChatReplyInput): Promise<ChatReplyResult> {
+    return this.withModelFallback("chat-reply", async model => {
+      const rawContent = await this.createStructuredCompletion(
+        [{ role: "system" as const, content: input.systemPrompt }, ...input.turns.map(toChatCompletionMessage)],
+        model,
+        this.chatTimeoutMs,
+      );
+      return parseStructuredResponse(rawContent, chatReplySchema);
+    });
   }
 
   private async analyzeMatchWithModel(input: AnalyzeMatchInput, model: string): Promise<ProviderMatchAnalysis> {
@@ -315,6 +333,7 @@ export class GroqAiProvider implements AiProvider {
       "profile-extraction": "GROQ_EXTRACTION_MODEL_CHAIN",
       "cv-summary": "GROQ_SUMMARY_MODEL_CHAIN",
       "sourcing-plan": "GROQ_SOURCING_MODEL_CHAIN",
+      "chat-reply": "GROQ_CHAT_MODEL_CHAIN",
     }[task];
     const taskChain = parseModelChain(this.configService.get<string>(taskKey));
     if (taskChain.length) return taskChain;
@@ -346,28 +365,9 @@ export class GroqAiProvider implements AiProvider {
   }
 
   private parseRetryAfter(error: unknown): number {
-    const record = error as Record<string, unknown>;
-    const header = record.headers && typeof record.headers === "object"
-      ? record.headers as Record<string, string>
-      : {};
-
-    const headerValue = header["retry-after"] ?? header["x-ratelimit-reset-ms"];
-    if (headerValue) {
-      const parsed = Number(headerValue);
-      if (Number.isFinite(parsed) && parsed > 0) return parsed;
-    }
-
-    const message = record.message && typeof record.message === "string"
-      ? record.message
-      : "";
-    const match = message.match(/try again in (\d+)s/i);
-    if (match) return Number(match[1]) * 1000;
-
-    const resetMatch = message.match(/reset.*?(\d{2,})\s?s/i);
-    if (resetMatch) return Number(resetMatch[1]) * 1000;
-
-    return 60_000;
+    return parseRetryAfterMs(error) ?? DEFAULT_QUOTA_RETRY_MS;
   }
+
 }
 
 export function parseStructuredResponse<T>(
@@ -608,6 +608,10 @@ function parseModelChain(value: string | undefined) {
       seen.add(model);
       return true;
     });
+}
+
+function toChatCompletionMessage(turn: ChatReplyTurn) {
+  return { role: turn.role === "guest" ? ("user" as const) : ("assistant" as const), content: turn.content };
 }
 
 function isFallbackError(error: unknown) {

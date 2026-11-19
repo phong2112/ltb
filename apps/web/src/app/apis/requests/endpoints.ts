@@ -47,6 +47,10 @@ export const API_ENDPOINTS = {
     messages: (id: string) => apiPath(API_ENDPOINTS.adminChat.conversation(id), API_ROUTES.adminChat.messages),
     read: (id: string) => apiPath(API_ENDPOINTS.adminChat.conversation(id), API_ROUTES.adminChat.read),
     status: (id: string) => apiPath(API_ENDPOINTS.adminChat.conversation(id), API_ROUTES.adminChat.status),
+    join: (id: string) => apiPath(API_ENDPOINTS.adminChat.conversation(id), API_ROUTES.adminChat.join),
+    leave: (id: string) => apiPath(API_ENDPOINTS.adminChat.conversation(id), API_ROUTES.adminChat.leave),
+    knowledge: apiPath(ADMIN_CHAT_ENDPOINT, API_ROUTES.adminChat.knowledge),
+    knowledgeEntry: (id: string) => apiPath(ADMIN_CHAT_ENDPOINT, API_ROUTES.adminChat.knowledge, encodeURIComponent(id)),
   },
   candidates: {
     adminList: (query: string) => `${ADMIN_CANDIDATES_ENDPOINT}${query}`,

@@ -69,3 +69,8 @@ export const sourcingPlanSchema = z.object({
   titleVariants: z.array(sourcingSignalSchema).max(8),
   skillSignals: z.array(sourcingSignalSchema).max(12),
 });
+
+export const chatReplySchema = z.object({
+  reply: z.string().trim().min(1).max(2000),
+  handoff: z.boolean(),
+});

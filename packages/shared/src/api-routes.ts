@@ -10,7 +10,7 @@ export const API_ROUTES = {
   },
   adminChat: {
     base: "admin/chat", realtimeTicket: "realtime-ticket", conversations: "conversations", unreadSummary: "unread-summary",
-    messages: "messages", read: "read", status: "status", id: ":id",
+    messages: "messages", read: "read", status: "status", join: "join", leave: "leave", knowledge: "knowledge", id: ":id",
   },
   candidates: {
     base: "admin/candidates", cvExports: "cv-exports", files: "files", applications: "applications", analysis: "analysis",

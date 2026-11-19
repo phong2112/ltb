@@ -58,6 +58,22 @@ enum ChatConversationStatus {
 enum ChatSenderType {
   GUEST
   TA
+  BOT
+  SYSTEM
+}
+
+enum ChatConversationMode {
+  BOT
+  HUMAN
+}
+
+enum ChatKnowledgeCategory {
+  ABOUT_TA
+  COMPANY_POLICY
+  BENEFITS
+  RECRUITMENT_PROCESS
+  FAQ
+  OTHER
 }
 
 enum SourcingCampaignStatus {
@@ -451,19 +467,23 @@ model GuestDevice {
 }
 
 model ChatConversation {
-  id            String                 @id @default(cuid())
-  guestDeviceId String
-  taUserId      String                 @default("hr-admin")
-  candidateId   String?
-  applicationId String?
-  status        ChatConversationStatus @default(OPEN)
-  lastMessageAt DateTime?
-  guestDevice   GuestDevice            @relation(fields: [guestDeviceId], references: [id], onDelete: Cascade)
-  candidate     Candidate?             @relation(fields: [candidateId], references: [id], onDelete: SetNull)
-  application   Application?           @relation(fields: [applicationId], references: [id], onDelete: SetNull)
-  messages      ChatMessage[]
-  createdAt     DateTime               @default(now())
-  updatedAt     DateTime               @updatedAt
+  id                 String                 @id @default(cuid())
+  guestDeviceId      String
+  taUserId           String                 @default("hr-admin")
+  candidateId        String?
+  applicationId      String?
+  status             ChatConversationStatus @default(OPEN)
+  mode               ChatConversationMode   @default(BOT)
+  /// Set when the guest asks for a human or the bot cannot answer; cleared when TA joins.
+  handoffRequestedAt DateTime?
+  taJoinedAt         DateTime?
+  lastMessageAt      DateTime?
+  guestDevice        GuestDevice            @relation(fields: [guestDeviceId], references: [id], onDelete: Cascade)
+  candidate          Candidate?             @relation(fields: [candidateId], references: [id], onDelete: SetNull)
+  application        Application?           @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  messages           ChatMessage[]
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
 
   @@unique([guestDeviceId, taUserId])
   @@index([taUserId, status, lastMessageAt])
@@ -485,6 +505,20 @@ model ChatMessage {
   @@unique([conversationId, clientMessageId])
   @@index([conversationId, createdAt])
   @@index([conversationId, senderType, readAt])
+}
+
+/// Facts the career-site chat bot may answer from. Only active entries reach the bot.
+model ChatKnowledgeEntry {
+  id        String                @id @default(cuid())
+  category  ChatKnowledgeCategory @default(FAQ)
+  title     String
+  content   String
+  isActive  Boolean               @default(true)
+  sortOrder Int                   @default(0)
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+
+  @@index([isActive, category, sortOrder])
 }
 
 model FollowUpTask {
