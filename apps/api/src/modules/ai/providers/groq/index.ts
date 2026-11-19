@@ -4,6 +4,7 @@ import Groq from "groq-sdk";
 import { z } from "zod";
 import { buildCvSummaryPrompt, buildExtractProfilePrompt, buildMatchPrompt, buildSourcingPlanPrompt } from "@/modules/ai/prompts";
 import { chatReplySchema, cvSummarySchema, extractedProfileSchema, matchAnalysisSchema, sourcingPlanSchema } from "@/schemas/ai";
+import { parseRetryAfterMs } from "./retry-after";
 import type {
   AiProvider,
   AnalyzeMatchInput,
@@ -22,6 +23,7 @@ import type {
 const MAX_PROFILE_CV_CHARACTERS = 45_000;
 const MAX_SUMMARY_CV_CHARACTERS = 45_000;
 const DEFAULT_MODEL = "openai/gpt-oss-120b";
+const DEFAULT_QUOTA_RETRY_MS = 60_000;
 
 type GroqTask = "matching" | "profile-extraction" | "cv-summary" | "sourcing-plan" | "chat-reply";
 
@@ -363,28 +365,9 @@ export class GroqAiProvider implements AiProvider {
   }
 
   private parseRetryAfter(error: unknown): number {
-    const record = error as Record<string, unknown>;
-    const header = record.headers && typeof record.headers === "object"
-      ? record.headers as Record<string, string>
-      : {};
-
-    const headerValue = header["retry-after"] ?? header["x-ratelimit-reset-ms"];
-    if (headerValue) {
-      const parsed = Number(headerValue);
-      if (Number.isFinite(parsed) && parsed > 0) return parsed;
-    }
-
-    const message = record.message && typeof record.message === "string"
-      ? record.message
-      : "";
-    const match = message.match(/try again in (\d+)s/i);
-    if (match) return Number(match[1]) * 1000;
-
-    const resetMatch = message.match(/reset.*?(\d{2,})\s?s/i);
-    if (resetMatch) return Number(resetMatch[1]) * 1000;
-
-    return 60_000;
+    return parseRetryAfterMs(error) ?? DEFAULT_QUOTA_RETRY_MS;
   }
+
 }
 
 export function parseStructuredResponse<T>(

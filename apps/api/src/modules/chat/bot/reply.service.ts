@@ -1,9 +1,10 @@
 import { Injectable, Logger, Optional } from "@nestjs/common";
 import { ChatConversationMode, ChatConversationStatus, ChatSenderType, JobStatus, type ChatMessage } from "@prisma/client";
-import type { ChatReplyTurn } from "@/models/ai";
+import type { ChatReplyResult, ChatReplyTurn, GenerateChatReplyInput } from "@/models/ai";
 import { AiModelPortalService } from "@/modules/ai/portal/index.service";
+import { QuotaExceededError } from "@/modules/ai/providers/groq";
 import { PrismaService } from "@/modules/prisma";
-import { botReplyClientMessageId, CHAT_BOT_HISTORY_LIMIT } from "../constants";
+import { botReplyClientMessageId, CHAT_BOT_HISTORY_LIMIT, chatAiRetryWaitMs } from "../constants";
 import { ChatRealtimePublisher } from "../realtime/publisher.service";
 import { ChatKnowledgeService } from "../service/knowledge.service";
 import type { ChatBotContext, ChatBotReply, ChatBotTurn } from "./context";
@@ -26,6 +27,8 @@ export class ChatBotService {
   private readonly logger = new Logger(ChatBotService.name);
   private readonly running = new Set<string>();
   private readonly rerunRequested = new Set<string>();
+  /** Overridable in tests so retry waits do not slow the suite down. */
+  private readonly wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 
   constructor(
     private readonly prisma: PrismaService,
@@ -100,7 +103,7 @@ export class ChatBotService {
     if (!this.ai.chatEnabled) return { ...answerFromKeywords(context), source: "keyword" };
 
     try {
-      const result = await this.ai.generateChatReply({
+      const result = await this.generateWithQuotaRetry(conversationId, {
         systemPrompt: buildChatBotSystemPrompt(context),
         turns: history.map(toReplyTurn),
       });
@@ -109,6 +112,26 @@ export class ChatBotService {
       // Quota or provider errors fall back to the offline responder so greetings and FAQs still get an answer.
       this.logger.warn(`chat_bot_ai_failed conversation=${conversationId} error=${describeError(error)}`);
       return { ...answerFromKeywords(context), source: "ai_error" };
+    }
+  }
+
+  /**
+   * Free-tier Groq limits reset within seconds, so a short wait usually beats the offline answer.
+   * Long waits (e.g. a daily limit) and non-quota errors fall back immediately.
+   */
+  private async generateWithQuotaRetry(conversationId: string, input: GenerateChatReplyInput): Promise<ChatReplyResult> {
+    const startedAt = Date.now();
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        return await this.ai.generateChatReply(input);
+      } catch (error) {
+        const waitMs = error instanceof QuotaExceededError
+          ? chatAiRetryWaitMs({ retryAfterMs: error.retryAfterMs, attempt, elapsedMs: Date.now() - startedAt })
+          : null;
+        if (waitMs === null) throw error;
+        this.logger.warn(`chat_bot_ai_quota_retry conversation=${conversationId} attempt=${attempt} waitMs=${waitMs}`);
+        await this.wait(waitMs);
+      }
     }
   }
 

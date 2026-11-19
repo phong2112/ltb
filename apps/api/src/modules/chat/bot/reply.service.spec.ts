@@ -1,6 +1,7 @@
 import { Logger } from "@nestjs/common";
 import { ChatConversationMode, ChatConversationStatus, ChatSenderType } from "@prisma/client";
 import type { AiModelPortalService } from "@/modules/ai/portal/index.service";
+import { QuotaExceededError } from "@/modules/ai/providers/groq";
 import type { PrismaService } from "@/modules/prisma";
 import { botReplyClientMessageId } from "../constants";
 import type { ChatRealtimePublisher } from "../realtime/publisher.service";
@@ -55,7 +56,9 @@ function setup(options: {
     knowledge as unknown as ChatKnowledgeService,
     realtime as unknown as ChatRealtimePublisher,
   );
-  return { service, prisma, tx, ai, realtime };
+  const wait = jest.fn().mockResolvedValue(undefined);
+  Object.assign(service, { wait });
+  return { service, prisma, tx, ai, realtime, wait };
 }
 
 describe("ChatBotService.replyTo", () => {
@@ -138,6 +141,53 @@ describe("ChatBotService.replyTo", () => {
     expect(tx.chatConversation.updateMany).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.not.objectContaining({ handoffRequestedAt: expect.anything() }),
     }));
+  });
+});
+
+describe("ChatBotService quota retry", () => {
+  beforeEach(() => {
+    jest.spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
+    jest.spyOn(Logger.prototype, "warn").mockImplementation(() => undefined);
+  });
+
+  it("waits out a short rate limit and still answers with AI", async () => {
+    const generateChatReply = jest.fn()
+      .mockRejectedValueOnce(new QuotaExceededError(4_000))
+      .mockResolvedValueOnce({ reply: "Một vòng online.", handoff: false });
+    const { service, tx, wait } = setup({ generateChatReply });
+    await service.replyTo("c1");
+    expect(wait).toHaveBeenCalledWith(4_000);
+    expect(generateChatReply).toHaveBeenCalledTimes(2);
+    expect(tx.chatMessage.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: expect.objectContaining({ content: "Một vòng online." }),
+    }));
+  });
+
+  it("uses the offline answer right away when the wait is too long", async () => {
+    const generateChatReply = jest.fn().mockRejectedValue(new QuotaExceededError(60_000));
+    const { service, tx, wait } = setup({ generateChatReply });
+    await service.replyTo("c1");
+    expect(wait).not.toHaveBeenCalled();
+    expect(generateChatReply).toHaveBeenCalledTimes(1);
+    expect(tx.chatMessage.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: expect.objectContaining({ content: expect.stringContaining("01 vòng online") }),
+    }));
+  });
+
+  it("does not retry errors that are not rate limits", async () => {
+    const generateChatReply = jest.fn().mockRejectedValue(new Error("invalid JSON"));
+    const { service, wait } = setup({ generateChatReply });
+    await service.replyTo("c1");
+    expect(wait).not.toHaveBeenCalled();
+    expect(generateChatReply).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops after the maximum number of attempts", async () => {
+    const generateChatReply = jest.fn().mockRejectedValue(new QuotaExceededError(1_000));
+    const { service, wait } = setup({ generateChatReply });
+    await service.replyTo("c1");
+    expect(generateChatReply).toHaveBeenCalledTimes(3);
+    expect(wait).toHaveBeenCalledTimes(2);
   });
 });
 
