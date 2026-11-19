@@ -9,6 +9,20 @@ export function normalizeForMatching(input: string) {
     .trim();
 }
 
+export function hasVietnameseDiacritics(input: string) {
+  return /[\u0300-\u036fđĐ]/.test(input.normalize("NFD"));
+}
+
+/** Lowercase words with Vietnamese diacritics preserved, punctuation removed. */
+export function tokenizeKeepingDiacritics(input: string) {
+  return input
+    .normalize("NFC")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}+#\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 const HANDOFF_PHRASES = [
   "gap hr",
   "gap ta",
@@ -65,4 +79,24 @@ export function truncateText(input: string, maxLength: number) {
 
 export function capitalize(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+const HTML_ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: "\"", apos: "'", nbsp: " ", "#39": "'" };
+
+/** Job fields come from the rich-text editor; the bot and guests need plain text. */
+export function htmlToPlainText(input: string | null | undefined) {
+  if (!input) return "";
+  return input
+    .replace(/<\s*li[^>]*>/gi, "\n- ")
+    .replace(/<\s*(br|\/p|\/div|\/h[1-6]|\/ul|\/ol)[^>]*>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&(#\d+|[a-z]+);/gi, (entity, name: string) => {
+      const key = name.toLowerCase();
+      if (HTML_ENTITIES[key] !== undefined) return HTML_ENTITIES[key];
+      return key.startsWith("#") ? String.fromCharCode(Number(key.slice(1))) : entity;
+    })
+    .replace(/[ \t]+/g, " ")
+    .replace(/ *\n */g, "\n")
+    .replace(/\n{2,}/g, "\n")
+    .trim();
 }

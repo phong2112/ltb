@@ -7,10 +7,10 @@ import { PrismaService } from "@/modules/prisma";
 import { botReplyClientMessageId, CHAT_BOT_HISTORY_LIMIT, chatAiRetryWaitMs } from "../constants";
 import { ChatRealtimePublisher } from "../realtime/publisher.service";
 import { ChatKnowledgeService } from "../service/knowledge.service";
-import type { ChatBotContext, ChatBotReply, ChatBotTurn } from "./context";
+import type { ChatBotContext, ChatBotJob, ChatBotReply, ChatBotTurn } from "./context";
 import { answerFromKeywords } from "./keyword-responder";
 import { buildChatBotSystemPrompt, CHAT_BOT_FALLBACK_REPLIES, CHAT_BOT_PROMPT_VERSION } from "./prompt";
-import { isHandoffRequest } from "./text";
+import { htmlToPlainText, isHandoffRequest } from "./text";
 
 const MAX_JOBS_FOR_BOT = 30;
 
@@ -148,7 +148,7 @@ export class ChatBotService {
         },
       }),
     ]);
-    return { knowledge, jobs };
+    return { knowledge, jobs: jobs.map(toPlainTextJob) };
   }
 
   /**
@@ -221,6 +221,15 @@ export function findPendingGuestMessage(recent: RecentMessage[]) {
   const answeredByTa = recent.slice(latestGuestIndex + 1).some(message => message.senderType === ChatSenderType.TA);
   const answeredByBot = recent.some(message => message.clientMessageId === botReplyClientMessageId(latestGuest.id));
   return answeredByTa || answeredByBot ? null : latestGuest;
+}
+
+function toPlainTextJob(job: ChatBotJob): ChatBotJob {
+  return {
+    ...job,
+    description: htmlToPlainText(job.description),
+    requirements: htmlToPlainText(job.requirements),
+    benefits: job.benefits ? htmlToPlainText(job.benefits) : null,
+  };
 }
 
 function toBotTurn(message: RecentMessage): ChatBotTurn {

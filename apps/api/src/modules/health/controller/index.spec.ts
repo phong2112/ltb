@@ -3,6 +3,7 @@ jest.mock("sanitize-html", () => ({
   default: (value: string) => value.replace(/<[^>]+>/g, ""),
 }));
 
+import type { AiModelPortalService } from "@/modules/ai/portal/index.service";
 import type { AiQueueService } from "@/modules/ai/queue/index.service";
 import { HealthController } from "./index.controller";
 
@@ -19,10 +20,13 @@ describe("HealthController", () => {
       getMetrics: jest.fn().mockReturnValue(metrics),
     } as unknown as AiQueueService;
 
-    expect(new HealthController(aiQueueService).check()).toMatchObject({
+    const aiModels = { chatEnabled: true } as unknown as AiModelPortalService;
+
+    expect(new HealthController(aiQueueService, aiModels).check()).toMatchObject({
       status: "ok",
       service: "hr-copilot-api",
       aiQueues: metrics,
+      chatAi: { enabled: true },
     });
   });
 });

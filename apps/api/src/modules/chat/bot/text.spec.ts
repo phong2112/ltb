@@ -1,4 +1,4 @@
-import { detectSmallTalk, isHandoffRequest, normalizeForMatching, truncateText } from "./text";
+import { detectSmallTalk, htmlToPlainText, isHandoffRequest, normalizeForMatching, truncateText } from "./text";
 
 describe("chat bot text helpers", () => {
   it("normalizes Vietnamese diacritics for matching", () => {
@@ -29,5 +29,11 @@ describe("chat bot text helpers", () => {
   it("truncates long text with an ellipsis", () => {
     expect(truncateText("abcdefghij", 5)).toBe("abcd…");
     expect(truncateText("  short  ", 10)).toBe("short");
+  });
+
+  it("converts rich-text job HTML to plain text", () => {
+    const html = "<p><strong>1. Trình độ</strong></p><ul><li><p>Tốt nghiệp Đại học &amp; có 3 năm kinh nghiệm.</p></li><li><p>Vingroup&#39;s ecosystem</p></li></ul>";
+    expect(htmlToPlainText(html)).toBe("1. Trình độ\n- Tốt nghiệp Đại học & có 3 năm kinh nghiệm.\n- Vingroup's ecosystem");
+    expect(htmlToPlainText(null)).toBe("");
   });
 });
