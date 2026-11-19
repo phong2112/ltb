@@ -14,7 +14,8 @@ import { answerFromKeywords, findMatchingKnowledge } from "./keyword-responder";
 import { buildChatBotSystemPrompt, CHAT_BOT_FALLBACK_REPLIES, CHAT_BOT_PROMPT_VERSION } from "./prompt";
 import { htmlToPlainText, isHandoffRequest } from "./text";
 
-const MAX_JOBS_FOR_BOT = 30;
+// The job list and counts shown to guests must cover every open job; the prompt itself is capped separately.
+const MAX_JOBS_FOR_BOT = 200;
 
 type ReplySource = "ai" | "ai_faq" | "ai_error" | "faq" | "job_list" | "keyword" | "handoff_rule";
 type BotReplyOutcome = ChatBotReply & { source: ReplySource };

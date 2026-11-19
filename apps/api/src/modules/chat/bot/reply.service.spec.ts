@@ -173,6 +173,12 @@ describe("ChatBotService FAQ answers", () => {
     expect(tx.chatMessage.upsert.mock.calls[0][0].create.content).toBe(`${interview.content}\n\n${salary.content}`);
   });
 
+  it("loads every open job so the job list and its count are complete", async () => {
+    const { service, prisma } = setup({ question: "Đang tuyển những vị trí nào?" });
+    await service.replyTo("c1");
+    expect(prisma.job.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 200 }));
+  });
+
   it("answers the job-list suggestion from the job table without calling the AI", async () => {
     const { service, ai, prisma, tx } = setup({ messagesNewestFirst: [{ id: "g1", senderType: ChatSenderType.GUEST, content: "Đang tuyển những vị trí nào?" }] });
     prisma.job.findMany.mockResolvedValue([{ id: "job-da", title: "Data Analyst", company: "VSF", locations: ["Hà Nội"], employment: null, level: null, salaryRange: null, description: "", requirements: "", benefits: null }]);
